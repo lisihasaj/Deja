@@ -1,0 +1,231 @@
+:root {
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --text: #1c2430;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --accent: #4f46e5;
+    --accent-contrast: #ffffff;
+    --error: #b91c1c;
+    --error-bg: #fef2f2;
+    --radius: 10px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+}
+
+.boot {
+    padding: 4rem 1rem;
+    text-align: center;
+    color: var(--muted);
+}
+
+.app-shell {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+}
+
+.site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1.5rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+.brand {
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: var(--text);
+    text-decoration: none;
+}
+
+.site-links a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.site-main {
+    width: min(46rem, 100% - 2rem);
+    margin: 0 auto;
+    padding: 2rem 0 3rem;
+    flex: 1;
+}
+
+.lead {
+    color: var(--muted);
+    margin-bottom: 2rem;
+}
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.card-header h2 {
+    margin: 0;
+    font-size: 1.15rem;
+}
+
+.badges {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.badge {
+    font-size: 0.72rem;
+    font-family: ui-monospace, monospace;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: var(--bg);
+    transition: all 120ms ease;
+}
+
+.badge.on {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: #eef2ff;
+}
+
+.badge.on.err {
+    border-color: var(--error);
+    color: var(--error);
+    background: var(--error-bg);
+}
+
+.badge.on.neutral {
+    border-color: var(--border);
+    color: var(--text);
+    background: var(--bg);
+}
+
+.todo-list {
+    margin: 0.5rem 0;
+    padding-left: 1.25rem;
+}
+
+.todo-list li {
+    padding: 0.15rem 0;
+}
+
+.actions {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-top: 0.75rem;
+}
+
+button {
+    font: inherit;
+    padding: 0.45rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--accent-contrast);
+    cursor: pointer;
+}
+
+button.secondary {
+    background: var(--surface);
+    color: var(--accent);
+}
+
+button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+input {
+    font: inherit;
+    padding: 0.45rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    flex: 1;
+    min-width: 12rem;
+}
+
+input:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+    border-color: transparent;
+}
+
+.muted {
+    color: var(--muted);
+}
+
+.error {
+    color: var(--error);
+    background: var(--error-bg);
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+}
+
+.hint {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-bottom: 0;
+}
+
+.hint code {
+    font-family: ui-monospace, monospace;
+    background: var(--bg);
+    padding: 0.05rem 0.3rem;
+    border-radius: 4px;
+}
+
+.site-footer {
+    padding: 1rem 1.5rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+}
+
+#blazor-error-ui {
+    background: #fff7ed;
+    bottom: 0;
+    box-shadow: 0 -1px 4px rgb(0 0 0 / 0.15);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}

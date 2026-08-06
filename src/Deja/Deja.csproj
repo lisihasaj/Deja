@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <RootNamespace>Deja</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- Package identity -->
+  <PropertyGroup>
+    <PackageId>Deja</PackageId>
+    <Title>Deja</Title>
+    <Authors>Lisjan Hasaj</Authors>
+    <Description>React Query-style data fetching, mutation and caching primitives for Blazor (WebAssembly and Server): bindable loading/error/refetch state, in-flight request deduplication, supersede-and-cancel of stale executions, and cancellation-aware fetches. Dependency-free.</Description>
+    <PackageTags>blazor;query;react-query;tanstack-query;data-fetching;fetch;cache;caching;mutation;async;state;webassembly;wasm;blazor-server</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/lisihasaj/Deja</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/lisihasaj/Deja</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>See https://github.com/lisihasaj/Deja/blob/main/CHANGELOG.md</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <!-- Build quality, supply chain and debugging experience -->
+  <PropertyGroup>
+    <!-- SourceLink (built into the .NET 8+ SDK) -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <!-- Symbol package published alongside the nupkg -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <!-- Validate the package on pack (baseline version added after first stable release) -->
+    <EnablePackageValidation>true</EnablePackageValidation>
+  </PropertyGroup>
+
+  <!-- Version is derived from git tags (v*) by MinVer -->
+  <PropertyGroup>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <!-- Pre-release versions before the first tag start at 0.1.0-alpha.x -->
+    <MinVerMinimumMajorMinor>0.1</MinVerMinimumMajorMinor>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MinVer" Version="7.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>
