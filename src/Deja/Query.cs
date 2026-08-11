@@ -1,18 +1,20 @@
 using System.Collections.Concurrent;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 
 namespace Deja;
 
 /// <summary>
-/// Tracks a single asynchronous read and exposes its lifecycle as bindable state, raising
-/// <see cref="INotifyPropertyChanged.PropertyChanged"/> as it advances so components can
-/// re-render. A newer <see cref="Execute"/> supersedes (and cancels) an older in-flight one,
-/// and concurrent calls sharing a <see cref="QueryParameters{T}.QueryKey"/> join the same
-/// execution instead of fetching twice.
+/// Tracks a single asynchronous read and exposes its lifecycle as bindable state, notifying its
+/// attached listener as it advances so the owning component can re-render. A newer
+/// <see cref="Execute"/> supersedes (and cancels) an older in-flight one, and concurrent calls
+/// sharing a <see cref="QueryParameters{T}.QueryKey"/> join the same execution instead of fetching
+/// twice.
 /// </summary>
+/// <remarks>
+/// Inherit <see cref="DejaComponentBase"/> in the owning component and the attachment is made (and
+/// released) for you; see <see cref="IDejaObservable"/> for the single-owner rule.
+/// </remarks>
 /// <typeparam name="T">The type of the fetched data.</typeparam>
-public class Query<T> : INotifyPropertyChanged, IDisposable
+public class Query<T> : DejaObservable, IDisposable
 {
     private readonly ConcurrentDictionary<string, Lazy<Task>> _inFlightExecutions = new(StringComparer.Ordinal);
 
@@ -22,12 +24,6 @@ public class Query<T> : INotifyPropertyChanged, IDisposable
     // (e.g. when the owning component is disposed on navigation) cancels the live load.
     private CancellationTokenSource? _executionCts;
     private bool _disposed;
-
-    /// <inheritdoc />
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    /// <summary>True while the very first execution is loading. Use it for initial skeletons.</summary>
-    public bool InitialLoading { get; private set; }
 
     /// <summary>True while any execution is loading.</summary>
     public bool IsLoading { get; private set; }
@@ -109,20 +105,15 @@ public class Query<T> : INotifyPropertyChanged, IDisposable
 
         ReFetchCount++;
 
-        if (ReFetchCount == 1)
-        {
-            InitialLoading = true;
-            OnPropertyChanged(nameof(InitialLoading));
-        }
-
         IsLoading = true;
-        OnPropertyChanged(nameof(IsLoading));
 
         if (ReFetchCount > 1)
         {
             IsReFetching = true;
-            OnPropertyChanged(nameof(IsReFetching));
         }
+
+        // One notification for the whole entry transition, once every flag above is coherent.
+        NotifyChanged();
 
         var cancelled = false;
 
@@ -132,23 +123,21 @@ public class Query<T> : INotifyPropertyChanged, IDisposable
 
             if (token.IsCancellationRequested)
             {
-                // A token-less QueryFunction can't observe the supersede; discard its stale result
-                // so it doesn't overwrite the newer load's data.
+                // A QueryFunction that ignores its token can't observe the supersede; discard its
+                // stale result so it doesn't overwrite the newer load's data.
                 cancelled = true;
             }
             else
             {
                 // A successful refetch clears a previous failure so error UI doesn't outlive the recovery.
-                if (IsError)
-                {
-                    IsError = false;
-                    OnPropertyChanged(nameof(IsError));
-
-                    ErrorMessage = null;
-                    OnPropertyChanged(nameof(ErrorMessage));
-                }
-
+                IsError = false;
+                ErrorMessage = null;
                 Data = data;
+
+                // Notify before the callbacks so the listener never renders against data the query
+                // has accepted but not yet published.
+                NotifyChanged();
+
                 await InvokeSuccessCallbacks(parameters);
             }
         }
@@ -162,10 +151,8 @@ public class Query<T> : INotifyPropertyChanged, IDisposable
         catch (Exception e)
         {
             IsError = true;
-            OnPropertyChanged(nameof(IsError));
-
             ErrorMessage = e.Message;
-            OnPropertyChanged(nameof(ErrorMessage));
+            NotifyChanged();
 
             var handled = await InvokeErrorCallbacks(parameters, e);
             if (!handled)
@@ -180,10 +167,9 @@ public class Query<T> : INotifyPropertyChanged, IDisposable
         }
         finally
         {
-            // Only the current (non-superseded) execution may touch the shared loading flags:
-            // a superseded execution finishing early must not clear the spinner the live load
-            // just turned on, and the live load must clear InitialLoading even when a superseded
-            // sibling bumped ReFetchCount past 1 in the meantime.
+            // Only the current (non-superseded) execution may touch the shared loading flags: a
+            // superseded execution finishing early must not clear the spinner the live load just
+            // turned on.
             var isCurrent = ReferenceEquals(_executionCts, cts);
             if (isCurrent)
             {
@@ -193,20 +179,9 @@ public class Query<T> : INotifyPropertyChanged, IDisposable
 
             if (isCurrent)
             {
-                if (InitialLoading)
-                {
-                    InitialLoading = false;
-                    OnPropertyChanged(nameof(InitialLoading));
-                }
-
                 IsLoading = false;
-                OnPropertyChanged(nameof(IsLoading));
-
-                if (IsReFetching)
-                {
-                    IsReFetching = false;
-                    OnPropertyChanged(nameof(IsReFetching));
-                }
+                IsReFetching = false;
+                NotifyChanged();
             }
 
             if (!cancelled)
@@ -218,18 +193,12 @@ public class Query<T> : INotifyPropertyChanged, IDisposable
 
     private static async Task<T> FetchAsync(QueryParameters<T> parameters, CancellationToken token)
     {
-        if (parameters.QueryFunctionWithToken is not null)
-        {
-            return await parameters.QueryFunctionWithToken(token);
-        }
-
         if (parameters.QueryFunction is not null)
         {
-            return await parameters.QueryFunction();
+            return await parameters.QueryFunction(token);
         }
 
-        throw new InvalidOperationException(
-            "QueryParameters requires QueryFunction or QueryFunctionWithToken.");
+        throw new InvalidOperationException("QueryParameters requires QueryFunction.");
     }
 
     private static async Task<T> FetchWithTimeoutRetryAsync(QueryParameters<T> parameters, CancellationToken token)
@@ -262,7 +231,6 @@ public class Query<T> : INotifyPropertyChanged, IDisposable
         }
 
         parameters.OnSuccess?.Invoke(Data);
-        OnPropertyChanged(nameof(Data));
     }
 
     // Returns true when at least one error callback observed the exception.
@@ -332,9 +300,11 @@ public class Query<T> : INotifyPropertyChanged, IDisposable
         IsError = false;
         ErrorMessage = null;
         ReFetchCount = 0;
-        InitialLoading = false;
         IsReFetching = false;
-        OnPropertyChanged(nameof(Data));
+
+        // One notification covering the whole reset — previously only Data was raised, so a
+        // component binding IsError kept rendering a cleared error.
+        NotifyChanged();
     }
 
     /// <summary>
@@ -363,12 +333,6 @@ public class Query<T> : INotifyPropertyChanged, IDisposable
             cts.Dispose();
         }
     }
-
-    /// <summary>Raises <see cref="PropertyChanged"/>.</summary>
-    protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
 }
 
 /// <summary>Describes one execution of a <see cref="Query{T}"/>: how to fetch and which callbacks to run.</summary>
@@ -378,21 +342,18 @@ public class QueryParameters<T>
     /// <summary>Optional key; concurrent executions sharing a key join instead of fetching twice.</summary>
     public string? QueryKey { get; set; }
 
-    /// <summary>The function that fetches the data.</summary>
-    public Func<Task<T>>? QueryFunction { get; set; }
-
     /// <summary>
-    /// Token-aware fetch function. Prefer this over <see cref="QueryFunction"/> when the underlying
-    /// call supports cancellation — <see cref="Query{T}"/> passes a token that is cancelled when a
-    /// newer load supersedes this one or when the query is disposed. Takes precedence over
-    /// <see cref="QueryFunction"/> when both are set.
+    /// The function that fetches the data. <see cref="Query{T}"/> passes a token that is cancelled
+    /// when a newer load supersedes this one or when the query is disposed; honour it when the
+    /// underlying call supports cancellation. A fetch that cannot observe cancellation ignores the
+    /// token with a discard: <c>QueryFunction = _ => FetchAsync()</c>.
     /// </summary>
-    public Func<CancellationToken, Task<T>>? QueryFunctionWithToken { get; set; }
+    public Func<CancellationToken, Task<T>>? QueryFunction { get; set; }
 
     /// <summary>
     /// Caller-owned lifetime token (e.g. a component-scoped <see cref="CancellationTokenSource"/>
     /// cancelled in Dispose). Linked into the per-execution token handed to
-    /// <see cref="QueryFunctionWithToken"/>.
+    /// <see cref="QueryFunction"/>.
     /// </summary>
     public CancellationToken CancellationToken { get; set; }
 

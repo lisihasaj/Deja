@@ -1,12 +1,12 @@
 @page "/"
-@implements IDisposable
+@inherits DejaComponentBase
 @inject FakeTodoApi Api
 
-<PageTitle>Deja — React Query-style data fetching for Blazor</PageTitle>
+<PageTitle>Deja — data fetching for Blazor</PageTitle>
 
 <h1>Deja</h1>
 <p class="lead">
-    React Query-style data fetching, mutation and caching primitives for Blazor.
+    Data fetching, mutation and caching primitives for Blazor.
     The list below is served by a fake API with ~1s of latency so every lifecycle
     state is visible.
 </p>
@@ -15,7 +15,6 @@
     <header class="card-header">
         <h2>Query</h2>
         <div class="badges">
-            <span class="badge @(_todos.InitialLoading ? "on" : "")">InitialLoading</span>
             <span class="badge @(_todos.IsLoading ? "on" : "")">IsLoading</span>
             <span class="badge @(_todos.IsReFetching ? "on" : "")">IsReFetching</span>
             <span class="badge @(_todos.IsError ? "on err" : "")">IsError</span>
@@ -23,7 +22,7 @@
         </div>
     </header>
 
-    @if (_todos.InitialLoading)
+    @if (_todos.IsLoading)
     {
         <p class="muted">Loading todos…</p>
     }
@@ -87,18 +86,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _todos.PropertyChanged += OnStateChanged;
-        _addTodo.PropertyChanged += OnStateChanged;
-
+        // DejaComponentBase.OnInitialized has already attached _todos and _addTodo, so both
+        // re-render this component with no subscription, handler or Dispose of our own.
         await LoadTodos();
     }
-
-    private void OnStateChanged(object? sender, PropertyChangedEventArgs e) => _ = InvokeAsync(StateHasChanged);
 
     private Task LoadTodos() => _todos.Execute(new QueryParameters<IReadOnlyList<Todo>>
     {
         QueryKey = "todos",
-        QueryFunctionWithToken = Api.GetTodosAsync,
+        QueryFunction = Api.GetTodosAsync,
         // The error is rendered inline from IsError/ErrorMessage; an empty handler marks it
         // handled so Execute doesn't rethrow into the component lifecycle.
         OnError = _ => { },
@@ -133,13 +129,6 @@
             // Mutation.Execute rethrows after the callbacks ran; the error is already
             // surfaced via _mutationError.
         }
-    }
-
-    public void Dispose()
-    {
-        _todos.PropertyChanged -= OnStateChanged;
-        _addTodo.PropertyChanged -= OnStateChanged;
-        _todos.Dispose();
     }
 
 }

@@ -134,15 +134,71 @@ public class MutationTests
     }
 
     [Fact]
-    public async Task PropertyChanged_IsRaisedForLoadingAndData()
+    public async Task Execute_NotifiesOncePerStateTransition()
     {
         var mutation = new Mutation<int>();
-        var changed = new List<string?>();
-        mutation.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+        var notifications = 0;
+        using var attachment = mutation.Attach(() => notifications++);
 
         await mutation.Execute(new MutationParameters<int> { MutationFunction = () => Task.FromResult(1) });
 
-        Assert.Contains(nameof(Mutation<int>.IsLoading), changed);
-        Assert.Contains(nameof(Mutation<int>.Data), changed);
+        // Entry (cleared error + IsLoading), success (Data), exit (IsLoading cleared).
+        Assert.Equal(3, notifications);
+    }
+
+    [Fact]
+    public async Task Execute_NotifiesWithCoherentState()
+    {
+        var mutation = new Mutation<int>();
+        var snapshots = new List<(bool Loading, int? Data)>();
+        using var attachment = mutation.Attach(() => snapshots.Add((mutation.IsLoading, mutation.Data)));
+
+        await mutation.Execute(new MutationParameters<int> { MutationFunction = () => Task.FromResult(7) });
+
+        Assert.Equal((true, 0), snapshots[0]);
+        Assert.Equal((true, 7), snapshots[1]);
+        Assert.Equal((false, 7), snapshots[^1]);
+    }
+
+    [Fact]
+    public async Task Execute_ErrorPath_NotifiesOncePerTransition()
+    {
+        var mutation = new Mutation<int>();
+        var notifications = 0;
+        using var attachment = mutation.Attach(() => notifications++);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            mutation.Execute(new MutationParameters<int>
+            {
+                MutationFunction = () => Task.FromException<int>(new InvalidDataException("boom")),
+                OnError = _ => { },
+            }));
+
+        // Entry, error (IsError + ErrorMessage + cleared Data), exit.
+        Assert.Equal(3, notifications);
+    }
+
+    [Fact]
+    public void Attach_SecondListenerWhileOneIsLive_Throws()
+    {
+        var mutation = new Mutation<int>();
+        using var attachment = mutation.Attach(() => { });
+
+        Assert.Throws<InvalidOperationException>(() => mutation.Attach(() => { }));
+    }
+
+    [Fact]
+    public async Task NotifyChanged_AfterDetach_IsNoOp()
+    {
+        var mutation = new Mutation<int>();
+        var notifications = 0;
+
+        var attachment = mutation.Attach(() => notifications++);
+        attachment.Dispose();
+
+        await mutation.Execute(new MutationParameters<int> { MutationFunction = () => Task.FromResult(1) });
+
+        Assert.Equal(0, notifications);
+        Assert.Equal(1, mutation.Data);
     }
 }

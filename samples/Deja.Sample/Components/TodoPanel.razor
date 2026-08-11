@@ -1,0 +1,58 @@
+@inherits DejaComponentBase
+@inject FakeTodoApi Api
+
+@* Instantiated twice by Pages/Isolation.razor. Field initializers run per instance, so each
+   panel owns its own _todos and attaches to it alone — neither can re-render the other. *@
+
+<section class="card">
+    <header class="card-header">
+        <h2>@Title</h2>
+        <div class="badges">
+            <span class="badge @(_todos.IsLoading ? "on" : "")">IsLoading</span>
+            <span class="badge @(_todos.IsReFetching ? "on" : "")">IsReFetching</span>
+            <span class="badge @(_todos.IsError ? "on err" : "")">IsError</span>
+            <span class="badge on neutral">Renders: @_renderCount</span>
+        </div>
+    </header>
+
+    @if (_todos.IsLoading)
+    {
+        <p class="muted">Loading todos…</p>
+    }
+    else if (_todos.IsError)
+    {
+        <p class="error" role="alert">@_todos.ErrorMessage</p>
+    }
+    else
+    {
+        <ul class="todo-list">
+            @foreach (var todo in _todos.Data ?? [])
+            {
+                <li>@todo.Title</li>
+            }
+        </ul>
+    }
+
+    <div class="actions">
+        <button @onclick="LoadTodos" disabled="@_todos.IsLoading">Refetch @Title</button>
+    </div>
+</section>
+
+@code {
+    /// <summary>Distinguishes the two panels in the UI.</summary>
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    private readonly Query<IReadOnlyList<Todo>> _todos = new();
+    private int _renderCount;
+
+    protected override async Task OnInitializedAsync() => await LoadTodos();
+
+    protected override void OnAfterRender(bool firstRender) => _renderCount++;
+
+    // No QueryKey: each panel fetches independently, so the render counters move separately.
+    private Task LoadTodos() => _todos.Execute(new QueryParameters<IReadOnlyList<Todo>>
+    {
+        QueryFunction = Api.GetTodosAsync,
+        OnError = _ => { },
+    });
+}

@@ -1,0 +1,16 @@
+@page "/lifecycle"
+
+<PageTitle>Deja — the OnInitialized contract</PageTitle>
+
+<h1>Lifecycle</h1>
+<p class="lead">
+    A component overriding <code>OnInitialized</code> must call <code>base.OnInitialized()</code> —
+    that call runs the scan that attaches declared <code>Query&lt;T&gt;</code> and
+    <code>Mutation&lt;T&gt;</code> state. Both panels below run the same fetch; the second one
+    skips the base call. Forgetting it compiles and renders once, so
+    <code>DejaComponentBase</code> detects the skipped call and logs a console error naming the
+    component — open the browser console (F12) to see it.
+</p>
+
+<LifecyclePanel />
+<BrokenLifecyclePanel />

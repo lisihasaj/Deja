@@ -1,20 +1,17 @@
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-
 namespace Deja;
 
 /// <summary>
 /// Tracks a single asynchronous write and exposes its lifecycle
 /// (<see cref="IsLoading"/>, <see cref="IsError"/>, <see cref="Data"/>) as bindable state,
-/// raising <see cref="INotifyPropertyChanged.PropertyChanged"/> as it advances so components
-/// can re-render.
+/// notifying its attached listener as it advances so the owning component can re-render.
 /// </summary>
+/// <remarks>
+/// Inherit <see cref="DejaComponentBase"/> in the owning component and the attachment is made (and
+/// released) for you; see <see cref="IDejaObservable"/> for the single-owner rule.
+/// </remarks>
 /// <typeparam name="T">The type returned by the mutation.</typeparam>
-public class Mutation<T> : INotifyPropertyChanged
+public class Mutation<T> : DejaObservable
 {
-    /// <inheritdoc />
-    public event PropertyChangedEventHandler? PropertyChanged;
-
     /// <summary>True while the mutation is running.</summary>
     public bool IsLoading { get; private set; }
 
@@ -36,9 +33,11 @@ public class Mutation<T> : INotifyPropertyChanged
     {
         IsError = false;
         ErrorMessage = null;
-
         IsLoading = true;
-        OnPropertyChanged(nameof(IsLoading));
+
+        // One notification for the whole entry transition; previously the cleared error state
+        // rode along silently on the IsLoading raise.
+        NotifyChanged();
 
         try
         {
@@ -56,17 +55,18 @@ public class Mutation<T> : INotifyPropertyChanged
                     "MutationFunction or VoidMutationFunction should be provided in order to run mutation");
             }
 
+            // Notify before the callbacks so the listener never renders against a result the
+            // mutation has accepted but not yet published.
+            NotifyChanged();
+
             await InvokeSuccessCallbacks(parameters);
         }
         catch (Exception e)
         {
             Data = default;
-
             IsError = true;
-            OnPropertyChanged(nameof(IsError));
-
             ErrorMessage = e.Message;
-            OnPropertyChanged(nameof(ErrorMessage));
+            NotifyChanged();
 
             await InvokeErrorCallbacks(parameters, e);
             throw new InvalidOperationException("Mutation failed", e);
@@ -74,7 +74,7 @@ public class Mutation<T> : INotifyPropertyChanged
         finally
         {
             IsLoading = false;
-            OnPropertyChanged(nameof(IsLoading));
+            NotifyChanged();
 
             await InvokeSettledCallbacks(parameters);
         }
@@ -88,7 +88,6 @@ public class Mutation<T> : INotifyPropertyChanged
         }
 
         parameters.OnSuccess?.Invoke(Data);
-        OnPropertyChanged(nameof(Data));
     }
 
     private static async Task InvokeErrorCallbacks(MutationParameters<T> parameters, Exception e)
@@ -119,12 +118,6 @@ public class Mutation<T> : INotifyPropertyChanged
         }
 
         parameters.OnSettled?.Invoke(Data);
-    }
-
-    /// <summary>Raises <see cref="PropertyChanged"/>.</summary>
-    protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }
 

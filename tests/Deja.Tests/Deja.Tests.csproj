@@ -16,6 +16,13 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
   </ItemGroup>
 
+  <!-- bUnit 2.x targets net10.0 only, so the component-rendering tests (DejaComponentBaseTests)
+       compile on the net10.0 leg alone. The net8.0 leg still covers Query, Mutation and
+       DejaObservable, which are pure BCL. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="bunit" Version="2.9.0" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Deja\Deja.csproj" />
   </ItemGroup>

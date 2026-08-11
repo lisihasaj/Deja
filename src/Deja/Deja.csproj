@@ -11,8 +11,8 @@
     <PackageId>Deja</PackageId>
     <Title>Deja</Title>
     <Authors>Lisjan Hasaj</Authors>
-    <Description>React Query-style data fetching, mutation and caching primitives for Blazor (WebAssembly and Server): bindable loading/error/refetch state, in-flight request deduplication, supersede-and-cancel of stale executions, and cancellation-aware fetches. Dependency-free.</Description>
-    <PackageTags>blazor;query;react-query;tanstack-query;data-fetching;fetch;cache;caching;mutation;async;state;webassembly;wasm;blazor-server</PackageTags>
+    <Description>Data fetching, mutation and caching primitives for Blazor (WebAssembly and Server): bindable loading/error/refetch state, in-flight request deduplication, supersede-and-cancel of stale executions, and cancellation-aware fetches. Dependency-free.</Description>
+    <PackageTags>blazor;query;data-fetching;fetch;cache;caching;mutation;async;state;webassembly;wasm;blazor-server</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/lisihasaj/Deja</PackageProjectUrl>
     <RepositoryUrl>https://github.com/lisihasaj/Deja</RepositoryUrl>
@@ -42,6 +42,19 @@
 
   <ItemGroup>
     <PackageReference Include="MinVer" Version="7.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- Needed by DejaComponentBase (ComponentBase, [Parameter], [Inject]). IDejaObservable,
+       DejaObservable, Query<T> and Mutation<T> stay pure BCL, so splitting the component base
+       into a separate Deja.Components package later remains source-compatible.
+
+       A PackageReference rather than <FrameworkReference Include="Microsoft.AspNetCore.App" />:
+       the framework reference flows transitively to consumers and demands a *runtime* pack, which
+       does not exist for the browser-wasm RID — every Blazor WebAssembly app referencing Deja
+       would fail to build with NETSDK1082. This package carries just the component abstractions
+       and resolves on both WASM and Server. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>

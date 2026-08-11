@@ -1,0 +1,14 @@
+@page "/isolation"
+
+<PageTitle>Deja — per-component state isolation</PageTitle>
+
+<h1>Isolation</h1>
+<p class="lead">
+    Two <code>TodoPanel</code> components, each inheriting <code>DejaComponentBase</code> and
+    holding its own <code>Query&lt;T&gt;</code>. Refetch one and watch only that panel's render
+    counter move: Deja state notifies a single attached listener — the component that owns it —
+    so the other panel is not merely filtered out, it was never reachable.
+</p>
+
+<TodoPanel Title="Left" />
+<TodoPanel Title="Right" />
