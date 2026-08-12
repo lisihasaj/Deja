@@ -72,3 +72,61 @@ public abstract class DejaObservable : IDejaObservable
         }
     }
 }
+
+/// <summary>
+/// State that can notify exactly one owner when it changes. Implemented by <see cref="Query{T}"/>
+/// and <see cref="Mutation{T}"/>, and consumed by <see cref="DejaComponentBase"/>, which attaches
+/// itself as the listener so the owning component re-renders.
+/// </summary>
+/// <remarks>
+/// Deliberately single-listener rather than a multicast event: the one component that owns this
+/// state is the only thing that may be notified by it. This is what keeps two components holding
+/// their own queries from re-rendering each other.
+/// </remarks>
+public interface IDejaObservable
+{
+    /// <summary>
+    /// Registers <paramref name="listener"/> as the sole owner notified when this state changes,
+    /// and returns a handle that detaches it. Detaching is idempotent.
+    /// </summary>
+    /// <param name="listener">Invoked after each state transition.</param>
+    /// <returns>A handle whose disposal detaches <paramref name="listener"/> and frees the slot.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="listener"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// A listener is already attached and has not been detached. State is owned by one component;
+    /// to share fetched data with another component, pass <c>Data</c> down as a parameter.
+    /// </exception>
+    IDisposable Attach(Action listener);
+}
+
+/// <summary>
+/// Non-generic surface through which <see cref="DejaComponentBase"/> hands the resolved
+/// <see cref="DejaClient"/> to discovered <see cref="Query{T}"/> and <see cref="Mutation{T}"/>
+/// instances without knowing their <c>T</c>. A client already set (via constructor or parameters)
+/// is never overwritten.
+/// </summary>
+internal interface ICacheClientConsumer
+{
+    /// <summary>The cache client this state uses, or <see langword="null"/> for the uncached path.</summary>
+    DejaClient? Client { get; set; }
+}
+
+/// <summary>
+/// Non-generic surface through which <see cref="DejaComponentBase"/> hands its lifetime token to
+/// discovered <see cref="Query{T}"/> and <see cref="Mutation{T}"/> instances without knowing their
+/// <c>T</c>. The token is cancelled when the component is disposed, so every execution the
+/// component starts is scoped to it without the component wiring anything.
+/// </summary>
+/// <remarks>
+/// The ambient token is a fallback, not an override: an execution that sets its own
+/// <c>CancellationToken</c> on the parameters uses that instead. State used outside a component
+/// never receives one and behaves exactly as before.
+/// </remarks>
+internal interface IComponentLifetimeConsumer
+{
+    /// <summary>
+    /// Adopts the owning component's lifetime <paramref name="token"/>, cancelled when that
+    /// component is disposed.
+    /// </summary>
+    void SetComponentToken(CancellationToken token);
+}

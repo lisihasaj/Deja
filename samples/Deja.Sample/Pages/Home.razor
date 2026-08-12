@@ -86,8 +86,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // DejaComponentBase.OnInitialized has already attached _todos and _addTodo, so both
-        // re-render this component with no subscription, handler or Dispose of our own.
+        // The base has already attached _todos and _addTodo, so both re-render this component
+        // with no subscription, handler or Dispose of our own.
         await LoadTodos();
     }
 
@@ -110,25 +110,21 @@
     {
         _mutationError = null;
 
-        try
+        await _addTodo.Execute(new MutationParameters<Todo>
         {
-            await _addTodo.Execute(new MutationParameters<Todo>
+            // Cancellation-aware form: the token is the component's own, so an in-flight
+            // write is abandoned on navigation with nothing declared here.
+            CancellableMutationFunction = token => Api.AddTodoAsync(_newTitle, token),
+            // The error callbacks mark the failure handled, so Execute doesn't rethrow into the
+            // component lifecycle — no try/catch at the call site.
+            OnDisplayUserError = e => _mutationError = e.DisplayMessage,
+            OnError = e => _mutationError ??= e.Message,
+            OnSuccessAsync = async _ =>
             {
-                MutationFunction = () => Api.AddTodoAsync(_newTitle),
-                OnDisplayUserError = e => _mutationError = e.DisplayMessage,
-                OnError = e => _mutationError ??= e.Message,
-                OnSuccessAsync = async _ =>
-                {
-                    _newTitle = string.Empty;
-                    await LoadTodos();
-                },
-            });
-        }
-        catch (InvalidOperationException)
-        {
-            // Mutation.Execute rethrows after the callbacks ran; the error is already
-            // surfaced via _mutationError.
-        }
+                _newTitle = string.Empty;
+                await LoadTodos();
+            },
+        });
     }
 
 }

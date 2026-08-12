@@ -227,9 +227,9 @@ public class DejaComponentBaseTests
             .Add(p => p.ParameterQuery, parameterQuery)
             .AddCascadingValue(cascadingQuery));
 
-        // The parent still owns these, so their slots must be free for the parent to claim.
-        // Auto-properties compile to a backing field, so this also guards the field scan from
-        // attaching them behind the property loop's attribute checks.
+        // The parent still owns these, so their slots must be free for it to claim. Auto-properties
+        // compile to a backing field, so this also guards the field scan from attaching them behind
+        // the property loop's attribute checks.
         parameterQuery.Attach(() => { }).Dispose();
         cascadingQuery.Attach(() => { }).Dispose();
         injected.Attach(() => { }).Dispose();
@@ -397,9 +397,8 @@ public class DejaComponentBaseTests
         Assert.Throws<ObjectDisposedException>(() => probe.ObserveLate(new Query<int>()));
     }
 
-    // Console.SetError swaps a process-global writer, so a parallel test could interleave writes;
-    // the assertions below only test for presence/absence of this suite's own marker, which no
-    // other test emits.
+    // Console.SetError swaps a process-global writer, so a parallel test could interleave writes.
+    // The assertions only check for this suite's own marker, which no other test emits.
     private static string CaptureConsoleError(Action act)
     {
         var original = Console.Error;

@@ -59,23 +59,58 @@ public class MutationTests
     }
 
     [Fact]
-    public async Task Execute_OnFailure_RunsErrorCallbacks_AndRethrowsWrapped()
+    public async Task Execute_OnFailure_RunsErrorCallbacks_AndDoesNotRethrow()
     {
         var mutation = new Mutation<int>();
         Exception? observed = null;
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            mutation.Execute(new MutationParameters<int>
-            {
-                MutationFunction = () => Task.FromException<int>(new InvalidDataException("boom")),
-                OnError = e => observed = e,
-            }));
+        // An OnError handler marks the failure handled, so nothing escapes into the caller.
+        await mutation.Execute(new MutationParameters<int>
+        {
+            MutationFunction = () => Task.FromException<int>(new InvalidDataException("boom")),
+            OnError = e => observed = e,
+        });
 
-        Assert.IsType<InvalidDataException>(ex.InnerException);
         Assert.IsType<InvalidDataException>(observed);
         Assert.True(mutation.IsError);
         Assert.Equal("boom", mutation.ErrorMessage);
         Assert.Equal(0, mutation.Data);
+    }
+
+    [Fact]
+    public async Task Execute_OnFailure_WithoutErrorCallback_RethrowsWrapped()
+    {
+        var mutation = new Mutation<int>();
+
+        // Nobody observed the failure, so it must not vanish silently.
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            mutation.Execute(new MutationParameters<int>
+            {
+                MutationFunction = () => Task.FromException<int>(new InvalidDataException("boom")),
+            }));
+
+        Assert.IsType<InvalidDataException>(ex.InnerException);
+        Assert.True(mutation.IsError);
+        Assert.Equal("boom", mutation.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task Execute_OnFailure_AsyncErrorCallback_MarksHandled()
+    {
+        var mutation = new Mutation<int>();
+        Exception? observed = null;
+
+        await mutation.Execute(new MutationParameters<int>
+        {
+            MutationFunction = () => Task.FromException<int>(new InvalidDataException("boom")),
+            OnErrorAsync = e =>
+            {
+                observed = e;
+                return Task.CompletedTask;
+            },
+        });
+
+        Assert.IsType<InvalidDataException>(observed);
     }
 
     [Fact]
@@ -84,14 +119,27 @@ public class MutationTests
         var mutation = new Mutation<int>();
         string? displayMessage = null;
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await mutation.Execute(new MutationParameters<int>
+        {
+            MutationFunction = () => Task.FromException<int>(new DisplayUserException("user-facing")),
+            OnDisplayUserError = e => displayMessage = e.DisplayMessage,
+        });
+
+        Assert.Equal("user-facing", displayMessage);
+    }
+
+    [Fact]
+    public async Task Execute_DisplayUserException_WithoutAnyCallback_RethrowsWrapped()
+    {
+        var mutation = new Mutation<int>();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             mutation.Execute(new MutationParameters<int>
             {
                 MutationFunction = () => Task.FromException<int>(new DisplayUserException("user-facing")),
-                OnDisplayUserError = e => displayMessage = e.DisplayMessage,
             }));
 
-        Assert.Equal("user-facing", displayMessage);
+        Assert.IsType<DisplayUserException>(ex.InnerException);
     }
 
     [Fact]
@@ -106,6 +154,8 @@ public class MutationTests
             OnSettled = _ => settled++,
         });
 
+        // OnSettled alone doesn't mark the failure handled — only error callbacks do — so this
+        // execution still rethrows while running the settled callback.
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             mutation.Execute(new MutationParameters<int>
             {
@@ -167,12 +217,11 @@ public class MutationTests
         var notifications = 0;
         using var attachment = mutation.Attach(() => notifications++);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            mutation.Execute(new MutationParameters<int>
-            {
-                MutationFunction = () => Task.FromException<int>(new InvalidDataException("boom")),
-                OnError = _ => { },
-            }));
+        await mutation.Execute(new MutationParameters<int>
+        {
+            MutationFunction = () => Task.FromException<int>(new InvalidDataException("boom")),
+            OnError = _ => { },
+        });
 
         // Entry, error (IsError + ErrorMessage + cleared Data), exit.
         Assert.Equal(3, notifications);

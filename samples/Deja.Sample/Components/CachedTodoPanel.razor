@@ -1,8 +1,9 @@
 @inherits DejaComponentBase
 @inject FakeTodoApi Api
 
-@* Instantiated twice by Pages/Isolation.razor. Field initializers run per instance, so each
-   panel owns its own _todos and attaches to it alone — neither can re-render the other. *@
+@* Instantiated twice by Pages/Cache.razor. Both panels use the same QueryKey, so they observe one
+   cache entry: one in-flight fetch, one copy of the data, both updated together — while each
+   Query<T> still notifies only its own component. *@
 
 <section class="card">
     <header class="card-header">
@@ -10,14 +11,21 @@
         <div class="badges">
             <span class="badge @(_todos.IsLoading ? "on" : "")">IsLoading</span>
             <span class="badge @(_todos.IsReFetching ? "on" : "")">IsReFetching</span>
+            <span class="badge @(_todos.IsCachedData ? "on" : "")">IsCachedData</span>
             <span class="badge @(_todos.IsError ? "on err" : "")">IsError</span>
             <span class="badge on neutral">Renders: @_renderCount</span>
         </div>
     </header>
 
-    @if (_todos.IsLoading)
+    @if (_todos.Data is { } todos)
     {
-        <p class="muted">Loading todos…</p>
+        @* Data stays on screen during background refetches — the IsReFetching badge is the only flash. *@
+        <ul class="todo-list">
+            @foreach (var todo in todos)
+            {
+                <li>@todo.Title</li>
+            }
+        </ul>
     }
     else if (_todos.IsError)
     {
@@ -25,12 +33,7 @@
     }
     else
     {
-        <ul class="todo-list">
-            @foreach (var todo in _todos.Data ?? [])
-            {
-                <li>@todo.Title</li>
-            }
-        </ul>
+        <p class="muted">Loading todos…</p>
     }
 
     <div class="actions">
@@ -49,11 +52,9 @@
 
     protected override void OnAfterRender(bool firstRender) => _renderCount++;
 
-    // No QueryKey: each panel fetches independently, so the render counters move separately.
-    // Written in the explicit QueryParameters form that CachedTodoPanel's shorthand delegates to.
-    private Task LoadTodos() => _todos.Execute(new QueryParameters<IReadOnlyList<Todo>>
-    {
-        QueryFunction = Api.GetTodosAsync,
-        OnError = _ => { },
-    });
+    // Shared QueryKey: cached data renders instantly on mount, then one background refetch —
+    // deduplicated across both panels — revalidates it and updates both. No cancellation wiring
+    // either: the base hands this query the component's lifetime token.
+    private Task LoadTodos() =>
+        _todos.Execute("todos", Api.GetTodosAsync, p => p.OnError = _ => { });
 }

@@ -36,9 +36,9 @@ public sealed class FakeTodoApi
     }
 
     /// <summary>Adds a todo after a simulated network delay.</summary>
-    public async Task<Todo> AddTodoAsync(string title)
+    public async Task<Todo> AddTodoAsync(string title, CancellationToken token)
     {
-        await Task.Delay(600);
+        await Task.Delay(600, token);
 
         if (string.IsNullOrWhiteSpace(title))
         {

@@ -31,13 +31,56 @@ public abstract class DejaComponentBase : ComponentBase, IAsyncDisposable
 {
     // Types whose hierarchy has already passed the redeclared-DisposeAsync check, so the
     // reflective walk runs once per component type rather than once per instance.
-    private static readonly ConcurrentDictionary<Type, bool> ValidatedDisposalContracts = new();
+    private static readonly ConcurrentDictionary<Type, bool> _validatedDisposalContracts = new();
 
     private readonly List<IDisposable> _attachments = [];
     private readonly HashSet<IDejaObservable> _attached = new(ReferenceEqualityComparer.Instance);
+
+    // Created on first use, cancelled at the top of disposal and disposed once cleanup is done.
+    // Lazy so a component that never reaches for cancellation allocates nothing; the lock keeps a
+    // fetch continuation reading ComponentToken from racing the renderer's disposal.
+    private readonly object _lifetimeLock = new();
+    private CancellationTokenSource? _lifetimeCts;
     private bool _disposed;
     private bool _baseOnInitializedRan;
     private bool _reportedBaseCallSkipped;
+    private DejaClient? _resolvedClient;
+    private bool _clientResolved;
+
+    // Resolved lazily through IServiceProvider rather than `[Inject] DejaClient?` because Blazor
+    // throws for an [Inject] property whose service is not registered, and the cache must stay
+    // opt-in: an app that never called AddDeja() gets null here and runs the uncached path.
+    // (ScanForState skips [Inject] members, so this is not mistaken for observable state.)
+    [Inject] private IServiceProvider? ServiceProvider { get; set; }
+
+    /// <summary>
+    /// A token cancelled when this component is disposed. The <see cref="Query{T}"/> and
+    /// <see cref="Mutation{T}"/> instances this component owns already use it, so their executions
+    /// abort on navigation with nothing to wire — pass it explicitly only to work Deja does not
+    /// run for you, such as a direct API call from an event handler:
+    /// <c>await Api.PingAsync(ComponentToken)</c>.
+    /// </summary>
+    /// <remarks>
+    /// There is nothing to dispose: the component owns the underlying source and releases it as
+    /// part of its own disposal. Reading this after disposal returns an already-cancelled token
+    /// rather than throwing, so a late continuation observes cancellation instead of an
+    /// <see cref="ObjectDisposedException"/>.
+    /// </remarks>
+    protected CancellationToken ComponentToken
+    {
+        get
+        {
+            lock (_lifetimeLock)
+            {
+                // A token from the released source would throw; a pre-cancelled one says the same
+                // thing safely.
+                if (_disposed) return new CancellationToken(canceled: true);
+
+                _lifetimeCts ??= new CancellationTokenSource();
+                return _lifetimeCts.Token;
+            }
+        }
+    }
 
     /// <summary>
     /// Rejects a derived component that redeclares <c>Dispose</c> or <c>DisposeAsync</c> instead
@@ -107,11 +150,30 @@ public abstract class DejaComponentBase : ComponentBase, IAsyncDisposable
                         "the very next line. Both run by design.")]
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        if (_disposed) return;
-        _disposed = true;
+        CancellationTokenSource? lifetimeCts;
+
+        lock (_lifetimeLock)
+        {
+            if (_disposed) return;
+            _disposed = true;
+
+            // Detached before releasing the lock so ComponentToken cannot hand out a token from
+            // what we are about to dispose; it returns a cancelled token from here on.
+            lifetimeCts = _lifetimeCts;
+            _lifetimeCts = null;
+        }
 
         try
         {
+            // Cancelled before any cleanup runs, so the derived hooks below — and any in-flight
+            // execution this component started — observe cancellation while they still can. Inside
+            // the try because cancellation runs every Register callback on this token: one of them
+            // throwing must not skip the detaching in the finally.
+            if (lifetimeCts is not null)
+            {
+                await lifetimeCts.CancelAsync();
+            }
+
             // Derived cleanup first, synchronous then asynchronous, so overrides still see their
             // state attached; the base detaches only in the finally below.
             Dispose();
@@ -139,6 +201,10 @@ public abstract class DejaComponentBase : ComponentBase, IAsyncDisposable
             }
 
             _attached.Clear();
+
+            // Last: every registration against this token is released by now, so disposal cannot
+            // race a callback still running.
+            lifetimeCts?.Dispose();
 
             GC.SuppressFinalize(this);
         }
@@ -171,13 +237,11 @@ public abstract class DejaComponentBase : ComponentBase, IAsyncDisposable
     /// </summary>
     protected virtual ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-    // The redeclarations this rejects — `@implements IDisposable` / `@implements IAsyncDisposable`
-    // with a public Dispose/DisposeAsync, a `new` method hiding a hook, or an explicit
-    // re-implementation — all declare a disposal method whose base definition is not ours. The one
-    // supported shape, `protected override`, roots at our virtual hooks and passes. Unlike the
-    // OnInitialized guard this throws instead of reporting: there is no degraded-but-working state
-    // to preserve — a redeclared DisposeAsync replaces the disposal that detaches state, and a
-    // redeclared Dispose is dead code its author believes is cleanup.
+    // Every redeclaration this rejects declares a disposal method whose base definition is not
+    // ours; the one supported shape, `protected override`, roots at our virtual hooks and passes.
+    // Throws rather than reporting (as the OnInitialized guard does) because there is no
+    // degraded-but-working state to preserve: a redeclared DisposeAsync replaces the disposal that
+    // detaches state, and a redeclared Dispose is dead code its author believes is cleanup.
     [UnconditionalSuppressMessage(
         "Trimming",
         "IL2072:Target parameter does not satisfy DynamicallyAccessedMembersAttribute",
@@ -186,14 +250,14 @@ public abstract class DejaComponentBase : ComponentBase, IAsyncDisposable
     private void ThrowIfDisposalIsRedeclared()
     {
         var componentType = GetType();
-        if (ValidatedDisposalContracts.ContainsKey(componentType)) return;
+        if (_validatedDisposalContracts.ContainsKey(componentType)) return;
 
         for (var type = componentType; type is not null && type != typeof(DejaComponentBase); type = type.BaseType)
         {
             ThrowIfTypeRedeclaresDisposal(type);
         }
 
-        ValidatedDisposalContracts.TryAdd(componentType, true);
+        _validatedDisposalContracts.TryAdd(componentType, true);
     }
 
     // Split out so the annotation applies to the walked type, including base types.
@@ -219,8 +283,7 @@ public abstract class DejaComponentBase : ComponentBase, IAsyncDisposable
             }
 
             // Only the parameterless surface is the disposal contract; a Dispose(bool) or
-            // DisposeAsync(CancellationToken) helper is an implementation detail, not a
-            // redeclaration.
+            // DisposeAsync(CancellationToken) helper is an implementation detail.
             if (method.GetParameters().Length != 0)
             {
                 continue;
@@ -254,8 +317,7 @@ public abstract class DejaComponentBase : ComponentBase, IAsyncDisposable
     }
 
     // Skipping base.OnInitialized() compiles and renders once, then the component silently stops
-    // reacting — this is the only place that can tell, because the code that was skipped is ours.
-    // Written to stderr, which the WebAssembly runtime surfaces as console.error in the browser.
+    // reacting. Written to stderr, which the WebAssembly runtime surfaces as console.error.
     private void ReportIfBaseOnInitializedSkipped()
     {
         if (_baseOnInitializedRan || _reportedBaseCallSkipped) return;
@@ -290,7 +352,34 @@ public abstract class DejaComponentBase : ComponentBase, IAsyncDisposable
         if (!_attached.Add(state)) return state;
 
         _attachments.Add(state.Attach(OnStateChanged));
+
+        // Hand the registered cache client (if any) to discovered queries and mutations that
+        // don't already have one, so keyed queries share the app-wide cache with zero wiring.
+        if (state is ICacheClientConsumer { Client: null } consumer)
+        {
+            consumer.Client = ResolveClient();
+        }
+
+        // Scopes every execution to the component's lifetime, so a derived component neither
+        // declares a CancellationTokenSource nor threads a token through its call sites. An
+        // execution that sets its own token on the parameters still wins.
+        if (state is IComponentLifetimeConsumer lifetimeConsumer)
+        {
+            lifetimeConsumer.SetComponentToken(ComponentToken);
+        }
+
         return state;
+    }
+
+    private DejaClient? ResolveClient()
+    {
+        if (!_clientResolved)
+        {
+            _clientResolved = true;
+            _resolvedClient = ServiceProvider?.GetService(typeof(DejaClient)) as DejaClient;
+        }
+
+        return _resolvedClient;
     }
 
     // Notifications arrive on whatever thread the fetch continuation landed on, so the render is
@@ -302,14 +391,12 @@ public abstract class DejaComponentBase : ComponentBase, IAsyncDisposable
         _ = InvokeAsync(StateHasChanged);
     }
 
-    // Fields and properties are scanned once at init. State assigned later — a Query created inside
-    // an event handler — must be passed to Observe() explicitly.
+    // Fields and properties are scanned once at init. State assigned later — a Query created
+    // inside an event handler — must be passed to Observe() explicitly.
     //
-    // Trimming: the scanned members belong to the *derived* component, whose fields a trimmer would
-    // otherwise be free to remove — nothing in the compiled output reads them by name. The
-    // annotation below roots them for every type that reaches this method, which is every concrete
-    // DejaComponentBase. Components created by the Blazor renderer are already rooted as types;
-    // this preserves their members.
+    // Trimming: nothing in the compiled output reads the derived component's fields by name, so a
+    // trimmer would otherwise be free to remove them. The annotation roots them for every type
+    // reaching this method; the types themselves are already rooted by the Blazor renderer.
     [UnconditionalSuppressMessage(
         "Trimming",
         "IL2072:Target parameter does not satisfy DynamicallyAccessedMembersAttribute",
@@ -336,8 +423,7 @@ public abstract class DejaComponentBase : ComponentBase, IAsyncDisposable
         foreach (var field in type.GetFields(flags))
         {
             // Auto-properties compile to a backing field, so scanning fields blindly would attach
-            // [Parameter] / [CascadingParameter] / [Inject] state through the back door — stealing
-            // the owner's listener slot and disposing state this component didn't create. The
+            // [Parameter] / [CascadingParameter] / [Inject] state through the back door. The
             // property loop below handles these members, where the attributes are visible.
             if (field.IsDefined(typeof(CompilerGeneratedAttribute), inherit: false))
             {
