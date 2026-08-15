@@ -159,6 +159,58 @@ public class DejaClientTests
     }
 
     [Fact]
+    public async Task CachedExecute_DoesNotNotifyTwiceForTheSameTransition()
+    {
+        using var client = CreateClient();
+        using var query = new Query<int>(client);
+
+        var snapshots = new List<(bool Loading, int Data, bool Cached)>();
+        using var attachment = query.Attach(
+            () => snapshots.Add((query.IsLoading, query.Data, query.IsCachedData)));
+
+        await query.Execute(new QueryParameters<int>
+        {
+            QueryKey = QueryKey.Of("k"),
+            QueryFunction = _ => Task.FromResult(1),
+        });
+
+        // Execute and the shared entry both announce the fetch starting, and both announce it
+        // finishing; each pair is one transition and must reach the component once. Asserting on
+        // distinct snapshots rather than a bare count keeps this about the duplicates, not about
+        // how many transitions the cached path happens to have.
+        Assert.Equal(snapshots.Distinct().Count(), snapshots.Count);
+        Assert.Equal((false, 1, false), snapshots[^1]);
+    }
+
+    [Fact]
+    public async Task CachedExecute_PassiveSubscriber_IsNotNotifiedTwiceForOneRefetch()
+    {
+        using var client = CreateClient();
+
+        using var passive = new Query<int>(client);
+        await passive.Execute(new QueryParameters<int>
+        {
+            QueryKey = QueryKey.Of("k"),
+            QueryFunction = _ => Task.FromResult(1),
+        });
+
+        var snapshots = new List<(bool Loading, int Data)>();
+        using var attachment = passive.Attach(() => snapshots.Add((passive.IsLoading, passive.Data)));
+
+        using var active = new Query<int>(client);
+        await active.Execute(new QueryParameters<int>
+        {
+            QueryKey = QueryKey.Of("k"),
+            QueryFunction = _ => Task.FromResult(2),
+        });
+
+        // A component showing shared data re-renders for what changed on the entry, not once per
+        // notification the entry emits.
+        Assert.Equal(snapshots.Distinct().Count(), snapshots.Count);
+        Assert.Equal((false, 2), snapshots[^1]);
+    }
+
+    [Fact]
     public async Task CachedExecute_Callbacks_RunPerCaller_NotForPassiveUpdates()
     {
         using var client = CreateClient();

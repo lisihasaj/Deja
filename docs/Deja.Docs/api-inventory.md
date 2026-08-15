@@ -210,35 +210,48 @@ through to shorter prefix, then options.
 
 | Member | Line | Notes |
 |---|---|---|
-| `protected CancellationToken ComponentToken` | DejaComponentBase.cs:69 | cancelled on dispose; post-dispose reads return an already-cancelled token, never throw |
-| ctor | DejaComponentBase.cs:97 | throws on redeclared `Dispose`/`DisposeAsync` |
-| `protected override void OnInitialized()` | DejaComponentBase.cs:108 | attaches declared state; overrides must call base |
-| `public override Task SetParametersAsync(ParameterView)` | DejaComponentBase.cs:116 | reports skipped base.OnInitialized() |
-| `IAsyncDisposable.DisposeAsync()` | DejaComponentBase.cs:151 | explicit: cancel token → Dispose hook → DisposeAsync hook → detach + dispose owned state |
-| `protected virtual void Dispose()` | DejaComponentBase.cs:227 | synchronous cleanup hook |
-| `protected virtual ValueTask DisposeAsync()` | DejaComponentBase.cs:238 | asynchronous cleanup hook |
-| `protected TState Observe<TState>(TState) where TState : IDejaObservable` | DejaComponentBase.cs:347 | returns state for inline use; double-attach is a no-op; throws when another component owns it |
+| `protected CancellationToken ComponentToken` | DejaComponentBase.cs:81 | cancelled on dispose; post-dispose reads return an already-cancelled token, never throw |
+| ctor | DejaComponentBase.cs:109 | throws on redeclared `Dispose`/`DisposeAsync` |
+| `protected override void OnInitialized()` | DejaComponentBase.cs:120 | attaches declared state; overrides must call base |
+| `public override Task SetParametersAsync(ParameterView)` | DejaComponentBase.cs:128 | reports skipped base.OnInitialized() |
+| `IAsyncDisposable.DisposeAsync()` | DejaComponentBase.cs:163 | explicit: cancel token → Dispose hook → DisposeAsync hook → detach + dispose owned state |
+| `protected virtual void Dispose()` | DejaComponentBase.cs:239 | synchronous cleanup hook |
+| `protected virtual ValueTask DisposeAsync()` | DejaComponentBase.cs:250 | asynchronous cleanup hook |
+| `protected TState Observe<TState>(TState) where TState : IDejaObservable` | DejaComponentBase.cs:359 | returns state for inline use; double-attach is a no-op; throws when another component owns it |
+
+Render coalescing (DejaComponentBase.cs:406): a queued render absorbs later notifications instead
+of each queueing its own; the pending flag is set with `Interlocked` (concurrent fetch
+continuations) and released *before* `StateHasChanged`, so a notification raised during the render
+can still schedule the next one. Never defers a render past the notification that caused it —
+awaiting an `Execute` still means the component has rendered.
 
 Guard rails:
 
-- **Disposal redeclaration throw** (DejaComponentBase.cs:250–317): `@implements IAsyncDisposable`
+- **Disposal redeclaration throw** (DejaComponentBase.cs:262): `@implements IAsyncDisposable`
   → `InvalidOperationException` (redeclared DisposeAsync replaces Deja's disposal);
   `@implements IDisposable` → `InvalidOperationException` (redeclared Dispose is never called).
   Explicit interface re-implementations are also caught; `Dispose(bool)`-style helpers are allowed.
-- **Skipped `base.OnInitialized()` console error** (DejaComponentBase.cs:321–331): reported once,
+- **Skipped `base.OnInitialized()` console error** (DejaComponentBase.cs:333): reported once,
   written to stderr → surfaces as `console.error` on WASM.
 
-Discovery (DejaComponentBase.cs:405–457): fields and properties scanned once at initialization,
+Discovery (DejaComponentBase.cs:440): fields and properties scanned once at initialization,
 walking the type hierarchy; `[Parameter]`, `[CascadingParameter]`, `[Inject]` members and
 compiler-generated backing fields are skipped. Later-created state needs `Observe()`.
 
 ## `DejaObservable` / `IDejaObservable` — src/Deja/DejaObservable.cs:21, :86
 
-- `IDisposable Attach(Action)` (:26): single listener slot; occupied slot →
-  `InvalidOperationException` (:31–36). Detaching is idempotent (:53–61).
-- `protected void NotifyChanged()` (:51): no-op when nothing attached.
-- Single-listener rule is what keeps sibling components from re-rendering each other
-  (remarks, :81–85).
+- `IDisposable Attach(Action)`: single listener slot; occupied slot →
+  `InvalidOperationException`. Detaching is idempotent. Attaching resets the published snapshot, so
+  a new owner is notified even when the state has not moved since the previous owner detached.
+- `protected abstract BindableState GetBindableState()`: the snapshot equality is compared against.
+  Every bindable property must be reported; one left out silently stops re-rendering.
+- `protected void NotifyChanged()`: no-op when nothing attached, and no-op when the snapshot equals
+  the last one published.
+- `BindableState`: readonly record struct — `IsLoading`, `IsReFetching`, `IsError`, `ErrorMessage`,
+  `Data` (boxed, so reference equality for classes), `UpdatedAt`, `IsCachedData`, `IsStale`.
+  `Query<T>` reports all of them; `Mutation<T>` reports the four it has. `ReFetchCount` is
+  deliberately excluded — it advances every execution and would defeat the comparison.
+- Single-listener rule is what keeps sibling components from re-rendering each other.
 
 ## `DisplayUserException` — src/Deja/Errors.cs:8
 

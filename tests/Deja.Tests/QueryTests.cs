@@ -295,8 +295,36 @@ public class QueryTests
 
         await query.Execute(new QueryParameters<int> { QueryFunction = _ => Task.FromResult(1) });
 
-        // Entry (IsLoading), success (Data + cleared error), exit (flags cleared).
+        // Entry (IsLoading), then data and cleared flags together. Publishing data separately from
+        // clearing the flags would only be observable to a success callback, and there is none.
+        Assert.Equal(2, notifications);
+    }
+
+    [Fact]
+    public async Task Execute_WithSuccessCallback_PublishesDataBeforeTheCallbackRuns()
+    {
+        using var query = new Query<int>();
+        var notifications = 0;
+        var dataAtCallback = 0;
+        var notificationsAtCallback = 0;
+        using var attachment = query.Attach(() => notifications++);
+
+        await query.Execute(new QueryParameters<int>
+        {
+            QueryFunction = _ => Task.FromResult(7),
+            OnSuccess = _ =>
+            {
+                dataAtCallback = query.Data;
+                notificationsAtCallback = notifications;
+            },
+        });
+
+        // The extra notification is what a callback buys: the owner has already rendered the data
+        // by the time the callback runs, so an OnSuccess that touches other state can't be
+        // sequenced behind a render showing stale data.
         Assert.Equal(3, notifications);
+        Assert.Equal(7, dataAtCallback);
+        Assert.Equal(2, notificationsAtCallback);
     }
 
     [Fact]
@@ -308,11 +336,26 @@ public class QueryTests
 
         await query.Execute(new QueryParameters<int> { QueryFunction = _ => Task.FromResult(7) });
 
-        // The listener never observes a half-applied transition: data is published with the
-        // success notification, and loading is cleared by the last one.
+        // The listener never observes a half-applied transition: loading is announced on its own,
+        // then data arrives with the flags already cleared.
         Assert.Equal((true, 0), snapshots[0]);
-        Assert.Equal((true, 7), snapshots[1]);
         Assert.Equal((false, 7), snapshots[^1]);
+    }
+
+    [Fact]
+    public async Task Execute_DoesNotNotifyForAnUnchangedTransition()
+    {
+        using var query = new Query<int>();
+        await query.Execute(new QueryParameters<int> { QueryFunction = _ => Task.FromResult(1) });
+
+        var notifications = 0;
+        using var attachment = query.Attach(() => notifications++);
+
+        // Same value, so only the loading flags move: on and off again, never a data render.
+        await query.Execute(new QueryParameters<int> { QueryFunction = _ => Task.FromResult(1) });
+
+        Assert.Equal(2, notifications);
+        Assert.Equal(1, query.Data);
     }
 
     [Fact]
@@ -328,7 +371,8 @@ public class QueryTests
             OnError = _ => { },
         });
 
-        // Entry, error (IsError + ErrorMessage), exit.
+        // Entry, error (IsError + ErrorMessage), exit. The error is published before the callback
+        // runs, so unlike the success path this transition keeps its middle notification.
         Assert.Equal(3, notifications);
     }
 

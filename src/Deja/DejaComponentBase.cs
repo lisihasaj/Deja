@@ -18,6 +18,15 @@ namespace Deja;
 /// Deja state notifies a single attached listener, and that listener is the owning component.
 /// </para>
 /// <para>
+/// Renders are coalesced: while one is already queued, further notifications ride on it instead of
+/// queueing their own, so several fetches completing together render the component once rather
+/// than once each. Coalescing never defers a render past the notification that caused it, so
+/// awaiting an <c>Execute</c> still means the component has rendered. Combined with the
+/// state-level suppression in <see cref="DejaObservable"/> — which drops a notification whose
+/// bindable state matches the last one published — a component renders when what it displays
+/// actually changes, and not otherwise.
+/// </para>
+/// <para>
 /// A derived component adds its own cleanup by overriding the base's hooks — <see cref="Dispose"/>
 /// for synchronous cleanup, <see cref="DisposeAsync"/> for asynchronous; both run during disposal,
 /// before the base detaches. Do not declare <see cref="IDisposable"/> or
@@ -42,6 +51,9 @@ public abstract class DejaComponentBase : ComponentBase, IAsyncDisposable
     private readonly object _lifetimeLock = new();
     private CancellationTokenSource? _lifetimeCts;
     private bool _disposed;
+
+    // 1 while a coalesced render is queued; int rather than bool for Interlocked.
+    private int _renderPending;
     private bool _baseOnInitializedRan;
     private bool _reportedBaseCallSkipped;
     private DejaClient? _resolvedClient;
@@ -385,10 +397,33 @@ public abstract class DejaComponentBase : ComponentBase, IAsyncDisposable
     // Notifications arrive on whatever thread the fetch continuation landed on, so the render is
     // marshalled onto the renderer's synchronization context. Fire-and-forget is correct: the only
     // way InvokeAsync faults is a renderer that is already gone, which is not actionable.
+    //
+    // Coalescing: while a render is already queued, later notifications ride on it rather than
+    // queueing their own. This is deliberately not a deferred/batched render — the render still
+    // happens inline when the notification arrives on the renderer's context, so awaiting an
+    // Execute still means the component has rendered. What it collapses is the burst case, where
+    // several fetch continuations complete together off the renderer's context.
     private void OnStateChanged()
     {
         if (_disposed) return;
-        _ = InvokeAsync(StateHasChanged);
+
+        // Interlocked, not a plain write: notifications arrive from arbitrary fetch continuations,
+        // and two racing to schedule would otherwise both see "none pending" and queue two renders.
+        if (Interlocked.Exchange(ref _renderPending, 1) == 1) return;
+
+        _ = InvokeAsync(RenderCoalesced);
+    }
+
+    private void RenderCoalesced()
+    {
+        // Released before rendering, not after: a notification raised while StateHasChanged runs
+        // describes state this render may already have passed, so it must be able to schedule the
+        // next one. Clearing afterwards would drop it and leave the component stale.
+        Volatile.Write(ref _renderPending, 0);
+
+        if (_disposed) return;
+
+        StateHasChanged();
     }
 
     // Fields and properties are scanned once at init. State assigned later — a Query created

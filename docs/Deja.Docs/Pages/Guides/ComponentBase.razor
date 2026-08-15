@@ -76,6 +76,15 @@
         already on screen — you do.</p>
 </Callout>
 
+<h2>How often it re-renders</h2>
+<p>
+    The base does not re-render on every notification it could. A query notifies once per state
+    transition, a notification identical to the previous one is dropped, and a render already
+    queued absorbs the ones behind it — so one request costs two renders (start, finish) no matter
+    how many components share the key or how many queries run at once. See
+    <a href="guides/rendering">rendering &amp; re-renders</a> for the full contract.
+</p>
+
 <h2>The single-owner rule</h2>
 <p>
     Deja state notifies exactly one listener — the owning component. Passing a live

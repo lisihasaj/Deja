@@ -10,17 +10,30 @@ namespace Deja;
 /// the state's, and <see cref="Query{T}"/> has disposal semantics of its own.
 /// </para>
 /// <para>
+/// <b>Coalescing.</b> <see cref="NotifyChanged"/> compares the current
+/// <see cref="GetBindableState"/> snapshot against the last one published and returns without
+/// invoking the listener when nothing an owner can bind to has moved. Several call sites converge
+/// on the same transition by design — a keyed <c>Execute</c> sets <c>IsLoading</c> and the shared
+/// cache entry then reports the same fetch starting — and suppressing the repeats here fixes every
+/// one of them at once, including the notifications a passive subscriber receives from the entry
+/// rather than from its own call.
+/// </para>
+/// <para>
 /// <b>Thread safety.</b> <c>Attach</c> and detach run from component lifecycle methods on the
 /// renderer's synchronization context, so the slot is effectively single-threaded.
 /// <see cref="NotifyChanged"/> may fire from a thread-pool continuation, but only reads the field,
 /// and a reference read cannot tear. The worst interleaving is a notification racing a detach and
 /// invoking the listener of a component that is mid-disposal, which
 /// <see cref="DejaComponentBase"/> absorbs by checking its own disposed flag before rendering.
+/// Two continuations notifying concurrently may both see the snapshot as changed and render twice;
+/// that is the safe direction to fail, and the renderer coalesces the pair anyway.
 /// </para>
 /// </remarks>
 public abstract class DejaObservable : IDejaObservable
 {
     private Action? _listener;
+    private BindableState _lastPublished;
+    private bool _hasPublished;
 
     /// <inheritdoc />
     public IDisposable Attach(Action listener)
@@ -36,19 +49,44 @@ public abstract class DejaObservable : IDejaObservable
         }
 
         _listener = listener;
+
+        // A fresh owner has rendered nothing yet, so the next transition must reach it even if the
+        // state is byte-identical to what the previous owner last saw.
+        _hasPublished = false;
+
         return new Attachment(this, listener);
     }
 
     /// <summary>
-    /// Notifies the attached listener that bindable state changed. Safe to call when nothing is
-    /// attached (no listener yet, or the owning component was disposed) — it is then a no-op.
+    /// A snapshot of everything an owner can bind to. <see cref="NotifyChanged"/> suppresses a
+    /// notification whose snapshot equals the previous one, so overriding state must report every
+    /// bindable property here — one left out becomes a property that silently stops re-rendering.
+    /// </summary>
+    protected abstract BindableState GetBindableState();
+
+    /// <summary>
+    /// Notifies the attached listener that bindable state changed, unless it would repeat the last
+    /// notification verbatim.
     /// </summary>
     /// <remarks>
     /// Call once per state transition, after every property in that transition has been set: the
     /// listener observes whatever is set at the moment this runs, so notifying mid-transition
     /// renders a half-applied state.
     /// </remarks>
-    protected void NotifyChanged() => _listener?.Invoke();
+    protected void NotifyChanged()
+    {
+        var listener = _listener;
+        if (listener is null) return;
+
+        var current = GetBindableState();
+
+        if (_hasPublished && current.Equals(_lastPublished)) return;
+
+        _lastPublished = current;
+        _hasPublished = true;
+
+        listener();
+    }
 
     private void Detach(Action listener)
     {
@@ -71,6 +109,42 @@ public abstract class DejaObservable : IDejaObservable
             owner?.Detach(listener);
         }
     }
+}
+
+/// <summary>
+/// The bindable surface of a <see cref="DejaObservable"/> at one instant, used to suppress a
+/// notification that would repeat the previous one. Compared with the struct's own value equality:
+/// <see cref="Data"/> is held as <see cref="object"/> and so compares by
+/// <see cref="object.Equals(object, object)"/> — reference equality for the mutable collections and
+/// DTOs a query usually holds, which is the conservative direction (a re-fetched list that is
+/// structurally equal but newly allocated still renders). Opt into structural comparison at the
+/// cache level with <see cref="DejaOptions.StructuralComparison"/>.
+/// </summary>
+public readonly record struct BindableState
+{
+    /// <summary>Whether the state reports an execution in progress.</summary>
+    public bool IsLoading { get; init; }
+
+    /// <summary>Whether the state reports a subsequent execution in progress.</summary>
+    public bool IsReFetching { get; init; }
+
+    /// <summary>Whether the state reports a failure.</summary>
+    public bool IsError { get; init; }
+
+    /// <summary>The failure message, when one is set.</summary>
+    public string? ErrorMessage { get; init; }
+
+    /// <summary>The current data, boxed so the snapshot stays non-generic.</summary>
+    public object? Data { get; init; }
+
+    /// <summary>When the current data was produced, when known.</summary>
+    public DateTimeOffset? UpdatedAt { get; init; }
+
+    /// <summary>Whether the current data came from the cache without a completed fresh fetch.</summary>
+    public bool IsCachedData { get; init; }
+
+    /// <summary>Whether the observed cache entry is invalidated or past its stale time.</summary>
+    public bool IsStale { get; init; }
 }
 
 /// <summary>

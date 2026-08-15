@@ -192,8 +192,28 @@ public class MutationTests
 
         await mutation.Execute(new MutationParameters<int> { MutationFunction = () => Task.FromResult(1) });
 
-        // Entry (cleared error + IsLoading), success (Data), exit (IsLoading cleared).
+        // Entry (cleared error + IsLoading), then the result with IsLoading already cleared.
+        // Nothing runs in between — no callback, no invalidation — so a separate publish would
+        // render twice for one transition.
+        Assert.Equal(2, notifications);
+    }
+
+    [Fact]
+    public async Task Execute_WithSuccessCallback_PublishesResultBeforeTheCallbackRuns()
+    {
+        var mutation = new Mutation<int>();
+        var notifications = 0;
+        var dataAtCallback = 0;
+        using var attachment = mutation.Attach(() => notifications++);
+
+        await mutation.Execute(new MutationParameters<int>
+        {
+            MutationFunction = () => Task.FromResult(7),
+            OnSuccess = _ => dataAtCallback = mutation.Data,
+        });
+
         Assert.Equal(3, notifications);
+        Assert.Equal(7, dataAtCallback);
     }
 
     [Fact]
@@ -206,7 +226,6 @@ public class MutationTests
         await mutation.Execute(new MutationParameters<int> { MutationFunction = () => Task.FromResult(7) });
 
         Assert.Equal((true, 0), snapshots[0]);
-        Assert.Equal((true, 7), snapshots[1]);
         Assert.Equal((false, 7), snapshots[^1]);
     }
 

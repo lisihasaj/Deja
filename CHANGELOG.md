@@ -19,6 +19,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fetch function always come from the last `Execute`. Overrides apply to that call only; a
   property left null keeps the remembered value.
 
+### Changed (rendering)
+
+- Components now re-render once per state transition instead of once per notification. One request
+  costs two renders — start and finish — on the first fetch and every refetch, where it previously
+  cost three on the uncached path and five on the cached one. Three queries loading together in one
+  component went from nine renders to six.
+  - `DejaObservable.NotifyChanged()` compares a `BindableState` snapshot against the last one
+    published and returns without notifying when nothing bindable moved. This is what collapses the
+    cached path's duplicates, where one transition is announced both by `Execute` and by the shared
+    cache entry — including for components that merely subscribe to a key someone else refetches.
+  - `Query<T>` and `Mutation<T>` no longer publish data in its own render when nothing runs before
+    the flags are cleared. A success callback (or a mutation's `InvalidateKeys`) still gets the
+    separate publish, so it never runs behind a screen showing stale data; that case stays at three
+    renders by design.
+  - `DejaComponentBase` coalesces renders: while one is queued, further notifications ride on it.
+    Coalescing never defers a render past the notification that caused it, so awaiting an `Execute`
+    still means the component has rendered and tests asserting on markup after an await are
+    unaffected.
+- **Breaking for custom state only:** `DejaObservable` subclasses must implement
+  `protected abstract BindableState GetBindableState()`. `Query<T>` and `Mutation<T>` are unchanged
+  for consumers. Report every property the owner can bind to — one left out becomes a property that
+  silently stops re-rendering. Note `Data` is compared by reference for classes; enable
+  `DejaOptions.StructuralComparison` to suppress renders for structurally equal refetch results.
+
 ### Changed (error handling)
 
 - **Breaking:** `Mutation<T>.Execute` no longer rethrows unconditionally on failure. It now matches

@@ -53,6 +53,15 @@ public class Mutation<T> : DejaObservable, ICacheClientConsumer, IComponentLifet
     /// <summary>The result of the most recent successful execution.</summary>
     public T? Data { get; private set; }
 
+    /// <inheritdoc />
+    protected override BindableState GetBindableState() => new()
+    {
+        IsLoading = IsLoading,
+        IsError = IsError,
+        ErrorMessage = ErrorMessage,
+        Data = Data,
+    };
+
     /// <summary>
     /// Runs a mutation: the shorthand for the common case, equivalent to
     /// <c>Execute(new MutationParameters&lt;T&gt; { MutationFunction = mutationFunction })</c> with
@@ -131,9 +140,15 @@ public class Mutation<T> : DejaObservable, ICacheClientConsumer, IComponentLifet
         {
             await RunMutationAsync(parameters, token);
 
-            // Notify before the callbacks so the listener never renders against a result the
-            // mutation has accepted but not yet published.
-            NotifyChanged();
+            // Only worth a render when something runs before the finally clears IsLoading —
+            // a success callback, or an invalidation that refetches other components' queries.
+            // With neither, the finally publishes result and flags in a single render.
+            if (HasSuccessCallback(parameters) || parameters.InvalidateKeys is { Count: > 0 })
+            {
+                // Notify before the callbacks so the listener never renders against a result the
+                // mutation has accepted but not yet published.
+                NotifyChanged();
+            }
 
             await InvokeSuccessCallbacks(parameters);
 
@@ -224,6 +239,9 @@ public class Mutation<T> : DejaObservable, ICacheClientConsumer, IComponentLifet
             await client.InvalidateAsync(key);
         }
     }
+
+    private static bool HasSuccessCallback(MutationParameters<T> parameters)
+        => parameters.OnSuccessAsync is not null || parameters.OnSuccess is not null;
 
     private async Task InvokeSuccessCallbacks(MutationParameters<T> parameters)
     {

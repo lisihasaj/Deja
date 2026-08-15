@@ -4,7 +4,47 @@ public class DejaObservableTests
 {
     private sealed class TestObservable : DejaObservable
     {
-        public void Raise() => NotifyChanged();
+        private int _version;
+
+        // Each Raise reports different state, so these tests exercise the attach/detach mechanics
+        // rather than the equal-state suppression (covered by NotifyChanged_* below).
+        public void Raise()
+        {
+            _version++;
+            NotifyChanged();
+        }
+
+        public void RaiseUnchanged() => NotifyChanged();
+
+        protected override BindableState GetBindableState() => new() { Data = _version };
+    }
+
+    [Fact]
+    public void NotifyChanged_WithUnchangedState_DoesNotNotify()
+    {
+        var observable = new TestObservable();
+        var notifications = 0;
+        using var attachment = observable.Attach(() => notifications++);
+
+        observable.Raise();
+        observable.RaiseUnchanged();
+        observable.RaiseUnchanged();
+
+        Assert.Equal(1, notifications);
+    }
+
+    [Fact]
+    public void NotifyChanged_AfterReattach_NotifiesEvenWhenStateIsUnchanged()
+    {
+        var observable = new TestObservable();
+        observable.Attach(() => { }).Dispose();
+
+        // A new owner has rendered nothing yet, so suppression must not carry over from the old one.
+        var notifications = 0;
+        using var attachment = observable.Attach(() => notifications++);
+        observable.RaiseUnchanged();
+
+        Assert.Equal(1, notifications);
     }
 
     [Fact]

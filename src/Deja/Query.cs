@@ -107,6 +107,24 @@ public class Query<T> : DejaObservable, IDisposable, ICacheClientConsumer, IComp
     /// </summary>
     public bool IsStale => _entry is { } entry && (entry.IsInvalidated || entry.IsStaleBy(_staleTime));
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// <see cref="ReFetchCount"/> is deliberately absent: it advances on every execution, so
+    /// including it would make every snapshot unequal and suppress nothing. Components render
+    /// spinners and data from the flags below, not from the count.
+    /// </remarks>
+    protected override BindableState GetBindableState() => new()
+    {
+        IsLoading = IsLoading,
+        IsReFetching = IsReFetching,
+        IsError = IsError,
+        ErrorMessage = ErrorMessage,
+        Data = Data,
+        UpdatedAt = UpdatedAt,
+        IsCachedData = IsCachedData,
+        IsStale = IsStale,
+    };
+
     /// <summary>
     /// Runs a keyed query: the shorthand for the common case, equivalent to
     /// <c>Execute(new QueryParameters&lt;T&gt; { QueryKey = key, QueryFunction = queryFunction })</c>
@@ -476,11 +494,17 @@ public class Query<T> : DejaObservable, IDisposable, ICacheClientConsumer, IComp
                 ErrorMessage = null;
                 Data = data;
 
-                // Notify before the callbacks so the listener never renders against data the query
-                // has accepted but not yet published.
-                NotifyChanged();
+                // Publishing here costs a render, and only buys something when a callback runs
+                // before the finally clears the loading flags: without one, the two notifications
+                // are adjacent and the finally alone carries data and flags in a single render.
+                if (HasSuccessCallback(parameters))
+                {
+                    // Notify before the callbacks so the listener never renders against data the
+                    // query has accepted but not yet published.
+                    NotifyChanged();
 
-                await InvokeSuccessCallbacks(parameters);
+                    await InvokeSuccessCallbacks(parameters);
+                }
             }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -543,6 +567,9 @@ public class Query<T> : DejaObservable, IDisposable, ICacheClientConsumer, IComp
     // The retry policy itself lives in TimeoutRetry, shared with cache-entry fetches.
     private static Task<T> FetchWithTimeoutRetryAsync(QueryParameters<T> parameters, CancellationToken token)
         => TimeoutRetry.FetchAsync(t => FetchAsync(parameters, t), token);
+
+    private static bool HasSuccessCallback(QueryParameters<T> parameters)
+        => parameters.OnSuccessAsync is not null || parameters.OnSuccess is not null;
 
     private async Task InvokeSuccessCallbacks(QueryParameters<T> parameters)
     {

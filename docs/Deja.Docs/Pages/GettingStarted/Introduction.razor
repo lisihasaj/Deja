@@ -47,6 +47,10 @@
     <li><strong>Isolation by design</strong> — state notifies exactly one owning component, so
         siblings never re-render each other. Watch it in the
         <a href="demos/isolation">isolation demo</a>.</li>
+    <li><strong>Minimal re-renders</strong> — one request costs two renders (start, finish), a
+        transition that changes nothing bindable renders nothing at all, and concurrent requests
+        share a render instead of queueing one each. See
+        <a href="guides/rendering">rendering &amp; re-renders</a>.</li>
 </ul>
 
 <Callout Type="Callout.CalloutType.Tip" Title="The docs are the proof">

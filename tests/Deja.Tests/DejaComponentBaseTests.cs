@@ -30,6 +30,30 @@ public class DejaComponentBaseTests
         }
     }
 
+    // Several queries in one component: the shape render coalescing is measured against.
+    private sealed class MultiQueryProbe : DejaComponentBase
+    {
+        public readonly Query<int> A = new();
+        public readonly Query<int> B = new();
+        public readonly Query<int> C = new();
+        public readonly Query<int> D = new();
+
+        public int RenderCount { get; private set; }
+
+        public IReadOnlyList<Query<int>> Queries => [A, B, C, D];
+
+        // A coalesced render is queued through InvokeAsync, so it can still be outstanding when
+        // the executions have been awaited. Draining the renderer's queue keeps the assertion
+        // deterministic without sleeping for a fixed duration.
+        public Task WaitForQuietAsync() => InvokeAsync(() => { });
+
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            RenderCount++;
+            builder.AddContent(0, A.Data + B.Data + C.Data + D.Data);
+        }
+    }
+
     // Declares state on a type derived from another DejaComponentBase: the scan must walk bases.
     private abstract class ProbeBase : DejaComponentBase
     {
@@ -295,6 +319,68 @@ public class DejaComponentBaseTests
         Assert.Equal(1, leftCut.Instance.FieldQuery.Data);
         Assert.Equal(rightRendersBefore, right.RenderCount);
         Assert.Equal(0, right.FieldQuery.Data);
+    }
+
+    [Fact]
+    public async Task MultipleQueries_RenderAtMostOncePerStateTransition()
+    {
+        using var ctx = CreateContext();
+        var probe = ctx.Render<MultiQueryProbe>().Instance;
+        var before = probe.RenderCount;
+
+        var gate = new TaskCompletionSource();
+        var queries = probe.Queries;
+        var executions = queries
+            .Select(q => q.Execute(async _ =>
+            {
+                await gate.Task;
+                return 1;
+            }))
+            .ToArray();
+
+        gate.SetResult();
+        await Task.WhenAll(executions);
+        await probe.WaitForQuietAsync();
+
+        var renders = probe.RenderCount - before;
+
+        Assert.All(queries, q => Assert.Equal(1, q.Data));
+
+        // Each query contributes two transitions: loading on, then data with loading cleared. Four
+        // queries therefore cap at eight renders, and the third notification each query used to
+        // emit — the separate data publish — no longer reaches the component at all. Renders that
+        // do overlap are absorbed by the pending-render guard rather than queueing extra passes.
+        Assert.InRange(renders, 1, queries.Count * 2);
+    }
+
+    [Fact]
+    public async Task AwaitedExecute_HasAlreadyRenderedTheComponent()
+    {
+        using var ctx = CreateContext();
+        var cut = ctx.Render<Probe>();
+
+        await cut.InvokeAsync(() => Fetch(cut.Instance.FieldQuery, 42));
+
+        // Coalescing must never defer a render past the notification that caused it: consumers
+        // (and their tests) rely on the markup being current once Execute has been awaited.
+        cut.MarkupMatches("42");
+    }
+
+    [Fact]
+    public async Task RepeatedFetchOfTheSameValue_DoesNotRenderForTheDataItself()
+    {
+        using var ctx = CreateContext();
+        var cut = ctx.Render<Probe>();
+        var probe = cut.Instance;
+
+        await cut.InvokeAsync(() => Fetch(probe.FieldQuery, 7));
+        var afterFirst = probe.RenderCount;
+
+        await cut.InvokeAsync(() => Fetch(probe.FieldQuery, 7));
+
+        // Only the loading flags moved, so the second fetch renders the spinner on and off — never
+        // a third render republishing data the component is already displaying.
+        Assert.Equal(2, probe.RenderCount - afterFirst);
     }
 
     [Fact]

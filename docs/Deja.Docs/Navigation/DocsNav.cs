@@ -37,6 +37,7 @@ public static class DocsNav
         Add(2, "Queries", "guides/queries", null, "Execute", "IsLoading", "Data", "Enabled", "Select", "PlaceholderData", "overloads");
         Add(2, "Mutations", "guides/mutations", null, "Execute", "InvalidateKeys", "write", "post", "void");
         Add(2, "Component base", "guides/component-base", null, "DejaComponentBase", "Observe", "dispose", "OnInitialized", "re-render", "StateHasChanged");
+        Add(2, "Rendering & re-renders", "guides/rendering", null, "re-render", "render count", "coalescing", "StateHasChanged", "performance", "notifications", "batching", "duplicate renders");
         Add(2, "The cache", "guides/cache", null, "AddDeja", "DejaClient", "scoped", "entry", "eviction", "blazor server");
         Add(2, "Query keys", "guides/query-keys", null, "QueryKey", "Of", "prefix", "StartsWith", "dictionary", "IQueryKeySegment", "anonymous");
         Add(2, "Cancellation", "guides/cancellation", null, "CancellationToken", "ComponentToken", "supersede", "abort", "dispose");

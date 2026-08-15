@@ -130,6 +130,26 @@ public class InvalidationTests
     }
 
     [Fact]
+    public async Task InvalidateAsync_RefetchTypeNone_NotifiesSoStaleIndicatorsUpdate()
+    {
+        using var client = CreateClient();
+
+        using var query = new Query<int>(client);
+        await query.Execute(Keyed(QueryKey.Of("todos"), _ => Task.FromResult(1)));
+
+        var notifications = 0;
+        using var attachment = query.Attach(() => notifications++);
+
+        await client.InvalidateAsync(QueryKey.Of("todos"), new InvalidateOptions { RefetchType = RefetchType.None });
+
+        // A mark-only invalidation moves no copied property — IsStale is computed from the entry —
+        // so the notification is only distinguishable to the owner through IsStale. A component
+        // binding it must still re-render.
+        Assert.True(query.IsStale);
+        Assert.Equal(1, notifications);
+    }
+
+    [Fact]
     public async Task InvalidateAsync_ZeroSubscriberEntry_DefersTheRefetchToTheNextMount()
     {
         using var client = CreateClient();

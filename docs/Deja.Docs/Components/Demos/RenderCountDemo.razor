@@ -1,0 +1,57 @@
+@inherits DejaComponentBase
+@inject JsonPlaceholderApi Api
+
+<div class="demo-panel">
+    <h4>
+        One component, three queries
+        <span class="render-counter">renders: @(++_renders)</span>
+    </h4>
+
+    <StateInspector Query="_first" Label="Todo 1"/>
+    <StateInspector Query="_second" Label="Todo 2"/>
+    <StateInspector Query="_third" Label="Todo 3"/>
+
+    <div class="demo-toolbar" style="margin-top:0.6rem">
+        <button class="demo-button primary" @onclick="LoadAll">Load all three</button>
+        <button class="demo-button" @onclick="RefetchSame">Refetch (same data)</button>
+        <button class="demo-button" @onclick="ResetCounter">Reset counter</button>
+    </div>
+
+    <p class="demo-note" style="margin-top:0.6rem">
+        Renders since last reset: <strong>@(_renders - _baseline)</strong>
+    </p>
+</div>
+
+<p class="demo-note">
+    Three queries, six renders: each contributes exactly two — one when its request starts, one
+    when it finishes — whether you press <strong>Load all three</strong> or
+    <strong>Refetch</strong>, and whether it is the first run or the twentieth. Before this
+    deduplication the same three queries cost nine, because each also rendered a third time to
+    publish data the component went on to render again a moment later.
+</p>
+<p class="demo-note">
+    Six is the ceiling, not a guarantee: overlapping completions can share a render, so a slow
+    connection sometimes shows fewer. Add latency in the demo controls and the requests spread out
+    until every transition lands on its own.
+</p>
+
+@code {
+    private readonly Query<TodoDto> _first = new();
+    private readonly Query<TodoDto> _second = new();
+    private readonly Query<TodoDto> _third = new();
+
+    private int _renders;
+    private int _baseline;
+
+    protected override Task OnInitializedAsync() => LoadAll();
+
+    private Task LoadAll() => Task.WhenAll(
+        _first.Execute(token => Api.GetTodoAsync(1, token), p => p.OnError = _ => { }),
+        _second.Execute(token => Api.GetTodoAsync(2, token), p => p.OnError = _ => { }),
+        _third.Execute(token => Api.GetTodoAsync(3, token), p => p.OnError = _ => { }));
+
+    private Task RefetchSame() => Task.WhenAll(_first.Refetch(), _second.Refetch(), _third.Refetch());
+
+    // reset itself causes one more render before _baseline is read
+    private void ResetCounter() => _baseline = _renders + 1;
+}

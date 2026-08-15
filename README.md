@@ -19,6 +19,11 @@ Déjà vu: you have seen this data before, and Deja remembers it for you.
   owns it. Components sharing a `QueryKey` are updated independently by the cache entry they each
   observe — never by one another; without a shared key, two components holding their own
   `Query<T>` can never re-render each other at all.
+- **Two renders per request — first fetch or hundredth.** One when the request starts, one when it
+  finishes. A transition that changes nothing bindable renders nothing at all, and concurrent
+  requests share a queued render instead of each forcing their own, so three queries loading
+  together cost six renders rather than nine. Coalescing never defers a render past the change that
+  caused it: after `await Execute(...)` the component has rendered.
 - Disposing the component detaches from everything it observed and cancels its in-flight fetches
   and writes — no `CancellationTokenSource` to declare, no token to thread through call sites.
 
