@@ -503,6 +503,103 @@
     flex: 1;
 }
 
+.demo-button.icon {
+    padding: 0.3rem;
+    width: 1.9rem;
+    height: 1.9rem;
+    justify-content: center;
+    flex: none;
+}
+
+.spinner {
+    display: inline-block;
+    width: 0.85em;
+    height: 0.85em;
+    flex: none;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    opacity: 0.85;
+    animation: deja-spin 0.6s linear infinite;
+}
+
+.spinner.danger {
+    color: var(--deja-danger);
+}
+
+@keyframes deja-spin {
+    to { transform: rotate(360deg); }
+}
+
+.demo-activity {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 1.6rem;
+    margin: 0.9rem 0;
+    font-size: 0.82rem;
+    font-weight: 550;
+    color: var(--deja-primary);
+}
+
+.demo-activity-idle {
+    color: var(--deja-muted);
+    font-weight: 400;
+}
+
+.demo-list li.pending {
+    background: var(--deja-sunken);
+}
+
+.demo-list li.deleting {
+    background: var(--deja-danger-soft);
+    opacity: 0.75;
+}
+
+.demo-list .row-status {
+    font-family: var(--deja-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.03em;
+    color: var(--deja-muted);
+}
+
+.demo-list .row-status.danger {
+    color: var(--deja-danger);
+}
+
+.demo-list li.skeleton {
+    padding: 0.65rem 0.8rem;
+}
+
+.skeleton-bar {
+    display: block;
+    width: 60%;
+    height: 0.7rem;
+    border-radius: 999px;
+    background: linear-gradient(90deg,
+        var(--deja-sunken) 25%,
+        var(--deja-border) 50%,
+        var(--deja-sunken) 75%);
+    background-size: 300% 100%;
+    animation: deja-shimmer 1.3s ease-in-out infinite;
+}
+
+.demo-list li.skeleton:nth-child(2n) .skeleton-bar {
+    width: 80%;
+}
+
+@keyframes deja-shimmer {
+    from { background-position: 150% 0; }
+    to { background-position: -150% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spinner,
+    .skeleton-bar {
+        animation: none;
+    }
+}
+
 .demo-panels {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));

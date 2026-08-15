@@ -4,47 +4,114 @@
 
 <div class="demo-toolbar">
     <input class="demo-input" style="flex:1" placeholder="What needs doing?"
-           @bind="_newTitle" @bind:event="oninput" @onkeydown="@(e => e.Key == "Enter" ? Add() : Task.CompletedTask)"/>
+           @bind="_newTitle" @bind:event="oninput" @onkeydown="@(e => e.Key == "Enter" ? Add() : Task.CompletedTask)"
+           disabled="@_create.IsLoading"/>
     <button class="demo-button primary" @onclick="Add"
             disabled="@(_create.IsLoading || string.IsNullOrWhiteSpace(_newTitle))">
-        @(_create.IsLoading ? "Adding…" : "Add")
+        @if (_create.IsLoading)
+        {
+            <span class="spinner" aria-hidden="true"></span>
+            <span>Adding…</span>
+        }
+        else
+        {
+            <span>Add</span>
+        }
     </button>
-    <button class="demo-button" @onclick="() => _todos.Refetch()">Refetch</button>
+    <button class="demo-button" @onclick="() => _todos.Refetch()" disabled="@_todos.IsReFetching">
+        @if (_todos.IsReFetching)
+        {
+            <span class="spinner" aria-hidden="true"></span>
+        }
+        <span>Refetch</span>
+    </button>
 </div>
 
 <StateInspector Query="_todos" Label="List query"/>
+<MutationInspector Mutation="_create" Label="Create"/>
+<MutationInspector Mutation="_update" Label="Update"/>
+<MutationInspector Mutation="_delete" Label="Delete"/>
+
+<div class="demo-activity" role="status" aria-live="polite">
+    @if (Busy is { } busy)
+    {
+        <span class="spinner" aria-hidden="true"></span>
+        <span>@busy</span>
+    }
+    else
+    {
+        <span class="demo-activity-idle">Idle — no mutation in flight</span>
+    }
+</div>
 
 @if (_todos.Data is { } todos)
 {
     <ul class="demo-list">
+        @if (_create.IsLoading)
+        {
+            <li class="pending">
+                <span class="spinner" aria-hidden="true"></span>
+                <span>@_newTitle</span>
+                <span class="spacer"></span>
+                <span class="row-status">Creating…</span>
+            </li>
+        }
         @foreach (var todo in todos)
         {
-            <li>
-                <input type="checkbox" checked="@todo.Completed" @onchange="() => Toggle(todo)"/>
+            <li class="@RowClass(todo.Id)">
+                <input type="checkbox" checked="@todo.Completed" @onchange="() => Toggle(todo)"
+                       disabled="@(IsToggling(todo.Id) || IsDeleting(todo.Id))"/>
                 <span class="@(todo.Completed ? "done" : null)">@todo.Title</span>
                 <span class="spacer"></span>
-                <button class="demo-button danger" @onclick="() => Delete(todo)">✕</button>
+                @if (IsToggling(todo.Id))
+                {
+                    <span class="row-status">Saving…</span>
+                }
+                else if (IsDeleting(todo.Id))
+                {
+                    <span class="row-status danger">Deleting…</span>
+                }
+                <button class="demo-button danger icon" @onclick="() => Delete(todo)"
+                        disabled="@(IsDeleting(todo.Id) || IsToggling(todo.Id))"
+                        aria-label="@(IsDeleting(todo.Id) ? $"Deleting {todo.Title}" : $"Delete {todo.Title}")">
+                    @if (IsDeleting(todo.Id))
+                    {
+                        <span class="spinner danger" aria-hidden="true"></span>
+                    }
+                    else
+                    {
+                        <span aria-hidden="true">✕</span>
+                    }
+                </button>
             </li>
         }
     </ul>
 }
 else if (_todos.IsLoading)
 {
-    <p class="demo-note">Loading todos…</p>
+    <ul class="demo-list">
+        @for (var i = 0; i < 4; i++)
+        {
+            <li class="skeleton"><span class="skeleton-bar"></span></li>
+        }
+    </ul>
 }
 
 @if (_todos.IsError)
 {
     <div class="demo-error">Couldn't load todos: @_todos.ErrorMessage</div>
 }
-@if (_error is not null)
+@if (Error is { } error)
 {
-    <div class="demo-error">@_error</div>
+    <div class="demo-error">@error</div>
 }
 
 <p class="demo-note">
     JSONPlaceholder fakes writes (nothing persists server-side), so successful mutations are
     applied to the cached list with <code>DejaClient.SetData</code> instead of refetching.
+    A <code>Mutation&lt;T&gt;</code> is shared by every row, so <code>IsLoading</code> says
+    <em>a</em> write is running — pair it with the id being written to place the spinner on the
+    right row.
 </p>
 
 @code {
@@ -54,10 +121,29 @@ else if (_todos.IsLoading)
     private readonly Mutation<bool> _delete = new();
 
     private string _newTitle = string.Empty;
-    private string? _error;
     private int _nextLocalId = 500;
+    private int? _updatingId;
+    private int? _deletingId;
 
     private static QueryKey Key => DocsKeys.TodoList(8);
+
+    private bool IsToggling(int id) => _update.IsLoading && _updatingId == id;
+
+    private bool IsDeleting(int id) => _delete.IsLoading && _deletingId == id;
+
+    private string? RowClass(int id)
+        => IsDeleting(id) ? "deleting" : IsToggling(id) ? "pending" : null;
+
+    private string? Error => _create.IsError ? $"Create failed: {_create.ErrorMessage}"
+        : _update.IsError ? $"Update failed: {_update.ErrorMessage}"
+        : _delete.IsError ? $"Delete failed: {_delete.ErrorMessage}"
+        : null;
+
+    private string? Busy => _create.IsLoading ? "Creating a todo…"
+        : _update.IsLoading ? "Saving a todo…"
+        : _delete.IsLoading ? "Deleting a todo…"
+        : _todos.IsReFetching ? "Refetching the list…"
+        : null;
 
     protected override Task OnInitializedAsync()
         => _todos.Execute(Key, token => Api.GetTodosAsync(8, token), p => p.OnError = _ => { });
@@ -67,7 +153,6 @@ else if (_todos.IsLoading)
         var title = _newTitle.Trim();
         if (title.Length == 0) return;
 
-        _error = null;
         await _create.Execute(token => Api.CreateTodoAsync(new NewTodo(1, title, false), token), p =>
         {
             p.OnSuccess = created =>
@@ -77,13 +162,12 @@ else if (_todos.IsLoading)
                 var todo = created! with { Id = _nextLocalId++ };
                 Client.SetData(Key, (IReadOnlyList<TodoDto>? current) => [todo, .. current ?? []]);
             };
-            p.OnError = e => _error = $"Create failed: {e.Message}";
+            p.OnError = _ => { };
         });
     }
 
     private async Task Toggle(TodoDto todo)
     {
-        _error = null;
         var toggled = todo with { Completed = !todo.Completed };
 
         // Rows added locally don't exist server-side; a PUT for them would 500.
@@ -93,27 +177,29 @@ else if (_todos.IsLoading)
             return;
         }
 
+        _updatingId = todo.Id;
         await _update.Execute(token => Api.UpdateTodoAsync(toggled, token), p =>
         {
             p.OnSuccess = _ => Apply(toggled);
-            p.OnError = e => _error = $"Update failed: {e.Message}";
+            p.OnError = _ => { };
+            p.OnSettled = _ => _updatingId = null;
         });
     }
 
     private async Task Delete(TodoDto todo)
     {
-        _error = null;
-
         if (todo.Id >= 500)
         {
             Remove(todo);
             return;
         }
 
+        _deletingId = todo.Id;
         await _delete.Execute(token => Api.DeleteTodoAsync(todo.Id, token), p =>
         {
             p.OnSuccess = _ => Remove(todo);
-            p.OnError = e => _error = $"Delete failed: {e.Message}";
+            p.OnError = _ => { };
+            p.OnSettled = _ => _deletingId = null;
         });
     }
 

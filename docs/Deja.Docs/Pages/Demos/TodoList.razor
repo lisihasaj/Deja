@@ -17,13 +17,44 @@
     <TodoListDemo/>
 </DemoCard>
 
-<h2>What to look for</h2>
+<h2>Try the cache yourself</h2>
+<p>
+    Staleness is checked when a component <em>mounts</em>, not on a timer. Sitting on this page
+    will never trigger a refetch on its own, no matter how long you wait — leaving and coming back
+    is what runs the check. Open your browser's network tab and walk through it:
+</p>
+<ol>
+    <li><strong>Load this page.</strong> Cold cache, so the query fetches: one request, skeleton
+        rows, <code>IsLoading</code> lit.</li>
+    <li><strong>Navigate to another demo and come back within 10 seconds.</strong> The list is
+        there immediately and the network tab stays empty — <em>no request at all</em>.
+        <code>IsCachedData</code> is lit, and <code>UpdatedAt</code> still shows the original fetch
+        time. Ten seconds is the site's stale time, set once in
+        <code>Program.cs</code>.</li>
+    <li><strong>Now wait past 10 seconds, navigate away and come back.</strong> The list still
+        renders instantly from cache — no spinner, no skeletons — but this time
+        <code>IsReFetching</code> lights up while a request revalidates in the background, and
+        <code>UpdatedAt</code> and <code>ReFetchCount</code> move when it lands.</li>
+</ol>
+<p>
+    That is the whole point of a stale time: the user never waits, and the network is only hit when
+    the data has aged past what you decided is acceptable. To refresh without leaving, use the
+    <strong>Refetch</strong> button — it bypasses staleness entirely — or invalidate the key from a
+    mutation.
+</p>
+
+<h2>What else to look for</h2>
 <ul>
-    <li>The first visit fetches; navigating away and back within 10 seconds renders instantly from
-        cache with <em>no request</em> (the site's stale time). After 10 seconds it still renders
-        instantly, with <code>IsReFetching</code> revalidating in the background.</li>
     <li>Adds, toggles and deletes go through <code>Mutation&lt;T&gt;</code>; results are applied
         with <code>DejaClient.SetData</code>'s updater form because JSONPlaceholder fakes writes —
         a refetch would resurrect the server's canonical list.</li>
-    <li>The disabled state of the Add button is just <code>_create.IsLoading</code>.</li>
+    <li>Every loading flag is on screen at once: the query's badges, a badge row per mutation, an
+        activity line naming whatever is in flight, and spinners on the Add button, the Refetch
+        button and the row being written.</li>
+    <li>The disabled state of the Add button is just <code>_create.IsLoading</code>, and the row
+        spinners are <code>_delete.IsLoading</code> / <code>_update.IsLoading</code>. Because one
+        <code>Mutation&lt;T&gt;</code> serves every row, the demo also remembers which id is being
+        written — the flag says a write is running, the id says which row to mark.</li>
+    <li>Raise the latency in the demo controls to watch the optimistic-looking pending row for a
+        create, the <code>Deleting…</code> row tint, and the skeleton rows on a cold load.</li>
 </ul>
