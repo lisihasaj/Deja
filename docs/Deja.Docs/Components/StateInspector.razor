@@ -1,0 +1,20 @@
+@typeparam TData
+
+<div class="state-inspector" aria-label="Query state">
+    <span class="inspector-label">@Label</span>
+    <span class="state-badge @(Query.IsLoading ? "on" : null)">IsLoading</span>
+    <span class="state-badge warn @(Query.IsReFetching ? "on" : null)">IsReFetching</span>
+    <span class="state-badge bad @(Query.IsError ? "on" : null)">IsError</span>
+    <span class="state-badge @(Query.IsCachedData ? "on" : null)">IsCachedData</span>
+    <span class="state-badge warn @(Query.IsStale ? "on" : null)">IsStale</span>
+    <span class="state-badge">ReFetchCount: @Query.ReFetchCount</span>
+    @if (Query.UpdatedAt is { } updatedAt)
+    {
+        <span class="state-badge">UpdatedAt: @updatedAt.ToLocalTime().ToString("HH:mm:ss")</span>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Query<TData> Query { get; set; } = default!;
+    [Parameter] public string Label { get; set; } = "Query state";
+}

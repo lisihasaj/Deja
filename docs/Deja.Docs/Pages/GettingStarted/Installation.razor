@@ -1,0 +1,67 @@
+@page "/getting-started/installation"
+
+<PageTitle>Installation — Deja</PageTitle>
+
+<h1>Installation</h1>
+<p class="lead">One package, one optional service registration.</p>
+
+<h2>Install the package</h2>
+
+<CodeBlock Language="bash" Code="dotnet add package Deja"/>
+
+<p>
+    Deja multi-targets <code>net8.0</code>, <code>net9.0</code> and <code>net10.0</code> and works
+    on both Blazor WebAssembly and Blazor Server. It has no third-party dependencies.
+</p>
+
+<h2>Register the cache (recommended)</h2>
+<p>
+    <code>AddDeja()</code> registers the shared query cache. It's opt-in: without it, everything
+    still works, but keyed queries don't share results across components.
+</p>
+
+<CodeBlock FileName="Program.cs" Code="@RegisterSample"/>
+
+<p>
+    The options shown are this site's own configuration. Every property has a sensible default —
+    see <a href="api/deja-options">DejaOptions</a> for the full list.
+</p>
+
+<Callout Type="Callout.CalloutType.Warning" Title="Blazor Server: keep it Scoped">
+    <p><code>AddDeja()</code> registers <code>DejaClient</code> as <em>Scoped</em> deliberately:
+        one cache per browser tab on WebAssembly, one per user circuit on Server. Re-registering it
+        as a singleton on Blazor Server would share one user's cached API responses with every
+        other connected user — a data leak, not a performance win.</p>
+</Callout>
+
+<h2>Add the using</h2>
+
+<CodeBlock FileName="_Imports.razor" Language="cshtml" Code="@UsingSample"/>
+
+<h2>Inherit the component base</h2>
+<p>
+    Components that own queries or mutations inherit <code>DejaComponentBase</code>, which attaches
+    to declared state and re-renders the component when it changes:
+</p>
+
+<CodeBlock Language="cshtml" Code="@InheritSample"/>
+
+<p>Continue with the <a href="getting-started/quick-start">quick start</a>.</p>
+
+@code {
+    private const string RegisterSample = """
+using Deja;
+
+builder.Services.AddDeja(options =>
+{
+    options.DefaultStaleTime = TimeSpan.FromSeconds(10);
+    options.DefaultCacheTime = TimeSpan.FromMinutes(5);
+});
+""";
+
+    private const string UsingSample = "@using Deja";
+
+    private const string InheritSample = """
+@inherits DejaComponentBase
+""";
+}

@@ -1,0 +1,123 @@
+@page "/getting-started/introduction"
+
+<PageTitle>Introduction — Deja</PageTitle>
+
+<h1>Introduction</h1>
+<p class="lead">
+    Deja gives Blazor components bindable state for asynchronous work — loading, error, data,
+    refetch — plus a shared query cache, request deduplication and automatic cancellation.
+</p>
+
+<h2>The problem</h2>
+<p>
+    Every Blazor component that fetches data ends up hand-rolling the same machinery: a
+    <code>bool _loading</code> flag, a <code>try</code>/<code>catch</code> for the error message,
+    an <code>IDisposable</code> with a <code>CancellationTokenSource</code> so navigating away
+    doesn't leave requests running, and <code>StateHasChanged()</code> calls sprinkled wherever a
+    continuation might land. Multiply by every page in the app:
+</p>
+
+<CodeBlock FileName="Before — the boilerplate" Language="cshtml" Code="@Before"/>
+
+<h2>The same component with Deja</h2>
+
+<CodeBlock FileName="After — with Deja" Language="cshtml" Code="@After"/>
+
+<p>
+    The component declares a <code>Query&lt;T&gt;</code> and binds its properties.
+    <code>DejaComponentBase</code> discovers the query at initialisation, re-renders the component
+    when its state advances, and disposes it — cancelling the in-flight request — when the
+    component is removed. There is no flag, no catch block, no token plumbing and no
+    <code>StateHasChanged</code> anywhere.
+</p>
+
+<h2>What you get</h2>
+<ul>
+    <li><strong>Bindable state</strong> — <code>IsLoading</code>, <code>IsError</code>,
+        <code>ErrorMessage</code>, <code>Data</code>, <code>IsReFetching</code>,
+        <code>IsCachedData</code>, <code>IsStale</code>.</li>
+    <li><strong>Shared cache</strong> — keyed queries render instantly from cache and revalidate in
+        the background; same-key requests are deduplicated app-wide. See
+        <a href="guides/cache">the cache</a>.</li>
+    <li><strong>Cancellation</strong> — a newer execution supersedes and cancels an older one, and
+        component disposal aborts whatever is in flight. See
+        <a href="guides/cancellation">cancellation</a>.</li>
+    <li><strong>Mutations</strong> — the same bindable treatment for writes, plus key invalidation
+        on success. See <a href="guides/mutations">mutations</a>.</li>
+    <li><strong>Isolation by design</strong> — state notifies exactly one owning component, so
+        siblings never re-render each other. Watch it in the
+        <a href="demos/isolation">isolation demo</a>.</li>
+</ul>
+
+<Callout Type="Callout.CalloutType.Tip" Title="The docs are the proof">
+    <p>Every demo on this site is Deja itself running against a live API — open the demo controls
+        (bottom right) to add latency or inject failures and watch the state machine react.</p>
+</Callout>
+
+@code {
+    private const string Before = """
+@page "/todos"
+@implements IDisposable
+@inject TodoApi Api
+
+@if (_loading) { <Spinner/> }
+@if (_error is not null) { <Alert>@_error</Alert> }
+<ul>
+    @foreach (var todo in _todos ?? []) { <li>@todo.Title</li> }
+</ul>
+
+@code {
+    private List<Todo>? _todos;
+    private bool _loading;
+    private string? _error;
+    private readonly CancellationTokenSource _cts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        try
+        {
+            _todos = await Api.GetTodosAsync(_cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // navigated away — swallow
+        }
+        catch (Exception e)
+        {
+            _error = e.Message;
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}
+""";
+
+    private const string After = """
+@page "/todos"
+@inherits DejaComponentBase
+@inject TodoApi Api
+
+@if (_todos.IsLoading) { <Spinner/> }
+@if (_todos.IsError) { <Alert>@_todos.ErrorMessage</Alert> }
+<ul>
+    @foreach (var todo in _todos.Data ?? []) { <li>@todo.Title</li> }
+</ul>
+
+@code {
+    private readonly Query<List<Todo>> _todos = new();
+
+    protected override Task OnInitializedAsync()
+        => _todos.Execute("todos", Api.GetTodosAsync);
+}
+""";
+}

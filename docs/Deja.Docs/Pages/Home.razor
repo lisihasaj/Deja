@@ -1,0 +1,87 @@
+@page "/"
+@layout LandingLayout
+
+<PageTitle>Deja — data fetching and caching for Blazor</PageTitle>
+
+<section class="landing-hero">
+    <h1>Data fetching for Blazor,<br/><span class="accent">without the boilerplate</span></h1>
+    <p class="tagline">
+        Bindable loading, error and refetch state, a shared query cache with request deduplication,
+        and cancellation that just works — for Blazor WebAssembly and Server. Dependency-free.
+    </p>
+
+    <div class="landing-actions">
+        <a class="button-primary" href="getting-started/quick-start">Get started</a>
+        <a class="button-secondary" href="demos/todo-list">See live demos</a>
+    </div>
+
+    <div class="landing-install">
+        <span>$ dotnet add package Deja</span>
+    </div>
+</section>
+
+<section class="landing-code">
+    <CodeBlock FileName="Todos.razor" Language="cshtml" Code="@HeroSample"/>
+</section>
+
+<section class="landing-grid">
+    <div class="landing-card">
+        <h3>⚡ Bindable async state</h3>
+        <p>Declare a <code>Query&lt;T&gt;</code>, bind <code>IsLoading</code>, <code>IsError</code>
+            and <code>Data</code> in markup. No flags, no try/catch, no StateHasChanged.</p>
+    </div>
+    <div class="landing-card">
+        <h3>🗄 Shared query cache</h3>
+        <p>Components sharing a key render instantly from cache, join one in-flight request, and
+            revalidate in the background when stale.</p>
+    </div>
+    <div class="landing-card">
+        <h3>✂️ Automatic cancellation</h3>
+        <p>Navigating away aborts in-flight requests down to the server. A newer load supersedes
+            and cancels an older one, so stale responses never win.</p>
+    </div>
+    <div class="landing-card">
+        <h3>🔒 Component isolation</h3>
+        <p>State notifies exactly one owner. Two side-by-side components can never re-render each
+            other — provable in the <a href="demos/isolation">isolation demo</a>.</p>
+    </div>
+    <div class="landing-card">
+        <h3>✍️ Mutations & invalidation</h3>
+        <p><code>Mutation&lt;T&gt;</code> tracks writes and invalidates query keys by prefix on
+            success, so every affected list refetches itself.</p>
+    </div>
+    <div class="landing-card">
+        <h3>📦 Dependency-free</h3>
+        <p>No JSON serializers, no reflection-heavy magic — trimming- and AOT-safe, multi-targeting
+            net8.0 through net10.0.</p>
+    </div>
+</section>
+
+<footer class="landing-footer">
+    These docs run on Deja itself — every demo is the real library fetching from a live API.
+</footer>
+
+@code {
+    private const string HeroSample = """
+@page "/todos"
+@inherits DejaComponentBase
+@inject TodoApi Api
+
+@if (_todos.IsLoading) { <Spinner/> }
+@if (_todos.IsError) { <Alert>@_todos.ErrorMessage</Alert> }
+
+<ul>
+    @foreach (var todo in _todos.Data ?? [])
+    {
+        <li>@todo.Title</li>
+    }
+</ul>
+
+@code {
+    private readonly Query<List<Todo>> _todos = new();
+
+    protected override Task OnInitializedAsync()
+        => _todos.Execute("todos", Api.GetTodosAsync);
+}
+""";
+}

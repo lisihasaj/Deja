@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Deja — data fetching and caching for Blazor</title>
+    <meta name="description" content="Documentation for Deja: data fetching, mutation and caching primitives for Blazor WebAssembly and Server."/>
+    <base href="/"/>
+    <script>
+        // Applied before the first paint so a stored theme choice never flashes the other theme.
+        (function () {
+            var theme = localStorage.getItem('deja-theme');
+            if (theme === 'dark' || theme === 'light') {
+                document.documentElement.setAttribute('data-theme', theme);
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="css/tokens.css"/>
+    <link rel="stylesheet" href="css/layout.css"/>
+    <link rel="stylesheet" href="css/components.css"/>
+    <link rel="stylesheet" href="css/code.css"/>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+</head>
+
+<body>
+<div id="app">
+    <div class="boot-splash">
+        <div class="boot-splash-mark">Deja</div>
+        <div class="boot-splash-hint">Loading documentation…</div>
+    </div>
+</div>
+
+<div id="blazor-error-ui" style="display:none">
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+<script src="lib/prism/prism.js" data-manual></script>
+<script src="js/site.js"></script>
+<script src="_framework/blazor.webassembly.js"></script>
+</body>
+
+</html>

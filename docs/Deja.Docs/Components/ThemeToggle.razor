@@ -1,0 +1,18 @@
+@inject IJSRuntime Js
+
+<button type="button" class="icon-button" @onclick="Toggle" aria-label="Toggle color theme" title="Toggle color theme">
+    <svg class="theme-icon-light" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM11 1h2v3h-2V1zm0 19h2v3h-2v-3zM3.5 4.9 4.9 3.5l2.1 2.1-1.4 1.4L3.5 4.9zm13.5 13.5 1.4-1.4 2.1 2.1-1.4 1.4-2.1-2.1zM1 11h3v2H1v-2zm19 0h3v2h-3v-2zM3.5 19.1l2.1-2.1 1.4 1.4-2.1 2.1-1.4-1.4zM17 5.6l2.1-2.1 1.4 1.4-2.1 2.1L17 5.6z"/>
+    </svg>
+    <svg class="theme-icon-dark" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M10 6a8 8 0 0 0 11.2 7.3A8.5 8.5 0 1 1 10.7 2.8 8 8 0 0 0 10 6z"/>
+    </svg>
+</button>
+
+@code {
+    private async Task Toggle()
+    {
+        var current = await Js.InvokeAsync<string>("dejaDocs.effectiveTheme");
+        await Js.InvokeVoidAsync("dejaDocs.setTheme", current == "dark" ? "light" : "dark");
+    }
+}

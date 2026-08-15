@@ -1,0 +1,46 @@
+@page "/api/refetch-parameters"
+
+<PageTitle>RefetchParameters&lt;T&gt; — Deja API</PageTitle>
+
+<h1>RefetchParameters&lt;T&gt;</h1>
+<p class="lead">
+    The parameters a <code>Query&lt;T&gt;.Refetch</code> may override, for that call only.
+</p>
+
+<CodeBlock Code="public class RefetchParameters<T>"/>
+
+<p>
+    The identity of the query — key, fetch function, client — always comes from the last
+    <code>Execute</code>: changing those is a new query, not a refetch. A property left null keeps
+    the value the last <code>Execute</code> used, and a later bare <code>Refetch()</code> is
+    unaffected by earlier overrides.
+</p>
+
+<h2>Properties</h2>
+
+<ApiTable NameHeader="Property" Rows="@_rows"/>
+
+<h2>Example</h2>
+
+<CodeBlock Code="@Sample"/>
+
+@code {
+    private static readonly ApiRow[] _rows =
+    [
+        new("CancellationToken", "CancellationToken?", null, "Replaces the token for this refetch."),
+        new("OnSuccessAsync / OnSuccess", "Func<T?, Task>? / Action<T?>?", null, "Replace the success callbacks for this refetch."),
+        new("OnErrorAsync / OnError", "Func<Exception, Task>? / Action<Exception>?", null, "Replace the error callbacks for this refetch."),
+        new("OnDisplayUserErrorAsync / OnDisplayUserError", "Func<DisplayUserException, Task>? / Action<DisplayUserException>?", null, "Replace the display-user error callbacks for this refetch."),
+        new("OnSettledAsync / OnSettled", "Func<T?, Task>? / Action<T?>?", null, "Replace the settled callbacks for this refetch."),
+        new("StaleTime", "TimeSpan?", null, "Replaces the stale time for this refetch. The refetch itself always fetches; this only changes how soon the fresh result counts as stale again."),
+        new("CacheTime", "TimeSpan?", null, "Replaces the cache time for this refetch."),
+    ];
+
+    private const string Sample = """
+await _todos.Refetch(new RefetchParameters<List<Todo>>
+{
+    StaleTime = TimeSpan.FromMinutes(1),
+    OnSettled = _ => _lastRefreshed = DateTimeOffset.Now,
+});
+""";
+}

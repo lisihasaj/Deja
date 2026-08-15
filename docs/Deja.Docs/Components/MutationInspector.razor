@@ -1,0 +1,13 @@
+@typeparam TData
+
+<div class="state-inspector" aria-label="Mutation state">
+    <span class="inspector-label">@Label</span>
+    <span class="state-badge @(Mutation.IsLoading ? "on" : null)">IsLoading</span>
+    <span class="state-badge bad @(Mutation.IsError ? "on" : null)">IsError</span>
+    <span class="state-badge @(Mutation.Data is not null ? "on" : null)">Data: @(Mutation.Data is null ? "null" : "set")</span>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Mutation<TData> Mutation { get; set; } = default!;
+    [Parameter] public string Label { get; set; } = "Mutation state";
+}

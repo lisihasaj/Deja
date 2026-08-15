@@ -1,0 +1,36 @@
+@page "/demos/optimistic-write"
+
+<PageTitle>Optimistic write demo — Deja</PageTitle>
+
+<h1>Optimistic write</h1>
+<p class="lead">
+    Flip the UI immediately with <code>SetData</code>'s updater form, run the request after, and
+    roll back to a snapshot if it fails.
+</p>
+
+<DemoCard Title="Optimistic toggle with rollback" SourceFiles="@(new[] { "OptimisticWriteDemo.razor" })">
+    <OptimisticWriteDemo/>
+</DemoCard>
+
+<h2>The pattern</h2>
+<ol>
+    <li><strong>Snapshot</strong> — <code>Client.GetData&lt;T&gt;(key)</code> captures the current
+        value.</li>
+    <li><strong>Optimistic write</strong> — <code>Client.SetData(key, updater)</code> transforms
+        the cached value; every subscribed query re-renders instantly, before any network
+        traffic.</li>
+    <li><strong>The real request</strong> — a normal <code>Mutation&lt;T&gt;</code>.</li>
+    <li><strong>Rollback on error</strong> — the <code>OnError</code> callback writes the snapshot
+        back.</li>
+</ol>
+
+<Callout Type="Callout.CalloutType.Tip" Title="Try the failure path">
+    <p>Click "Arm a failure, then toggle": the checkbox flips instantly, the request fails ~a
+        second later (raise the latency to stretch it out), and the rollback snaps it back.</p>
+</Callout>
+
+<p>
+    For the non-optimistic alternative — wait for the server, then let it decide — use
+    <code>InvalidateKeys</code> on the mutation instead, as in the
+    <a href="guides/mutations">mutations guide</a>.
+</p>

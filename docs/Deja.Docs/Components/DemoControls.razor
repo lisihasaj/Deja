@@ -1,0 +1,65 @@
+@implements IDisposable
+@inject LatencySimulator Latency
+@inject FailureSwitch Failure
+@inject JsonPlaceholderApi Api
+
+<div class="demo-controls @(_open ? null : "collapsed")">
+    <button type="button" class="demo-controls-header" @onclick="() => _open = !_open" aria-expanded="@_open">
+        🎛 Demo controls
+        @if (Api.IsOffline)
+        {
+            <span class="offline-badge">offline sample data</span>
+        }
+    </button>
+
+    @if (_open)
+    {
+        <div class="demo-controls-body">
+            <div>
+                <label for="latency-slider">Artificial latency: @Latency.DelayMs ms</label>
+                <input id="latency-slider" type="range" min="0" max="2000" step="100"
+                       value="@Latency.DelayMs"
+                       @oninput="e => Latency.DelayMs = int.Parse((string)e.Value!)"/>
+            </div>
+
+            <div>
+                <label>Failure injection</label>
+                <div class="demo-toolbar" style="margin:0">
+                    <button type="button" class="demo-button danger"
+                            @onclick="() => Failure.Arm(FailureSwitch.FailureKind.Generic)">
+                        @(Failure.Armed == FailureSwitch.FailureKind.Generic ? "Armed ✓" : "Fail next")
+                    </button>
+                    <button type="button" class="demo-button danger"
+                            @onclick="() => Failure.Arm(FailureSwitch.FailureKind.DisplayUser)">
+                        @(Failure.Armed == FailureSwitch.FailureKind.DisplayUser ? "Armed ✓" : "Fail (user-facing)")
+                    </button>
+                </div>
+            </div>
+
+            @if (Api.IsOffline)
+            {
+                <div class="demo-note">
+                    JSONPlaceholder is unreachable — demos are serving embedded sample data.
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private bool _open;
+
+    protected override void OnInitialized()
+    {
+        Failure.Changed += Refresh;
+        Api.OfflineChanged += Refresh;
+    }
+
+    private void Refresh() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Failure.Changed -= Refresh;
+        Api.OfflineChanged -= Refresh;
+    }
+}

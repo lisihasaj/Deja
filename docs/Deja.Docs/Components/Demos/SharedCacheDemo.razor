@@ -1,0 +1,14 @@
+@inherits DejaComponentBase
+
+<div class="demo-panels">
+    <SharedCachePanel Title="Component A"/>
+    <SharedCachePanel Title="Component B"/>
+</div>
+
+<CacheInspector Keys="@(new[] { DocsKeys.TodoList(5) })"/>
+
+<p class="demo-note">
+    Two sibling components execute the same key. Watch the network tab: one request. The cache
+    inspector shows both panels subscribed to the single entry; a refetch from either panel
+    updates both.
+</p>

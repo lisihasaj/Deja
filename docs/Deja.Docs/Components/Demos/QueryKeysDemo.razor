@@ -1,0 +1,66 @@
+@inherits DejaComponentBase
+@inject JsonPlaceholderApi Api
+@inject DejaClient Client
+
+<div class="demo-toolbar">
+    <label>
+        Author:
+        <select class="demo-input" @onchange="OnUserChanged">
+            <option value="" selected="@(_userId is null)">All authors</option>
+            <option value="1" selected="@(_userId == 1)">User 1</option>
+            <option value="2" selected="@(_userId == 2)">User 2</option>
+        </select>
+    </label>
+    <button class="demo-button" @onclick="() => ChangePage(-1)" disabled="@(_page <= 1)">←</button>
+    <span>Page @_page</span>
+    <button class="demo-button" @onclick="() => ChangePage(1)">→</button>
+    <button class="demo-button" @onclick="InvalidatePrefix">Invalidate ["posts"] prefix</button>
+</div>
+
+<p class="demo-note">Current key: <code>@DocsKeys.Posts(_userId, _page).ToString()</code></p>
+
+<StateInspector Query="_posts" Label="Posts query"/>
+
+@if (_posts.Data is { } posts)
+{
+    <ul class="demo-list">
+        @foreach (var post in posts.Take(5))
+        {
+            <li>#@post.Id · u@(post.UserId) — @post.Title</li>
+        }
+    </ul>
+}
+
+<p class="demo-note">
+    Each author/page combination is its own cache entry — flip back to a visited page and it
+    renders instantly. The dictionary segment normalises property order, and invalidating the
+    <code>["posts"]</code> prefix marks every combination stale in one call.
+</p>
+
+@code {
+    private readonly Query<IReadOnlyList<PostDto>> _posts = new();
+    private int? _userId;
+    private int _page = 1;
+
+    protected override Task OnInitializedAsync() => Load();
+
+    private Task Load() => _posts.Execute(
+        DocsKeys.Posts(_userId, _page),
+        token => Api.GetPostsAsync(_userId, _page, token),
+        p => p.OnError = _ => { });
+
+    private Task OnUserChanged(ChangeEventArgs e)
+    {
+        _userId = int.TryParse((string?)e.Value, out var id) ? id : null;
+        _page = 1;
+        return Load();
+    }
+
+    private Task ChangePage(int delta)
+    {
+        _page = Math.Max(1, _page + delta);
+        return Load();
+    }
+
+    private Task InvalidatePrefix() => Client.InvalidateAsync(QueryKey.Of("posts"));
+}

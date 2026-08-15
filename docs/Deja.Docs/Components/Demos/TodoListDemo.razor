@@ -1,0 +1,127 @@
+@inherits DejaComponentBase
+@inject JsonPlaceholderApi Api
+@inject DejaClient Client
+
+<div class="demo-toolbar">
+    <input class="demo-input" style="flex:1" placeholder="What needs doing?"
+           @bind="_newTitle" @bind:event="oninput" @onkeydown="@(e => e.Key == "Enter" ? Add() : Task.CompletedTask)"/>
+    <button class="demo-button primary" @onclick="Add"
+            disabled="@(_create.IsLoading || string.IsNullOrWhiteSpace(_newTitle))">
+        @(_create.IsLoading ? "Adding…" : "Add")
+    </button>
+    <button class="demo-button" @onclick="() => _todos.Refetch()">Refetch</button>
+</div>
+
+<StateInspector Query="_todos" Label="List query"/>
+
+@if (_todos.Data is { } todos)
+{
+    <ul class="demo-list">
+        @foreach (var todo in todos)
+        {
+            <li>
+                <input type="checkbox" checked="@todo.Completed" @onchange="() => Toggle(todo)"/>
+                <span class="@(todo.Completed ? "done" : null)">@todo.Title</span>
+                <span class="spacer"></span>
+                <button class="demo-button danger" @onclick="() => Delete(todo)">✕</button>
+            </li>
+        }
+    </ul>
+}
+else if (_todos.IsLoading)
+{
+    <p class="demo-note">Loading todos…</p>
+}
+
+@if (_todos.IsError)
+{
+    <div class="demo-error">Couldn't load todos: @_todos.ErrorMessage</div>
+}
+@if (_error is not null)
+{
+    <div class="demo-error">@_error</div>
+}
+
+<p class="demo-note">
+    JSONPlaceholder fakes writes (nothing persists server-side), so successful mutations are
+    applied to the cached list with <code>DejaClient.SetData</code> instead of refetching.
+</p>
+
+@code {
+    private readonly Query<IReadOnlyList<TodoDto>> _todos = new();
+    private readonly Mutation<TodoDto> _create = new();
+    private readonly Mutation<TodoDto> _update = new();
+    private readonly Mutation<bool> _delete = new();
+
+    private string _newTitle = string.Empty;
+    private string? _error;
+    private int _nextLocalId = 500;
+
+    private static QueryKey Key => DocsKeys.TodoList(8);
+
+    protected override Task OnInitializedAsync()
+        => _todos.Execute(Key, token => Api.GetTodosAsync(8, token), p => p.OnError = _ => { });
+
+    private async Task Add()
+    {
+        var title = _newTitle.Trim();
+        if (title.Length == 0) return;
+
+        _error = null;
+        await _create.Execute(token => Api.CreateTodoAsync(new NewTodo(1, title, false), token), p =>
+        {
+            p.OnSuccess = created =>
+            {
+                _newTitle = string.Empty;
+                // JSONPlaceholder always answers with id 201; give local rows unique ids.
+                var todo = created! with { Id = _nextLocalId++ };
+                Client.SetData(Key, (IReadOnlyList<TodoDto>? current) => [todo, .. current ?? []]);
+            };
+            p.OnError = e => _error = $"Create failed: {e.Message}";
+        });
+    }
+
+    private async Task Toggle(TodoDto todo)
+    {
+        _error = null;
+        var toggled = todo with { Completed = !todo.Completed };
+
+        // Rows added locally don't exist server-side; a PUT for them would 500.
+        if (todo.Id >= 500)
+        {
+            Apply(toggled);
+            return;
+        }
+
+        await _update.Execute(token => Api.UpdateTodoAsync(toggled, token), p =>
+        {
+            p.OnSuccess = _ => Apply(toggled);
+            p.OnError = e => _error = $"Update failed: {e.Message}";
+        });
+    }
+
+    private async Task Delete(TodoDto todo)
+    {
+        _error = null;
+
+        if (todo.Id >= 500)
+        {
+            Remove(todo);
+            return;
+        }
+
+        await _delete.Execute(token => Api.DeleteTodoAsync(todo.Id, token), p =>
+        {
+            p.OnSuccess = _ => Remove(todo);
+            p.OnError = e => _error = $"Delete failed: {e.Message}";
+        });
+    }
+
+    private void Apply(TodoDto updated)
+        => Client.SetData(Key, (IReadOnlyList<TodoDto>? current)
+            => [.. (current ?? []).Select(t => t.Id == updated.Id ? updated : t)]);
+
+    private void Remove(TodoDto removed)
+        => Client.SetData(Key, (IReadOnlyList<TodoDto>? current)
+            => [.. (current ?? []).Where(t => t.Id != removed.Id)]);
+}

@@ -1,0 +1,50 @@
+@implements IDisposable
+@inject NavigationManager Nav
+
+@if (_prev is not null || _next is not null)
+{
+    <nav class="prev-next" aria-label="Adjacent pages">
+        @if (_prev is not null)
+        {
+            <a href="@_prev.Href" class="pn-prev">
+                <span class="pn-label">← Previous</span>
+                <span class="pn-title">@_prev.Title</span>
+            </a>
+        }
+        @if (_next is not null)
+        {
+            <a href="@_next.Href" class="pn-next">
+                <span class="pn-label">Next →</span>
+                <span class="pn-title">@_next.Title</span>
+            </a>
+        }
+    </nav>
+}
+
+@code {
+    private NavItem? _prev;
+    private NavItem? _next;
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+        Update();
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        Update();
+        StateHasChanged();
+    }
+
+    private void Update()
+    {
+        var href = Nav.ToBaseRelativePath(Nav.Uri).TrimEnd('/');
+        var hash = href.IndexOf('#');
+        if (hash >= 0) href = href[..hash];
+
+        (_prev, _next) = DocsNav.Around(href);
+    }
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+}

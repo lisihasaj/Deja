@@ -1,0 +1,106 @@
+/* Deja docs design tokens. Light is the base; dark redefines tokens only. */
+
+:root {
+    --deja-primary: #5C00B3;
+    --deja-primary-hover: #4A0091;
+    --deja-primary-soft: #F3E9FC;
+    --deja-primary-contrast: #FFFFFF;
+
+    --deja-surface: #FDFDFB;
+    --deja-elevated: #FFFFFF;
+    --deja-sunken: #F6F4F9;
+    --deja-ink: #1A1522;
+    --deja-muted: #6B6478;
+    --deja-border: #E8E4EE;
+    --deja-border-strong: #D5CEE0;
+
+    --deja-success: #1B7F4D;
+    --deja-success-soft: #E3F5EB;
+    --deja-warning: #92610A;
+    --deja-warning-soft: #FBF1DC;
+    --deja-danger: #B3261E;
+    --deja-danger-soft: #FBE9E7;
+    --deja-info: #145EA8;
+    --deja-info-soft: #E5F0FB;
+
+    --deja-code-bg: #FAF8FD;
+    --deja-code-inline-bg: #F3EFF9;
+    --deja-shadow: 0 1px 2px rgba(26, 21, 34, 0.06), 0 4px 16px rgba(26, 21, 34, 0.06);
+    --deja-shadow-raised: 0 2px 6px rgba(26, 21, 34, 0.10), 0 12px 32px rgba(26, 21, 34, 0.12);
+
+    --deja-font: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    --deja-mono: "JetBrains Mono", "Cascadia Code", "SF Mono", ui-monospace, "Consolas", monospace;
+
+    --deja-radius: 10px;
+    --deja-radius-sm: 6px;
+    --deja-header-h: 3.5rem;
+    --deja-sidebar-w: 17rem;
+    --deja-toc-w: 14rem;
+    --deja-content-max: 47rem;
+
+    color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --deja-primary: #B77DFF;
+        --deja-primary-hover: #C99AFF;
+        --deja-primary-soft: #2C1348;
+        --deja-primary-contrast: #1A0533;
+
+        --deja-surface: #141018;
+        --deja-elevated: #1D1824;
+        --deja-sunken: #0F0C13;
+        --deja-ink: #ECE8F1;
+        --deja-muted: #9A92A8;
+        --deja-border: #2E2739;
+        --deja-border-strong: #443A54;
+
+        --deja-success: #4ACD8D;
+        --deja-success-soft: #10301F;
+        --deja-warning: #E5B567;
+        --deja-warning-soft: #33270F;
+        --deja-danger: #F28B82;
+        --deja-danger-soft: #3B1512;
+        --deja-info: #7FB5F0;
+        --deja-info-soft: #10263D;
+
+        --deja-code-bg: #191420;
+        --deja-code-inline-bg: #272033;
+        --deja-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.35);
+        --deja-shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.5), 0 12px 32px rgba(0, 0, 0, 0.45);
+
+        color-scheme: dark;
+    }
+}
+
+:root[data-theme="dark"] {
+    --deja-primary: #B77DFF;
+    --deja-primary-hover: #C99AFF;
+    --deja-primary-soft: #2C1348;
+    --deja-primary-contrast: #1A0533;
+
+    --deja-surface: #141018;
+    --deja-elevated: #1D1824;
+    --deja-sunken: #0F0C13;
+    --deja-ink: #ECE8F1;
+    --deja-muted: #9A92A8;
+    --deja-border: #2E2739;
+    --deja-border-strong: #443A54;
+
+    --deja-success: #4ACD8D;
+    --deja-success-soft: #10301F;
+    --deja-warning: #E5B567;
+    --deja-warning-soft: #33270F;
+    --deja-danger: #F28B82;
+    --deja-danger-soft: #3B1512;
+    --deja-info: #7FB5F0;
+    --deja-info-soft: #10263D;
+
+    --deja-code-bg: #191420;
+    --deja-code-inline-bg: #272033;
+    --deja-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.35);
+    --deja-shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.5), 0 12px 32px rgba(0, 0, 0, 0.45);
+
+    color-scheme: dark;
+}

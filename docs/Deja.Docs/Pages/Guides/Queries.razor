@@ -1,0 +1,107 @@
+@page "/guides/queries"
+
+<PageTitle>Queries — Deja</PageTitle>
+
+<h1>Queries</h1>
+<p class="lead">
+    A <code>Query&lt;T&gt;</code> tracks a single asynchronous read and exposes its lifecycle as
+    bindable state. This guide covers the three ways to run one and the parameters that shape an
+    execution.
+</p>
+
+<h2>Three Execute overloads</h2>
+
+<p><strong>Keyed shorthand</strong> — the common case. The key opts the query into the shared
+    cache; anything else is set through the optional configure hook:</p>
+
+<CodeBlock Code="@KeyedSample"/>
+
+<p><strong>Unkeyed shorthand</strong> — a fetch that never touches the cache. A newer call
+    supersedes (and cancels) an older in-flight one, which is exactly what a type-ahead search
+    wants:</p>
+
+<CodeBlock Code="@UnkeyedSample"/>
+
+<p><strong>Full form</strong> — everything explicit, for when the call site builds parameters
+    programmatically:</p>
+
+<CodeBlock Code="@FullSample"/>
+
+<h2>The state surface</h2>
+
+<ul>
+    <li><code>IsLoading</code> — true while any execution is loading.</li>
+    <li><code>IsReFetching</code> — true while an execution <em>after the first</em> is loading;
+        drive subtle refresh indicators with this and keep the data on screen.</li>
+    <li><code>IsError</code> / <code>ErrorMessage</code> — the most recent failure; cleared by a
+        successful refetch.</li>
+    <li><code>Data</code> — the most recent result.</li>
+    <li><code>ReFetchCount</code> — how many times the query has executed.</li>
+    <li><code>UpdatedAt</code> — when the current data was fetched (cached path only).</li>
+    <li><code>IsCachedData</code> — true while <code>Data</code> came from the cache and no fresh
+        fetch has completed during this query's subscription.</li>
+    <li><code>IsStale</code> — true when the observed cache entry is invalidated or older than the
+        effective stale time (always false on the uncached path).</li>
+</ul>
+
+<h2>Enabled — dependent queries</h2>
+<p>
+    <code>Enabled = false</code> serves cached data but never fetches — for queries whose inputs
+    aren't ready yet (no user selected, a filter still empty). <code>null</code>, the default,
+    means enabled. When the input arrives, execute again with <code>Enabled = true</code>.
+    Cached path only.
+</p>
+
+<h2>Select — per-component projection</h2>
+<p>
+    <code>Select</code> transforms the cached value before it is published to <code>Data</code>.
+    It is per query, so two components can project one entry differently — the cache always stores
+    the raw value.
+</p>
+
+<h2>PlaceholderData</h2>
+<p>
+    Rendered as <code>Data</code> while the first fetch runs and the cache is empty; never written
+    to the cache. Use it for skeleton rows that are typed like real data.
+</p>
+
+<Callout Type="Callout.CalloutType.Warning" Title="Keyed joins drop parameters">
+    <p>A same-key <code>Execute</code> made while one is in flight <em>joins</em> that execution:
+        the second call's parameters are dropped and no supersede happens. Don't reuse one key
+        across calls whose parameters differ — omit the key to get supersede semantics instead.</p>
+</Callout>
+
+<h2>Live demo</h2>
+
+<DemoCard Title="Enabled · Select · PlaceholderData" SourceFiles="@(new[] { "QueriesDemo.razor" })">
+    <QueriesDemo/>
+</DemoCard>
+
+@code {
+    private const string KeyedSample = """
+private readonly Query<List<Todo>> _todos = new();
+
+protected override Task OnInitializedAsync()
+    => _todos.Execute("todos", Api.GetTodosAsync, p =>
+    {
+        p.StaleTime = TimeSpan.FromSeconds(30);
+        p.OnError = e => Log.Warn(e);
+    });
+""";
+
+    private const string UnkeyedSample = """
+// Each keystroke: the previous in-flight search is cancelled, the newest wins.
+private Task OnSearchChanged(string term)
+    => _results.Execute(token => Api.SearchAsync(term, token));
+""";
+
+    private const string FullSample = """
+await _todos.Execute(new QueryParameters<List<Todo>>
+{
+    QueryKey = QueryKey.Of("todos", "list", page),
+    QueryFunction = token => Api.GetTodosAsync(page, token),
+    PlaceholderData = [],
+    Select = todos => [.. todos.OrderBy(t => t.Title)],
+});
+""";
+}

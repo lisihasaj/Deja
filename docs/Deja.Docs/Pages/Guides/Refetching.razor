@@ -1,0 +1,95 @@
+@page "/guides/refetching"
+
+<PageTitle>Refetching & staleness — Deja</PageTitle>
+
+<h1>Refetching &amp; staleness</h1>
+<p class="lead">
+    Stale time decides when cached data needs revalidating; <code>Refetch()</code> is the explicit
+    override that always fetches.
+</p>
+
+<h2>Stale time</h2>
+<p>
+    Data is <em>fresh</em> for <code>StaleTime</code> after a successful fetch. A keyed
+    <code>Execute</code> that finds fresh data serves the cache and does <strong>not</strong>
+    fetch. The library default is <code>TimeSpan.Zero</code> — cached data renders instantly but
+    is always revalidated in the background on the next mount. "Cached" does not mean "no
+    request" unless you raise the stale time (this site uses 10 seconds).
+</p>
+
+<h2>RefetchOnMount</h2>
+<p>Controls whether a keyed <code>Execute</code> that finds cached data also refetches:</p>
+
+<ApiTable NameHeader="Value" Rows="@_refetchOnMount"/>
+
+<p>
+    A key with no cached data always fetches, regardless of this setting — and an
+    <em>invalidated</em> entry refetches even under <code>Never</code>: invalidation is an
+    explicit request, not a mount policy.
+</p>
+
+<h2>Manual Refetch()</h2>
+<p>
+    <code>Refetch()</code> re-runs the last <code>Execute</code> with a forced fresh fetch —
+    staleness, <code>RefetchOnMount</code> and <code>Enabled</code> are all bypassed. On the
+    cached path the result updates the shared entry, so every component on the key re-renders; a
+    concurrent same-key fetch is joined rather than duplicated. Before the first
+    <code>Execute</code> (or after disposal) it does nothing.
+</p>
+
+<CodeBlock Code="@RefetchSample"/>
+
+<h2>One-shot overrides</h2>
+<p>
+    <code>RefetchParameters&lt;T&gt;</code> can override callbacks, the token, and the stale/cache
+    times — for that call only. The key and fetch function always come from the last
+    <code>Execute</code>: changing those is a new query, not a refetch. A later bare
+    <code>Refetch()</code> is unaffected by earlier overrides.
+</p>
+
+<h2>Precedence of defaults</h2>
+<p>Wherever stale time, cache time or <code>RefetchOnMount</code> can be set, the chain is:</p>
+
+<ol>
+    <li>the per-execution value on <code>QueryParameters&lt;T&gt;</code>,</li>
+    <li>else the longest matching prefix registered via
+        <code>DejaClient.SetDefaults</code>,</li>
+    <li>else the global <code>DejaOptions</code> default.</li>
+</ol>
+
+<CodeBlock Code="@DefaultsSample"/>
+
+<h2>Live demo</h2>
+
+<DemoCard Title="Refetch and IsReFetching" SourceFiles="@(new[] { "RefetchDemo.razor" })">
+    <RefetchDemo/>
+</DemoCard>
+
+@code {
+    private static readonly ApiRow[] _refetchOnMount =
+    [
+        new("IfStale", "default", null, "Refetch in the background only when the data is older than the stale time."),
+        new("Always", "", null, "Always refetch in the background, even while fresh."),
+        new("Never", "", null, "Serve the cache and never refetch on mount. Invalidation still refetches."),
+    ];
+
+    private const string RefetchSample = """
+<button @onclick="() => _todos.Refetch()">Refresh</button>
+
+// with one-shot overrides:
+await _todos.Refetch(new RefetchParameters<List<Todo>>
+{
+    StaleTime = TimeSpan.FromSeconds(30),   // how soon the fresh result goes stale again
+    OnSettled = _ => _lastRefreshed = DateTimeOffset.Now,
+});
+""";
+
+    private const string DefaultsSample = """
+// Per-prefix defaults: reference data rarely changes, keep it fresh for an hour.
+client.SetDefaults(QueryKey.Of("countries"), new QueryDefaults
+{
+    StaleTime = TimeSpan.FromHours(1),
+    RefetchOnMount = RefetchOnMount.Never,
+});
+""";
+}

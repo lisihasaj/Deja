@@ -1,0 +1,90 @@
+@page "/getting-started/quick-start"
+
+<PageTitle>Quick start — Deja</PageTitle>
+
+<h1>Quick start</h1>
+<p class="lead">From zero to a cached, cancellable, auto-rendering query in three steps.</p>
+
+<h2>1. Declare a query and execute it</h2>
+
+<CodeBlock FileName="Todos.razor" Language="cshtml" Code="@Step1"/>
+
+<p>
+    <code>Execute("todos", Api.GetTodosAsync)</code> is the keyed shorthand: the first argument is
+    the cache key (a string converts implicitly to <code>QueryKey.Of("todos")</code>), the second
+    is any <code>Func&lt;CancellationToken, Task&lt;T&gt;&gt;</code>. Deja passes a token that is
+    cancelled when a newer load supersedes this one or the component is disposed.
+</p>
+
+<h2>2. Bind the state</h2>
+<p>Everything the request lifecycle exposes is a bindable property:</p>
+
+<ul>
+    <li><code>IsLoading</code> — any execution in flight</li>
+    <li><code>IsReFetching</code> — an execution <em>after</em> the first; use for subtle refresh
+        indicators instead of a full-page spinner</li>
+    <li><code>IsError</code> / <code>ErrorMessage</code> — the most recent failure</li>
+    <li><code>Data</code> — the most recent result</li>
+    <li><code>IsCachedData</code> / <code>IsStale</code> / <code>UpdatedAt</code> — cache facts for
+        keyed queries</li>
+</ul>
+
+<h2>3. Write with a mutation, invalidate the key</h2>
+
+<CodeBlock FileName="Todos.razor (continued)" Language="cshtml" Code="@Step2"/>
+
+<p>
+    On success, every mounted query whose key starts with <code>"todos"</code> refetches in the
+    background — in every component showing that data. No event wiring, no manual reload calls.
+</p>
+
+<h2>See it live</h2>
+<p>
+    That's the whole loop. The <a href="demos/todo-list">todo list demo</a> is exactly this
+    pattern running against a live API, with a state inspector attached. From here:
+</p>
+
+<ul>
+    <li><a href="guides/queries">Queries</a> — the full parameter surface</li>
+    <li><a href="guides/cache">The cache</a> — what a key buys you</li>
+    <li><a href="guides/component-base">Component base</a> — what the base class does for you</li>
+</ul>
+
+@code {
+    private const string Step1 = """
+@page "/todos"
+@inherits DejaComponentBase
+@inject TodoApi Api
+
+@if (_todos.IsLoading && _todos.Data is null) { <p>Loading…</p> }
+@if (_todos.IsError) { <p class="error">@_todos.ErrorMessage</p> }
+
+<ul>
+    @foreach (var todo in _todos.Data ?? [])
+    {
+        <li>@todo.Title</li>
+    }
+</ul>
+
+@code {
+    private readonly Query<List<Todo>> _todos = new();
+
+    protected override Task OnInitializedAsync()
+        => _todos.Execute("todos", Api.GetTodosAsync);
+}
+""";
+
+    private const string Step2 = """
+<input @bind="_title"/>
+<button @onclick="Add" disabled="@_addTodo.IsLoading">Add</button>
+
+@code {
+    private readonly Mutation<Todo> _addTodo = new();
+    private string _title = "";
+
+    private Task Add() => _addTodo.Execute(
+        token => Api.AddTodoAsync(_title, token),
+        p => p.InvalidateKeys = [QueryKey.Of("todos")]);
+}
+""";
+}

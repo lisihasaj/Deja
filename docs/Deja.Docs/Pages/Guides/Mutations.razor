@@ -1,0 +1,92 @@
+@page "/guides/mutations"
+
+<PageTitle>Mutations — Deja</PageTitle>
+
+<h1>Mutations</h1>
+<p class="lead">
+    A <code>Mutation&lt;T&gt;</code> gives writes the same bindable treatment as reads —
+    <code>IsLoading</code>, <code>IsError</code>, <code>ErrorMessage</code>, <code>Data</code> —
+    plus cache invalidation on success.
+</p>
+
+<h2>Running a mutation</h2>
+
+<CodeBlock Code="@BasicSample"/>
+
+<h2>Four function shapes</h2>
+<p><code>MutationParameters&lt;T&gt;</code> accepts exactly one of four functions:</p>
+
+<ApiTable NameHeader="Function" Rows="@_shapes"/>
+
+<p>
+    Precedence when several are set: <code>CancellableMutationFunction</code> wins over
+    <code>MutationFunction</code>, which wins over the void shapes. Only the value-returning shapes
+    write <code>Data</code> — a void mutation leaves any previous result standing. Supplying none
+    of them throws an <code>ArgumentException</code>.
+</p>
+
+<h2>InvalidateKeys</h2>
+<p>
+    Keys listed in <code>InvalidateKeys</code> are invalidated — prefix-matched — after the
+    mutation succeeds <em>and</em> <code>OnSuccess</code> has run, so a callback observing the
+    fresh result runs before dependent queries start refetching. Every mounted query under those
+    keys refetches in the background, in every component showing that data. It replaces manual
+    <code>OnSuccessAsync = _ =&gt; Reload()</code> wiring.
+</p>
+
+<CodeBlock Code="@InvalidateSample"/>
+
+<Callout Type="Callout.CalloutType.Info" Title="Needs the cache">
+    <p><code>InvalidateKeys</code> works through the registered <code>DejaClient</code>. Without
+        <code>AddDeja()</code> the keys are silently ignored.</p>
+</Callout>
+
+<h2>The unhandled-failure contract</h2>
+<p>
+    On failure the mutation publishes its error state and runs the error callbacks. Then comes the
+    part worth memorising: <strong>an <code>InvalidOperationException</code> wrapping the original
+    exception is thrown only when no error callback was supplied.</strong> A failure nobody
+    observes is never lost silently — but wire any error callback (<code>OnError</code> is enough)
+    and the failure stays handled instead of escaping into the component lifecycle, where a rethrow
+    from an event handler would tear down the component over an ordinary failed write.
+</p>
+
+<p>
+    Cancellation is not a failure: if the component is disposed mid-write, there's no error state,
+    no callbacks, and nothing thrown at a caller that is already gone. A mutation started
+    <em>after</em> disposal (a queued handler racing teardown) returns without issuing the request.
+</p>
+
+<h2>Live demo</h2>
+
+<DemoCard Title="Create + invalidate" SourceFiles="@(new[] { "MutationsDemo.razor" })">
+    <MutationsDemo/>
+</DemoCard>
+
+@code {
+    private static readonly ApiRow[] _shapes =
+    [
+        new("MutationFunction", "Func<Task<T>>", null, "Returns a value; the simplest shape."),
+        new("VoidMutationFunction", "Func<Task>", null, "No return value; <code>Data</code> is left untouched."),
+        new("CancellableMutationFunction", "Func<CancellationToken, Task<T>>", null,
+            "Returns a value and honours the component's lifetime token — an in-flight write is abandoned when the component is disposed."),
+        new("CancellableVoidMutationFunction", "Func<CancellationToken, Task>", null, "Cancellation-aware, no return value."),
+    ];
+
+    private const string BasicSample = """
+private readonly Mutation<Todo> _addTodo = new();
+
+private Task Add() => _addTodo.Execute(
+    token => Api.AddTodoAsync(_title, token),   // cancellation-aware shape
+    p =>
+    {
+        p.OnSuccess = created => _title = "";
+        p.OnError = e => _error = e.Message;
+    });
+""";
+
+    private const string InvalidateSample = """
+p.InvalidateKeys = [QueryKey.Of("todos")];
+// invalidates ["todos"], ["todos","list",1], ["todos","detail",42], …
+""";
+}

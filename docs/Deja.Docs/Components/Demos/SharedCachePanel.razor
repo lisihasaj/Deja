@@ -1,0 +1,41 @@
+@inherits DejaComponentBase
+@inject JsonPlaceholderApi Api
+
+<div class="demo-panel">
+    <h4>
+        @Title
+        <span class="render-counter">renders: @(++_renders)</span>
+    </h4>
+
+    <StateInspector Query="_todos" Label="State"/>
+
+    @if (_todos.Data is { } todos)
+    {
+        <ul class="demo-list">
+            @foreach (var todo in todos)
+            {
+                <li><span class="@(todo.Completed ? "done" : null)">@todo.Title</span></li>
+            }
+        </ul>
+    }
+    else if (_todos.IsLoading)
+    {
+        <p class="demo-note">Loading…</p>
+    }
+
+    <div class="demo-toolbar" style="margin-top:0.6rem">
+        <button class="demo-button" @onclick="() => _todos.Refetch()">Refetch from this panel</button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Panel";
+
+    private readonly Query<IReadOnlyList<TodoDto>> _todos = new();
+    private int _renders;
+
+    // Both panels execute against the same key: the second joins the first's in-flight fetch,
+    // and a refetch from either panel updates both through the shared cache entry.
+    protected override Task OnInitializedAsync()
+        => _todos.Execute(DocsKeys.TodoList(5), token => Api.GetTodosAsync(5, token), p => p.OnError = _ => { });
+}

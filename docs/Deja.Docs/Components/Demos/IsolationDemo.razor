@@ -1,0 +1,12 @@
+@inherits DejaComponentBase
+
+<div class="demo-panels">
+    <IsolationPanel Title="Component A" TodoId="1"/>
+    <IsolationPanel Title="Component B" TodoId="2"/>
+</div>
+
+<p class="demo-note">
+    Each panel owns its own unkeyed <code>Query&lt;T&gt;</code>. Reloading one advances its render
+    counter while the other's stays frozen — Deja state notifies a single attached listener, and
+    that listener is the owning component.
+</p>

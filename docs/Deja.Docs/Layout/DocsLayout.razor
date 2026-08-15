@@ -1,0 +1,53 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager Nav
+@inject IJSRuntime Js
+
+<a class="skip-link" href="#docs-content">Skip to content</a>
+
+<SiteHeader ShowSidebarToggle="true" OnToggleSidebar="ToggleSidebar"/>
+
+<div class="docs-shell">
+    <Sidebar Open="_sidebarOpen"/>
+
+    <main class="docs-main" id="docs-content">
+        <article class="docs-article">
+            @Body
+            <PrevNextLinks/>
+        </article>
+    </main>
+
+    <TableOfContents/>
+</div>
+
+<DemoControls/>
+
+@code {
+    private bool _sidebarOpen;
+    private bool _rebuildToc = true;
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        _sidebarOpen = false;
+        _rebuildToc = true;
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_rebuildToc)
+        {
+            _rebuildToc = false;
+            await Js.InvokeVoidAsync("dejaDocs.buildToc");
+        }
+    }
+
+    private void ToggleSidebar() => _sidebarOpen = !_sidebarOpen;
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+}

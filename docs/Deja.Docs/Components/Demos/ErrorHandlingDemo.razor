@@ -1,0 +1,57 @@
+@inherits DejaComponentBase
+@inject JsonPlaceholderApi Api
+@inject FailureSwitch Failure
+
+<div class="demo-toolbar">
+    <button class="demo-button danger" @onclick="() => Failure.Arm(FailureSwitch.FailureKind.Generic)">
+        @(Failure.Armed == FailureSwitch.FailureKind.Generic ? "Generic failure armed ✓" : "Arm generic failure")
+    </button>
+    <button class="demo-button danger" @onclick="() => Failure.Arm(FailureSwitch.FailureKind.DisplayUser)">
+        @(Failure.Armed == FailureSwitch.FailureKind.DisplayUser ? "User-facing failure armed ✓" : "Arm user-facing failure")
+    </button>
+    <button class="demo-button primary" @onclick="Load">Fetch</button>
+</div>
+
+<StateInspector Query="_todo" Label="Query state"/>
+
+@if (_userMessage is not null)
+{
+    <div class="demo-error">🙋 Shown to the user: @_userMessage</div>
+}
+@if (_technicalMessage is not null)
+{
+    <div class="demo-error">🛠 Logged for developers: @_technicalMessage</div>
+}
+@if (_todo.Data is { } todo && !_todo.IsError)
+{
+    <div class="demo-panel">
+        <h4>#@todo.Id — @todo.Title</h4>
+    </div>
+}
+
+<p class="demo-note">
+    A <code>DisplayUserException</code> is routed to <code>OnDisplayUserError</code> — its
+    <code>DisplayMessage</code> is written for end users — <em>and</em> to the general
+    <code>OnError</code>. A generic exception only reaches <code>OnError</code>. Because a
+    callback observed the failure, nothing is thrown into the component lifecycle.
+</p>
+
+@code {
+    private readonly Query<TodoDto> _todo = new();
+    private string? _userMessage;
+    private string? _technicalMessage;
+
+    protected override Task OnInitializedAsync() => Load();
+
+    private Task Load()
+    {
+        _userMessage = null;
+        _technicalMessage = null;
+
+        return _todo.Execute(token => Api.GetTodoAsync(1, token), p =>
+        {
+            p.OnDisplayUserError = e => _userMessage = e.DisplayMessage;
+            p.OnError = e => _technicalMessage = e.Message;
+        });
+    }
+}

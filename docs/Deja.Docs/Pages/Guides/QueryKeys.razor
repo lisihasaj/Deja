@@ -1,0 +1,109 @@
+@page "/guides/query-keys"
+
+<PageTitle>Query keys — Deja</PageTitle>
+
+<h1>Query keys</h1>
+<p class="lead">
+    A <code>QueryKey</code> is a structured, ordered cache identity. Build hierarchical keys and
+    you get prefix invalidation for free.
+</p>
+
+<h2>Building keys</h2>
+
+<CodeBlock Code="@BuildSample"/>
+
+<p>
+    Segment order matters — <code>Of("todos", 1)</code> and <code>Of(1, "todos")</code> are
+    different keys. Supported segment types: strings, numeric primitives, <code>bool</code>,
+    <code>char</code>, <code>Guid</code>, dates and times, <code>TimeSpan</code>, enums,
+    <code>null</code>, collections of these, and string-keyed dictionaries. An unsupported type
+    throws at construction — failing loudly at the call site beats a silently colliding entry.
+</p>
+
+<h2>Canonical form</h2>
+<p>
+    Each key computes a canonical string once (what <code>ToString()</code> shows, e.g.
+    <code>["todos",{"page":2}]</code>). Strings are quoted and escaped so <code>["a,b"]</code> and
+    <code>["a","b"]</code> can't collide; numbers and dates use the invariant culture; enums use
+    their numeric value so renaming a member can't silently change a key. Equality — including
+    <code>==</code> — is value equality on this canonical form.
+</p>
+
+<h2>Dictionaries normalise filter objects</h2>
+<p>
+    Dictionary segments are written with their keys sorted, so property order in an ad-hoc filter
+    doesn't change identity:
+</p>
+
+<CodeBlock Code="@DictSample"/>
+
+<Callout Type="Callout.CalloutType.Warning" Title="Anonymous types are not supported">
+    <p><code>QueryKey.Of("todos", new { Page = 2 })</code> throws. Key hashing runs on every cache
+        lookup and must stay trimming- and AOT-safe, which reflection over anonymous types is not.
+        Use a <code>Dictionary&lt;string, object?&gt;</code> for ad-hoc shapes, or implement
+        <code>IQueryKeySegment</code> on a named type.</p>
+</Callout>
+
+<h2>Prefix matching</h2>
+<p>
+    <code>StartsWith</code> compares segment-by-segment on canonical forms — never as a string
+    prefix, so <code>["todo"]</code> does not match <code>["todos"]</code>. Invalidation,
+    <code>Remove</code> and <code>RefetchAsync</code> all match by prefix by default:
+</p>
+
+<CodeBlock Code="@PrefixSample"/>
+
+<h2>IQueryKeySegment</h2>
+<p>
+    Implement <code>IQueryKeySegment</code> on a custom type to let it participate directly:
+    <code>ToKeySegment()</code> must return a stable, deterministic string — equal values, equal
+    strings, across sessions.
+</p>
+
+<h2>Strings convert implicitly</h2>
+<p>
+    <code>QueryKey = "todos"</code> means <code>QueryKey.Of("todos")</code>. Null or whitespace
+    converts to <em>no key</em> — the uncached path.
+</p>
+
+<h2>Model: a keys class</h2>
+<p>This site keeps every demo key in one static class — one place to see the whole hierarchy:</p>
+
+<CodeBlock FileName="DocsKeys.cs" Code="@KeysClassSample"/>
+
+<h2>Live demo</h2>
+
+<DemoCard Title="Hierarchical keys + prefix invalidation" SourceFiles="@(new[] { "QueryKeysDemo.razor" })">
+    <QueryKeysDemo/>
+</DemoCard>
+
+@code {
+    private const string BuildSample = """
+QueryKey.Of("todos")                     // ["todos"]
+QueryKey.Of("todos", "detail", 5)        // ["todos","detail",5]
+QueryKey.Of("posts", new Dictionary<string, object?> { ["userId"] = 1, ["page"] = 2 })
+""";
+
+    private const string DictSample = """
+// Same key, either way — dictionary keys are ordinal-sorted in the canonical form.
+QueryKey.Of("posts", new Dictionary<string, object?> { ["page"] = 2, ["status"] = "open" })
+QueryKey.Of("posts", new Dictionary<string, object?> { ["status"] = "open", ["page"] = 2 })
+""";
+
+    private const string PrefixSample = """
+await Client.InvalidateAsync(QueryKey.Of("todos"));
+// hits ["todos"], ["todos","list",8], ["todos","detail",5], …
+// but NOT ["todo"] or ["todoLists"]
+""";
+
+    private const string KeysClassSample = """
+public static class DocsKeys
+{
+    public static QueryKey Todos => QueryKey.Of("todos");
+    public static QueryKey TodoList(int limit) => QueryKey.Of("todos", "list", limit);
+    public static QueryKey TodoDetail(int id) => QueryKey.Of("todos", "detail", id);
+    public static QueryKey Posts(int? userId, int page) => QueryKey.Of(
+        "posts", "list", new Dictionary<string, object?> { ["userId"] = userId, ["page"] = page });
+}
+""";
+}

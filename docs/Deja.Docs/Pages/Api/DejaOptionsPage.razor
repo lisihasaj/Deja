@@ -1,0 +1,57 @@
+@page "/api/deja-options"
+
+<PageTitle>DejaOptions — Deja API</PageTitle>
+
+<h1>DejaOptions</h1>
+<p class="lead">
+    Global cache defaults, overridable per query via <code>QueryParameters&lt;T&gt;</code> and per
+    key prefix via <code>DejaClient.SetDefaults</code>.
+</p>
+
+<CodeBlock Code="public sealed class DejaOptions"/>
+
+<h2>Properties</h2>
+
+<ApiTable NameHeader="Property" Rows="@_options"/>
+
+<Callout Type="Callout.CalloutType.Info" Title="Zero stale time is not zero requests">
+    <p>The default stale time of <code>TimeSpan.Zero</code> means cached data renders instantly
+        but is always revalidated in the background on the next mount — "cached" does not mean
+        "no request" unless you raise it.</p>
+</Callout>
+
+<h2>QueryDefaults</h2>
+
+<ApiMember Id="querydefaults" Name="QueryDefaults"
+           Signature="public sealed class QueryDefaults
+{
+    public TimeSpan? StaleTime { get; set; }
+    public TimeSpan? CacheTime { get; set; }
+    public RefetchOnMount? RefetchOnMount { get; set; }
+}">
+    <p>Per-prefix defaults registered with <code>DejaClient.SetDefaults</code>. Every property
+        left null falls through to a shorter matching prefix, then to <code>DejaOptions</code>.
+        Per-query values on <code>QueryParameters&lt;T&gt;</code> beat both.</p>
+    <CodeBlock Code="@DefaultsSample"/>
+</ApiMember>
+
+@code {
+    private static readonly ApiRow[] _options =
+    [
+        new("DefaultStaleTime", "TimeSpan", "TimeSpan.Zero", "How long after a successful fetch data is considered fresh. While fresh, a keyed <code>Execute</code> serves the cache and does <b>not</b> refetch."),
+        new("DefaultCacheTime", "TimeSpan", "5 minutes", "How long an entry with zero subscribers survives before eviction. A component remounting within this window gets its data instantly."),
+        new("DefaultRefetchOnMount", "RefetchOnMount", "IfStale", "Whether a keyed <code>Execute</code> that finds cached data refetches in the background."),
+        new("MaxEntries", "int?", "null (no cap)", "Optional hard cap on cache entries. When exceeded, least-recently-used entries with no subscribers are evicted first."),
+        new("EvictionInterval", "TimeSpan", "1 minute", "How often the eviction sweep runs."),
+        new("StructuralComparison", "bool", "false", "When true, an entry that refetches to a value equal to the current one (per <code>EqualityComparer&lt;T&gt;.Default</code>) keeps its old reference and skips notifying subscribers, so components don't re-render for identical data."),
+        new("TimeProvider", "TimeProvider", "TimeProvider.System", "Clock used for staleness and eviction; swap for a fake in tests."),
+    ];
+
+    private const string DefaultsSample = """
+client.SetDefaults(QueryKey.Of("countries"), new QueryDefaults
+{
+    StaleTime = TimeSpan.FromHours(1),
+    RefetchOnMount = RefetchOnMount.Never,
+});
+""";
+}

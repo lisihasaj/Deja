@@ -1,0 +1,56 @@
+@inherits DejaComponentBase
+@inject JsonPlaceholderApi Api
+
+<div class="demo-toolbar">
+    <input class="demo-input" style="flex:1" placeholder="Todo title" @bind="_title" @bind:event="oninput"/>
+    <button class="demo-button primary" @onclick="Create"
+            disabled="@(_create.IsLoading || string.IsNullOrWhiteSpace(_title))">
+        @(_create.IsLoading ? "Creating…" : "Create todo")
+    </button>
+</div>
+
+<MutationInspector Mutation="_create" Label="Create mutation"/>
+<StateInspector Query="_todos" Label="List query (invalidated on success)"/>
+
+@if (_create.Data is { } created)
+{
+    <div class="demo-panel">
+        <h4>Server response</h4>
+        <p class="demo-note">Id @created.Id — “@created.Title” (JSONPlaceholder fakes the write, so the list refetch won't contain it)</p>
+    </div>
+}
+
+@if (_create.IsError)
+{
+    <div class="demo-error">@_create.ErrorMessage</div>
+}
+
+@if (_todos.Data is { } todos)
+{
+    <ul class="demo-list">
+        @foreach (var todo in todos.Take(4))
+        {
+            <li>@todo.Title</li>
+        }
+    </ul>
+}
+
+@code {
+    private readonly Query<IReadOnlyList<TodoDto>> _todos = new();
+    private readonly Mutation<TodoDto> _create = new();
+    private string _title = string.Empty;
+
+    protected override Task OnInitializedAsync()
+        => _todos.Execute(DocsKeys.TodoList(4), token => Api.GetTodosAsync(4, token), p => p.OnError = _ => { });
+
+    private Task Create() => _create.Execute(
+        token => Api.CreateTodoAsync(new NewTodo(1, _title.Trim(), false), token),
+        p =>
+        {
+            // After OnSuccess, every mounted query under the "todos" prefix refetches in the
+            // background — watch IsReFetching light up on the list query below.
+            p.InvalidateKeys = [DocsKeys.Todos];
+            p.OnSuccess = _ => _title = string.Empty;
+            p.OnError = _ => { };
+        });
+}

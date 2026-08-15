@@ -291,14 +291,16 @@ before.
 fetch: one component unmounting must not abort data another component is still waiting for. The
 shared fetch is cancelled only when its last subscriber leaves.
 
-## Sample app
+## Documentation site
 
-The repository contains a Blazor WebAssembly demo exercising every feature, including a `/cache`
-page with two sibling components sharing one cache entry (plus instant back-navigation), and an
-`/isolation` page showing two unkeyed sibling components that cannot re-render one another:
+The repository contains a Blazor WebAssembly documentation site that dogfoods Deja itself: guides
+for every feature, a hand-curated API reference, and live demos running against a real API —
+including a shared-cache page with two sibling components on one cache entry, an isolation page
+with two unkeyed siblings that cannot re-render one another, and an optimistic-write demo with
+rollback:
 
 ```bash
-dotnet run --project samples/Deja.Sample
+dotnet run --project docs/Deja.Docs
 ```
 
 ## Roadmap
@@ -312,7 +314,7 @@ dotnet run --project samples/Deja.Sample
 ## Development
 
 ```bash
-dotnet build      # library + sample + tests
+dotnet build      # library + docs site + tests
 dotnet test       # xUnit tests
 dotnet format     # CI enforces formatting
 ```

@@ -1,0 +1,26 @@
+@page "/demos/shared-cache"
+
+<PageTitle>Shared cache demo — Deja</PageTitle>
+
+<h1>Shared cache</h1>
+<p class="lead">
+    Two sibling components execute the same key. One fetch serves both; a refetch from either
+    updates both; the inspector shows the single entry they subscribe to.
+</p>
+
+<DemoCard Title="Two components, one key, one fetch" SourceFiles="@(new[] { "SharedCacheDemo.razor", "SharedCachePanel.razor" })">
+    <SharedCacheDemo/>
+</DemoCard>
+
+<h2>What to look for</h2>
+<ul>
+    <li><strong>Subscribers: 2</strong> in the cache inspector — both panels observe the same
+        entry.</li>
+    <li>On first load, panel B joins panel A's in-flight fetch: the network tab shows one request
+        for two components.</li>
+    <li>"Refetch from this panel" updates <em>both</em> panels — through the entry, never
+        panel-to-panel. Each panel's query notifies only its own component; the shared entry is
+        the multicast point.</li>
+    <li>Each refetch bumps both render counters — but so would any shared-data design; the
+        <a href="demos/isolation">isolation demo</a> shows the counters standing still.</li>
+</ul>

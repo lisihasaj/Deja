@@ -1,0 +1,38 @@
+<div class="table-wrap">
+    <table class="api-table">
+        <thead>
+        <tr>
+            <th>@NameHeader</th>
+            <th>Type</th>
+            @if (_hasDefaults)
+            {
+                <th>Default</th>
+            }
+            <th>Description</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var row in Rows)
+        {
+            <tr>
+                <td>@row.Name</td>
+                <td><code>@row.Type</code></td>
+                @if (_hasDefaults)
+                {
+                    <td>@(row.Default is null ? "—" : (MarkupString)$"<code>{row.Default}</code>")</td>
+                }
+                <td>@((MarkupString)row.Description)</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ApiRow> Rows { get; set; } = [];
+    [Parameter] public string NameHeader { get; set; } = "Member";
+
+    private bool _hasDefaults;
+
+    protected override void OnParametersSet() => _hasDefaults = Rows.Any(r => r.Default is not null);
+}

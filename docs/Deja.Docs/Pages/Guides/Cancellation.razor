@@ -1,0 +1,85 @@
+@page "/guides/cancellation"
+
+<PageTitle>Cancellation — Deja</PageTitle>
+
+<h1>Cancellation</h1>
+<p class="lead">
+    Deja scopes every execution to the owning component's lifetime and cancels superseded loads
+    automatically — usually with nothing to wire.
+</p>
+
+<h2>The ambient token</h2>
+<p>
+    Inside a <code>DejaComponentBase</code> component, every query and mutation execution uses the
+    component's lifetime token by default. Navigating away disposes the component, which cancels
+    the token, which aborts the request — down to the server. Your fetch function just has to pass
+    the token through:
+</p>
+
+<CodeBlock Code="@AmbientSample"/>
+
+<p>
+    A fetch that can't observe cancellation ignores the token with a discard:
+    <code>QueryFunction = _ =&gt; LegacyFetchAsync()</code>. Deja still discards its stale result
+    if a newer load has taken over — it just can't abort the wire request.
+</p>
+
+<h2>A per-call token replaces the ambient one</h2>
+<p>
+    Setting <code>CancellationToken</code> on the parameters scopes an execution to something
+    narrower than the component — a search box's own source, say. It <strong>replaces</strong> the
+    component token; it does not combine with it:
+</p>
+
+<CodeBlock Code="@ReplaceSample"/>
+
+<h2>Supersede-and-cancel (uncached path)</h2>
+<p>
+    An unkeyed <code>Execute</code> cancels the previous in-flight execution before starting. The
+    older request is aborted, its callbacks are skipped, and its late result — even from a fetch
+    that ignored the token — can never overwrite the newer load's data. Cancellation is not an
+    error: no error state, no callbacks; the superseding load drives the next update.
+</p>
+
+<h2>The subtle case: cancelling on the cached path</h2>
+<p>
+    A keyed fetch belongs to the <em>cache entry</em>, and other components may be waiting on it.
+    So a caller's token is deliberately not linked into the shared fetch: cancelling it
+    <strong>detaches that caller without cancelling the request</strong>. One component unmounting
+    must not abort another component's data. The shared fetch itself is only cancelled when the
+    last subscriber leaves the entry.
+</p>
+
+<h2>ComponentToken for your own calls</h2>
+<p>
+    Work Deja doesn't run for you — a direct API ping from an event handler — can still share the
+    component's lifetime:
+</p>
+
+<CodeBlock Code="@PingSample"/>
+
+<h2>Live demo</h2>
+
+<DemoCard Title="Supersede and cancel" SourceFiles="@(new[] { "CancellationDemo.razor" })">
+    <CancellationDemo/>
+</DemoCard>
+
+@code {
+    private const string AmbientSample = """
+// Nothing to wire: the token is the component's lifetime token.
+protected override Task OnInitializedAsync()
+    => _todos.Execute("todos", token => Api.GetTodosAsync(token));
+""";
+
+    private const string ReplaceSample = """
+_search.Execute(token => Api.SearchAsync(term, token), p =>
+{
+    p.CancellationToken = _searchCts.Token;   // replaces, not combines
+});
+""";
+
+    private const string PingSample = """
+private async Task OnClick()
+    => await Api.PingAsync(ComponentToken);
+""";
+}

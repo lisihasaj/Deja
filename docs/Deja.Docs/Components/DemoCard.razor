@@ -1,0 +1,47 @@
+<div class="demo-card">
+    <div class="demo-card-header">
+        <span class="live-dot" aria-hidden="true"></span>
+        @Title
+    </div>
+
+    <div class="demo-card-body">
+        @ChildContent
+    </div>
+
+    @if (SourceFiles.Length > 0)
+    {
+        <div class="demo-card-tabs" role="tablist">
+            @foreach (var file in SourceFiles)
+            {
+                var isActive = file == _activeFile;
+                <button type="button" role="tab" class="demo-card-tab @(isActive ? "active" : null)"
+                        aria-selected="@isActive" @onclick="() => _activeFile = file">
+                    @file
+                </button>
+            }
+        </div>
+        <div class="demo-card-source">
+            @* Keyed per file so switching tabs re-creates the block and re-runs highlighting. *@
+            <CodeBlock @key="_activeFile" Code="@DemoSourceLoader.Load(_activeFile)" Language="@LanguageFor(_activeFile)"/>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string[] SourceFiles { get; set; } = [];
+
+    private string _activeFile = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        if (string.IsNullOrEmpty(_activeFile) || !SourceFiles.Contains(_activeFile))
+        {
+            _activeFile = SourceFiles.FirstOrDefault() ?? string.Empty;
+        }
+    }
+
+    private static string LanguageFor(string file)
+        => file.EndsWith(".razor", StringComparison.OrdinalIgnoreCase) ? "cshtml" : "csharp";
+}

@@ -1,0 +1,65 @@
+@inherits DejaComponentBase
+@inject JsonPlaceholderApi Api
+
+<div class="demo-toolbar">
+    <label>
+        User:
+        <select class="demo-input" @onchange="OnUserChanged">
+            <option value="0" selected="@(_userId == 0)">— none selected —</option>
+            <option value="1" selected="@(_userId == 1)">User 1</option>
+            <option value="2" selected="@(_userId == 2)">User 2</option>
+            <option value="3" selected="@(_userId == 3)">User 3</option>
+        </select>
+    </label>
+    <label>
+        <input type="checkbox" checked="@_uppercase" @onchange="OnUppercaseChanged"/>
+        Select: uppercase the name
+    </label>
+</div>
+
+<StateInspector Query="_user" Label="User query"/>
+
+@if (_user.Data is { } user)
+{
+    <div class="demo-panel">
+        <h4>@user.Name</h4>
+        <p class="demo-note">@@@user.Username · @user.Email</p>
+    </div>
+}
+
+<p class="demo-note">
+    With no user selected, <code>Enabled = false</code>: the query serves cached data but never
+    fetches. <code>PlaceholderData</code> renders while the first fetch runs, and
+    <code>Select</code> projects the cached value per component — the cache keeps the raw user.
+</p>
+
+@code {
+    private readonly Query<UserDto> _user = new();
+    private int _userId;
+    private bool _uppercase;
+
+    protected override Task OnInitializedAsync() => Load();
+
+    private Task Load() => _user.Execute(DocsKeys.User(_userId), token => Api.GetUserAsync(_userId, token), p =>
+    {
+        p.Enabled = _userId > 0;
+        p.PlaceholderData = new UserDto(0, "Loading…", "placeholder", "shown while the first fetch runs");
+        if (_uppercase)
+        {
+            p.Select = user => user with { Name = user.Name.ToUpperInvariant() };
+        }
+        p.OnError = _ => { };
+    });
+
+    private Task OnUserChanged(ChangeEventArgs e)
+    {
+        _userId = int.Parse((string)e.Value!);
+        return Load();
+    }
+
+    private Task OnUppercaseChanged(ChangeEventArgs e)
+    {
+        _uppercase = (bool)e.Value!;
+        return Load();
+    }
+}

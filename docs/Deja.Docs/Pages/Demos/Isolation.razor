@@ -1,0 +1,30 @@
+@page "/demos/isolation"
+
+<PageTitle>Isolation demo — Deja</PageTitle>
+
+<h1>Isolation</h1>
+<p class="lead">
+    Two unkeyed sibling components that provably cannot re-render each other: Deja state notifies
+    exactly one listener — its owning component.
+</p>
+
+<DemoCard Title="Sibling components cannot cross-render" SourceFiles="@(new[] { "IsolationDemo.razor", "IsolationPanel.razor" })">
+    <IsolationDemo/>
+</DemoCard>
+
+<h2>Why this matters</h2>
+<p>
+    Event- or store-based state managers broadcast: one component's refresh marches every
+    subscriber through a re-render. Deja's <code>IDejaObservable</code> holds a
+    <em>single listener slot</em> — attaching a second listener throws, and the one listener is
+    the owning component. The render counters make the guarantee observable: reload panel A as
+    fast as you like, panel B's counter never moves.
+</p>
+
+<h2>Sharing without coupling</h2>
+<p>
+    When two components should share data, don't share the query — share the <em>cache entry</em>
+    by using the same key (see the <a href="demos/shared-cache">shared cache demo</a>), or pass
+    <code>Data</code> down as a <code>[Parameter]</code>. Both paths keep ownership single and
+    renders scoped.
+</p>

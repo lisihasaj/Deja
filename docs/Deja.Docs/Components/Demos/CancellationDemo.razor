@@ -1,0 +1,44 @@
+@inherits DejaComponentBase
+@inject JsonPlaceholderApi Api
+
+<div class="demo-toolbar">
+    <button class="demo-button primary" @onclick="LoadNext">
+        Start request #@(_requested + 1)
+    </button>
+    <button class="demo-button danger" @onclick="() => _todo.ClearData(cancelCurrentRequest: true)">
+        ClearData(cancel: true)
+    </button>
+</div>
+
+<StateInspector Query="_todo" Label="Unkeyed query"/>
+
+<div class="demo-panel">
+    <h4>Last request started: #@_requested</h4>
+    @if (_todo.Data is { } todo)
+    {
+        <p>Result on screen: <strong>#@todo.Id</strong> — @todo.Title</p>
+    }
+    else
+    {
+        <p class="demo-note">No result yet.</p>
+    }
+</div>
+
+<p class="demo-note">
+    Raise the latency in the demo controls, then click the start button rapidly. Every click
+    supersedes — and cancels — the in-flight request, so the result on screen is always the
+    <em>latest</em> click, never a slow stale response arriving late. Navigating away cancels via
+    the component's lifetime token with zero wiring.
+</p>
+
+@code {
+    // Unkeyed on purpose: the supersede-and-cancel behaviour belongs to the uncached path.
+    private readonly Query<TodoDto> _todo = new();
+    private int _requested;
+
+    private Task LoadNext()
+    {
+        var id = ++_requested;
+        return _todo.Execute(token => Api.GetTodoAsync(id, token), p => p.OnError = _ => { });
+    }
+}

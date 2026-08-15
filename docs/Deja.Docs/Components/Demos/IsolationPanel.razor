@@ -1,0 +1,39 @@
+@inherits DejaComponentBase
+@inject JsonPlaceholderApi Api
+
+<div class="demo-panel">
+    <h4>
+        @Title
+        <span class="render-counter">renders: @(++_renders)</span>
+    </h4>
+
+    <StateInspector Query="_todo" Label="State"/>
+
+    @if (_todo.Data is { } todo)
+    {
+        <p>#@todo.Id — @todo.Title</p>
+    }
+    else if (_todo.IsLoading)
+    {
+        <p class="demo-note">Loading…</p>
+    }
+
+    <div class="demo-toolbar" style="margin-top:0.6rem">
+        <button class="demo-button" @onclick="Reload">Reload this panel only</button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Panel";
+    [Parameter] public int TodoId { get; set; } = 1;
+
+    // Unkeyed: this query never touches the shared cache. Its state notifies exactly one
+    // listener — this component — so the sibling panel cannot re-render because of it.
+    private readonly Query<TodoDto> _todo = new();
+    private int _renders;
+
+    protected override Task OnInitializedAsync() => Reload();
+
+    private Task Reload()
+        => _todo.Execute(token => Api.GetTodoAsync(TodoId, token), p => p.OnError = _ => { });
+}

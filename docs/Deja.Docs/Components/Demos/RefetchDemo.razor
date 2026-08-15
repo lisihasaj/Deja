@@ -1,0 +1,49 @@
+@inherits DejaComponentBase
+@inject JsonPlaceholderApi Api
+
+<div class="demo-toolbar">
+    <button class="demo-button primary" @onclick="() => _todos.Refetch()">Refetch()</button>
+    <button class="demo-button" @onclick="RefetchWithOverride">Refetch with StaleTime = 30 s</button>
+</div>
+
+<StateInspector Query="_todos" Label="List query"/>
+
+@if (_todos.Data is { } todos)
+{
+    <ul class="demo-list">
+        @foreach (var todo in todos)
+        {
+            <li>@todo.Title</li>
+        }
+    </ul>
+}
+else if (_todos.IsLoading)
+{
+    <p class="demo-note">Loading…</p>
+}
+
+@if (_lastRefetchAt is { } at)
+{
+    <p class="demo-note">Last manual refetch settled at @at.ToString("HH:mm:ss").</p>
+}
+
+<p class="demo-note">
+    A manual <code>Refetch()</code> always fetches — staleness, <code>RefetchOnMount</code> and
+    <code>Enabled</code> are bypassed. The existing list stays on screen while
+    <code>IsReFetching</code> is on: no loading flash. The override variant keeps the fresh result
+    “not stale” for 30 seconds instead of the site default of 10 — for this call only.
+</p>
+
+@code {
+    private readonly Query<IReadOnlyList<TodoDto>> _todos = new();
+    private DateTimeOffset? _lastRefetchAt;
+
+    protected override Task OnInitializedAsync()
+        => _todos.Execute(DocsKeys.TodoList(3), token => Api.GetTodosAsync(3, token), p => p.OnError = _ => { });
+
+    private Task RefetchWithOverride() => _todos.Refetch(new RefetchParameters<IReadOnlyList<TodoDto>>
+    {
+        StaleTime = TimeSpan.FromSeconds(30),
+        OnSettled = _ => _lastRefetchAt = DateTimeOffset.Now,
+    });
+}

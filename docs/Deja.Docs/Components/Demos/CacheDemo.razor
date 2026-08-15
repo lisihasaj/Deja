@@ -1,0 +1,29 @@
+@inherits DejaComponentBase
+
+<div class="demo-toolbar">
+    <button class="demo-button primary" @onclick="() => _mounted = !_mounted">
+        @(_mounted ? "Unmount component" : "Mount component")
+    </button>
+</div>
+
+@if (_mounted)
+{
+    <SharedCachePanel Title="Remountable component"/>
+}
+else
+{
+    <p class="demo-note">Component unmounted. The cache entry survives below — remount within the
+        cache time and the data renders instantly, then revalidates in the background if stale.</p>
+}
+
+<CacheInspector Keys="@(new[] { DocsKeys.TodoList(5) })"/>
+
+<p class="demo-note">
+    Unmounting drops the subscriber count to zero, which starts the entry's eviction clock
+    (5 minutes here). Remounting within the site's 10-second stale time serves the cache with no
+    request at all; after that, it still renders instantly and refetches in the background.
+</p>
+
+@code {
+    private bool _mounted = true;
+}

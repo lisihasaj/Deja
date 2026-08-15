@@ -1,0 +1,12 @@
+<section class="api-member" id="@Id">
+    <h3>@Name</h3>
+    <div class="api-member-signature">@Signature.Trim()</div>
+    @ChildContent
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Id { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Name { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Signature { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

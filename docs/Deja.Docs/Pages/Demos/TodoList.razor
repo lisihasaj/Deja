@@ -1,0 +1,29 @@
+@page "/demos/todo-list"
+
+<PageTitle>Todo list demo — Deja</PageTitle>
+
+<h1>Todo list</h1>
+<p class="lead">
+    Full CRUD against a live API: a keyed query for the list, three mutations for create, update
+    and delete, and <code>SetData</code> applying results to the shared cache.
+</p>
+
+<Callout Type="Callout.CalloutType.Info" Title="Make the state machine visible">
+    <p>Open the demo controls (bottom right) and raise the latency — loading and refetching states
+        become easy to watch. Arm a failure to see the error path.</p>
+</Callout>
+
+<DemoCard Title="Todo list — live" SourceFiles="@(new[] { "TodoListDemo.razor" })">
+    <TodoListDemo/>
+</DemoCard>
+
+<h2>What to look for</h2>
+<ul>
+    <li>The first visit fetches; navigating away and back within 10 seconds renders instantly from
+        cache with <em>no request</em> (the site's stale time). After 10 seconds it still renders
+        instantly, with <code>IsReFetching</code> revalidating in the background.</li>
+    <li>Adds, toggles and deletes go through <code>Mutation&lt;T&gt;</code>; results are applied
+        with <code>DejaClient.SetData</code>'s updater form because JSONPlaceholder fakes writes —
+        a refetch would resurrect the server's canonical list.</li>
+    <li>The disabled state of the Add button is just <code>_create.IsLoading</code>.</li>
+</ul>

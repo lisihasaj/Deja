@@ -1,0 +1,92 @@
+@page "/guides/error-handling"
+
+<PageTitle>Error handling — Deja</PageTitle>
+
+<h1>Error handling</h1>
+<p class="lead">
+    Failures publish bindable error state, run callbacks in a defined order, and are only thrown
+    when nobody observed them.
+</p>
+
+<h2>Bindable error state</h2>
+<p>
+    On failure, <code>IsError</code> turns on and <code>ErrorMessage</code> carries the message.
+    On the cached path, existing data <em>stays on screen</em> — the component decides how to
+    surface the error next to it. A successful refetch clears the error state, so error UI never
+    outlives the failure.
+</p>
+
+<h2>DisplayUserException</h2>
+<p>
+    Most exception messages are written for developers. <code>DisplayUserException</code> is the
+    one whose <code>DisplayMessage</code> is safe — and intended — to show end users. Throw it in
+    your API layer where you know what went wrong:
+</p>
+
+<CodeBlock Code="@ThrowSample"/>
+
+<p>
+    Deja routes it to the dedicated <code>OnDisplayUserError</code> /
+    <code>OnDisplayUserErrorAsync</code> callbacks <em>in addition to</em> the general error
+    callbacks, so a component can render the friendly message and log the technical one without
+    type-checking exceptions itself.
+</p>
+
+<h2>Callback order</h2>
+<ol>
+    <li><code>OnDisplayUserErrorAsync</code>, then <code>OnDisplayUserError</code> — only for a
+        <code>DisplayUserException</code>;</li>
+    <li><code>OnErrorAsync</code>, then <code>OnError</code> — for every failure;</li>
+    <li><code>OnSettledAsync</code>, then <code>OnSettled</code> — after success or a handled
+        failure, but <em>not</em> after cancellation.</li>
+</ol>
+
+<h2>The unhandled-failure contract</h2>
+<p>
+    If at least one error callback ran, the failure is considered handled and nothing propagates.
+    If <strong>none</strong> was supplied, <code>Execute</code> throws an
+    <code>InvalidOperationException</code> wrapping the original exception — a failure nobody
+    observes must not vanish. Since <code>Execute</code> is typically awaited from
+    <code>OnInitializedAsync</code> or an event handler, wire at least <code>OnError</code>
+    (or bind <code>IsError</code> and pass an empty handler) to keep a transient network error
+    from becoming an unhandled component exception.
+</p>
+
+<h2>Cancellation is not an error</h2>
+<p>
+    A superseded or disposed execution sets no error state and runs no callbacks — not even
+    settled. The superseding load drives the next update.
+</p>
+
+<h2>The timeout retry</h2>
+<p>
+    One narrow, built-in retry: when a fetch fails with the <code>TaskCanceledException</code> that
+    carries an inner <code>TimeoutException</code> — the signature of <code>HttpClient.Timeout</code>
+    expiry, typically a browser freezing an inactive tab mid-request — and the caller's own token
+    is not cancelled, Deja retries the fetch once. Queries are idempotent reads; on resume the
+    retry completes in milliseconds. A second timeout falls through to the normal error path.
+</p>
+
+<h2>Live demo</h2>
+
+<DemoCard Title="Friendly vs technical failures" SourceFiles="@(new[] { "ErrorHandlingDemo.razor" })">
+    <ErrorHandlingDemo/>
+</DemoCard>
+
+@code {
+    private const string ThrowSample = """
+public async Task<List<Todo>> GetTodosAsync(CancellationToken token)
+{
+    var response = await _http.GetAsync("todos", token);
+
+    if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
+    {
+        throw new DisplayUserException(
+            message: "Todos are temporarily unavailable — try again in a minute.",
+            internalMessage: $"GET /todos returned 503, correlation {response.Headers.GetCorrelationId()}");
+    }
+
+    return (await response.Content.ReadFromJsonAsync<List<Todo>>(token))!;
+}
+""";
+}

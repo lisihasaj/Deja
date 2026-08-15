@@ -1,0 +1,135 @@
+@page "/api/enums"
+
+<PageTitle>Enums & options — Deja API</PageTitle>
+
+<h1>Enums &amp; supporting types</h1>
+<p class="lead">The smaller public types: enums, filters, the cache snapshot, the user-facing
+    exception, and the observable contract.</p>
+
+<h2>RefetchOnMount</h2>
+
+<ApiMember Id="refetchonmount" Name="RefetchOnMount"
+           Signature="public enum RefetchOnMount { Never, IfStale, Always }">
+    <p>Controls whether a keyed <code>Execute</code> that finds cached data also refetches in the
+        background. A key with no cached data always fetches, regardless of this setting.</p>
+    <ApiTable NameHeader="Value" Rows="@_refetchOnMount"/>
+</ApiMember>
+
+<h2>RefetchType</h2>
+
+<ApiMember Id="refetchtype" Name="RefetchType"
+           Signature="public enum RefetchType { Active, All, None }">
+    <p>Which invalidated entries refetch immediately.</p>
+    <ApiTable NameHeader="Value" Rows="@_refetchType"/>
+</ApiMember>
+
+<h2>InvalidateOptions</h2>
+
+<ApiMember Id="invalidateoptions" Name="InvalidateOptions"
+           Signature="public sealed class InvalidateOptions
+{
+    public bool Exact { get; set; }
+    public Func<QueryKey, bool>? Predicate { get; set; }
+    public RefetchType RefetchType { get; set; } = RefetchType.Active;
+}">
+    <p>Options for <code>DejaClient.InvalidateAsync</code>. With <code>Exact</code> false (the
+        default) the key matches by prefix — invalidating <code>["todos"]</code> also invalidates
+        <code>["todos", 1]</code>. <code>Predicate</code> filters the matched keys further.</p>
+</ApiMember>
+
+<h2>QueryFilter</h2>
+
+<ApiMember Id="queryfilter" Name="QueryFilter"
+           Signature="public sealed class QueryFilter
+{
+    public bool Exact { get; set; }
+    public Func<QueryKey, bool>? Predicate { get; set; }
+}">
+    <p>Narrows which entries a key matches in <code>DejaClient.Remove</code> and
+        <code>DejaClient.RefetchAsync</code>. Prefix matching by default.</p>
+</ApiMember>
+
+<h2>CacheEntryState</h2>
+
+<ApiMember Id="cacheentrystate" Name="CacheEntryState"
+           Signature="public sealed record CacheEntryState
+{
+    public required bool HasData { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
+    public string? ErrorMessage { get; init; }
+    public DateTimeOffset? ErrorUpdatedAt { get; init; }
+    public bool IsInvalidated { get; init; }
+    public bool IsFetching { get; init; }
+    public int SubscriberCount { get; init; }
+}">
+    <p>A read-only snapshot of one cache entry, returned by <code>DejaClient.GetState</code>.
+        Values are coherent with each other at the moment of the call and do not update
+        afterwards. The cache inspectors on this site render exactly this record.</p>
+</ApiMember>
+
+<h2>DisplayUserException</h2>
+
+<ApiMember Id="displayuserexception" Name="DisplayUserException"
+           Signature="public class DisplayUserException : Exception
+{
+    public string DisplayMessage { get; set; }
+
+    public DisplayUserException()
+    public DisplayUserException(string message)
+    public DisplayUserException(string message, Exception ex)
+    public DisplayUserException(string message, string internalMessage)
+    public DisplayUserException(string message, string internalMessage, Exception ex)
+}">
+    <p>An exception whose <code>DisplayMessage</code> is safe — and intended — to be shown to the
+        end user. Queries and mutations route it to the dedicated
+        <code>OnDisplayUserError</code> callbacks in addition to the general error callbacks. The
+        single-message constructors use the message for both display and
+        <code>Exception.Message</code>; the two-message constructors separate the user-facing
+        message from the internal one.</p>
+</ApiMember>
+
+<h2>DejaObservable / IDejaObservable</h2>
+
+<ApiMember Id="idejaobservable" Name="IDejaObservable"
+           Signature="public interface IDejaObservable
+{
+    IDisposable Attach(Action listener);
+}">
+    <p>State that can notify exactly one owner when it changes — implemented by
+        <code>Query&lt;T&gt;</code> and <code>Mutation&lt;T&gt;</code>, consumed by
+        <code>DejaComponentBase</code>. <code>Attach</code> registers the sole listener and
+        returns a handle whose disposal detaches it (idempotently); attaching while a listener is
+        already registered throws <code>InvalidOperationException</code>. Deliberately
+        single-listener rather than a multicast event: the one component that owns the state is
+        the only thing that may be notified by it — which is what keeps two components holding
+        their own queries from re-rendering each other.</p>
+</ApiMember>
+
+<ApiMember Id="dejaobservable" Name="DejaObservable"
+           Signature="public abstract class DejaObservable : IDejaObservable
+{
+    public IDisposable Attach(Action listener)
+    protected void NotifyChanged()
+}">
+    <p>Base implementation holding the single listener slot. Derived state calls
+        <code>NotifyChanged()</code> once per state transition, after every property in the
+        transition has been set; it is a safe no-op when nothing is attached. Extend it if you
+        build custom observable state that a <code>DejaComponentBase</code> component should
+        re-render for.</p>
+</ApiMember>
+
+@code {
+    private static readonly ApiRow[] _refetchOnMount =
+    [
+        new("Never", "0", null, "Serve the cache and never refetch on mount. Invalidation still refetches."),
+        new("IfStale", "1", null, "Refetch in the background only when the data is older than the stale time."),
+        new("Always", "2", null, "Always refetch in the background, even when the data is still fresh."),
+    ];
+
+    private static readonly ApiRow[] _refetchType =
+    [
+        new("Active", "0", null, "Refetch entries that have live subscribers; entries without stay marked stale and refetch when a component next mounts on them."),
+        new("All", "1", null, "Refetch every matched entry, subscribed or not."),
+        new("None", "2", null, "Only mark entries stale; nothing refetches until the next mount."),
+    ];
+}

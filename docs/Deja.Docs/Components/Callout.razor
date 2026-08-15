@@ -1,0 +1,31 @@
+<div class="callout @Type.ToString().ToLowerInvariant()">
+    <span class="callout-icon" aria-hidden="true">@Icon</span>
+    <div>
+        <div class="callout-title">@(Title ?? DefaultTitle)</div>
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    public enum CalloutType { Info, Tip, Warning, Danger }
+
+    [Parameter] public CalloutType Type { get; set; } = CalloutType.Info;
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string DefaultTitle => Type switch
+    {
+        CalloutType.Tip => "Tip",
+        CalloutType.Warning => "Warning",
+        CalloutType.Danger => "Danger",
+        _ => "Note",
+    };
+
+    private string Icon => Type switch
+    {
+        CalloutType.Tip => "💡",
+        CalloutType.Warning => "⚠️",
+        CalloutType.Danger => "⛔",
+        _ => "ℹ️",
+    };
+}

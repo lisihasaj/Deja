@@ -1,0 +1,114 @@
+@page "/api/query"
+
+<PageTitle>Query&lt;T&gt; — Deja API</PageTitle>
+
+<h1>Query&lt;T&gt;</h1>
+<p class="lead">
+    Tracks a single asynchronous read and exposes its lifecycle as bindable state, notifying its
+    attached listener as it advances so the owning component can re-render.
+</p>
+
+<CodeBlock Code="public class Query<T> : DejaObservable, IDisposable"/>
+
+<p>
+    A newer <code>Execute</code> supersedes (and cancels) an older in-flight one, and concurrent
+    calls sharing a key join the same execution instead of fetching twice. Inherit
+    <a href="api/deja-component-base">DejaComponentBase</a> in the owning component and attachment
+    is handled for you.
+</p>
+
+<h2>Constructors</h2>
+
+<ApiMember Id="ctor" Name="Query()" Signature="public Query()">
+    <p>Creates a query that resolves its cache client from the owning component (if any).</p>
+</ApiMember>
+
+<ApiMember Id="ctor-client" Name="Query(DejaClient)" Signature="public Query(DejaClient client)">
+    <p>Creates a query bound to <code>client</code>, for use outside a component. Throws
+        <code>ArgumentNullException</code> when <code>client</code> is null.</p>
+</ApiMember>
+
+<h2>State</h2>
+
+<ApiTable Rows="@_state"/>
+
+<h2>Methods</h2>
+
+<ApiMember Id="execute-keyed" Name="Execute (keyed shorthand)"
+           Signature="public Task Execute(QueryKey? key, Func<CancellationToken, Task<T>> queryFunction, Action<QueryParameters<T>>? configure = null)">
+    <p>Runs a keyed query — the shorthand for the common case, equivalent to the full form with
+        <code>QueryKey</code> and <code>QueryFunction</code> set and anything else configured by
+        the hook. A string converts implicitly to a key; pass <code>null</code> for the uncached
+        path. Throws <code>ArgumentNullException</code> when <code>queryFunction</code> is null.</p>
+    <CodeBlock Code="@("_todos.Execute(\"todos\", Api.GetTodosAsync);")"/>
+</ApiMember>
+
+<ApiMember Id="execute-unkeyed" Name="Execute (unkeyed shorthand)"
+           Signature="public Task Execute(Func<CancellationToken, Task<T>> queryFunction, Action<QueryParameters<T>>? configure = null)">
+    <p>Runs an unkeyed query — a fetch that never touches the cache, where a newer call supersedes
+        (and cancels) an older in-flight one.</p>
+</ApiMember>
+
+<ApiMember Id="execute-full" Name="Execute (full form)"
+           Signature="public Task Execute(QueryParameters<T> parameters)">
+    <p>Runs the query described by <code>parameters</code>. With a key and a
+        <a href="api/deja-client">DejaClient</a>, the shared cache path runs: cached data renders
+        instantly, staleness decides whether to refetch in the background, and concurrent same-key
+        calls from any component join one in-flight fetch. With a key but no client, a concurrent
+        same-key call on this instance joins the in-flight execution. Without a key, a newer call
+        supersedes the older one. No-op when <code>parameters</code> is null or the query is
+        disposed.</p>
+</ApiMember>
+
+<ApiMember Id="refetch" Name="Refetch"
+           Signature="public Task Refetch(RefetchParameters<T>? parameters = null)">
+    <p>Re-runs the last <code>Execute</code> with a forced fresh fetch: staleness,
+        <code>RefetchOnMount</code> and <code>Enabled</code> are bypassed — a manual refetch is an
+        explicit request, not a mount policy. On the cached path the result updates the shared
+        entry, so every component on the key re-renders. Overrides in
+        <a href="api/refetch-parameters">RefetchParameters&lt;T&gt;</a> apply to this call only.
+        Does nothing before the first <code>Execute</code> or after disposal.</p>
+</ApiMember>
+
+<ApiMember Id="cleardata" Name="ClearData" Signature="public void ClearData()">
+    <p>Resets the query's state (data, error, counters) without cancelling an in-flight execution.
+        Resets only this query's view — a cache entry it observes is untouched, so the next keyed
+        <code>Execute</code> serves the cached data again; use <code>DejaClient.Remove</code> to
+        drop the entry itself.</p>
+</ApiMember>
+
+<ApiMember Id="cleardata-cancel" Name="ClearData(bool)"
+           Signature="public void ClearData(bool cancelCurrentRequest)">
+    <p>As above; when <code>cancelCurrentRequest</code> is true, the in-flight execution is also
+        cancelled without disposing the query, so it can still be executed again.</p>
+</ApiMember>
+
+<ApiMember Id="dispose" Name="Dispose" Signature="public void Dispose()">
+    <p>Cancels any in-flight execution. <a href="api/deja-component-base">DejaComponentBase</a>
+        calls this for the queries a component owns, so navigating away aborts the request (and
+        the server query) instead of letting it run to completion.</p>
+</ApiMember>
+
+<h2>Failure contract</h2>
+<p>
+    A failing execution publishes <code>IsError</code>/<code>ErrorMessage</code> and runs the
+    error callbacks; an <code>InvalidOperationException</code> wrapping the original exception is
+    thrown only when <em>no</em> error callback observed it. Cancellation (supersede or disposal)
+    is not an error: no error state, no callbacks. See the
+    <a href="guides/error-handling">error handling guide</a>.
+</p>
+
+@code {
+    private static readonly ApiRow[] _state =
+    [
+        new("IsLoading", "bool", null, "True while any execution is loading."),
+        new("IsError", "bool", null, "True when the most recent execution failed. Cleared by a successful refetch."),
+        new("ErrorMessage", "string?", null, "The failure message of the most recent execution, when <code>IsError</code> is true."),
+        new("Data", "T?", null, "The most recently fetched data."),
+        new("ReFetchCount", "int", null, "How many times the query has been executed."),
+        new("IsReFetching", "bool", null, "True while an execution after the first is loading. Use for subtle refresh indicators."),
+        new("UpdatedAt", "DateTimeOffset?", null, "When the current <code>Data</code> was fetched (cached path only); null on the uncached path or before the first result."),
+        new("IsCachedData", "bool", null, "True while <code>Data</code> was served from the cache and no fresh fetch has completed during this query's subscription."),
+        new("IsStale", "bool", null, "True when the observed cache entry is invalidated or older than the effective stale time (cached path only; always false uncached)."),
+    ];
+}

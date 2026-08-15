@@ -1,0 +1,61 @@
+@page "/api/query-parameters"
+
+<PageTitle>QueryParameters&lt;T&gt; — Deja API</PageTitle>
+
+<h1>QueryParameters&lt;T&gt;</h1>
+<p class="lead">Describes one execution of a <code>Query&lt;T&gt;</code>: how to fetch and which
+    callbacks to run.</p>
+
+<CodeBlock Code="public class QueryParameters<T>"/>
+
+<h2>Identity and fetch</h2>
+
+<ApiTable NameHeader="Property" Rows="@_identity"/>
+
+<h2>Callbacks</h2>
+<p>
+    Sync and async pairs exist for each moment; when both are set, the async one runs first.
+    Settled callbacks run after success or a handled failure — never after cancellation. Order and
+    the unhandled-failure contract are covered in the
+    <a href="guides/error-handling">error handling guide</a>.
+</p>
+
+<ApiTable NameHeader="Property" Rows="@_callbacks"/>
+
+<h2>Cache behaviour (cached path only)</h2>
+
+<ApiTable NameHeader="Property" Rows="@_cache"/>
+
+<Callout Type="Callout.CalloutType.Info" Title="Defaults resolution">
+    <p><code>StaleTime</code>, <code>CacheTime</code> and <code>RefetchOnMount</code> left null
+        fall back to the longest matching prefix registered via
+        <code>DejaClient.SetDefaults</code>, then to <a href="api/deja-options">DejaOptions</a>.</p>
+</Callout>
+
+@code {
+    private static readonly ApiRow[] _identity =
+    [
+        new("QueryKey", "QueryKey?", "null", "Optional structured key; concurrent executions sharing a key join instead of fetching twice. String literals convert implicitly. Null means the uncached path."),
+        new("QueryFunction", "Func<CancellationToken, Task<T>>?", "null", "The function that fetches the data. The token is cancelled when a newer load supersedes this one or the query is disposed; a fetch that cannot observe cancellation ignores it with a discard: <code>_ => FetchAsync()</code>."),
+        new("CancellationToken", "CancellationToken?", "null", "Caller-owned lifetime token. Null inside a <code>DejaComponentBase</code> component means the component's own lifetime token. A value set here <em>replaces</em> the ambient token rather than combining with it."),
+        new("Client", "DejaClient?", "null", "Cache client override for this execution. Usually left null — components get the registered client automatically."),
+    ];
+
+    private static readonly ApiRow[] _callbacks =
+    [
+        new("OnSuccessAsync / OnSuccess", "Func<T?, Task>? / Action<T?>?", null, "Invoked when the query succeeds."),
+        new("OnErrorAsync / OnError", "Func<Exception, Task>? / Action<Exception>?", null, "Invoked when the query fails."),
+        new("OnDisplayUserErrorAsync / OnDisplayUserError", "Func<DisplayUserException, Task>? / Action<DisplayUserException>?", null, "Invoked when the query fails with a <code>DisplayUserException</code>, before the general error callbacks."),
+        new("OnSettledAsync / OnSettled", "Func<T?, Task>? / Action<T?>?", null, "Invoked when the query settles (success or handled error, not cancellation)."),
+    ];
+
+    private static readonly ApiRow[] _cache =
+    [
+        new("StaleTime", "TimeSpan?", "null", "Overrides <code>DejaOptions.DefaultStaleTime</code> for this query."),
+        new("CacheTime", "TimeSpan?", "null", "Overrides <code>DejaOptions.DefaultCacheTime</code> for this query's entry."),
+        new("RefetchOnMount", "RefetchOnMount?", "null", "Overrides <code>DejaOptions.DefaultRefetchOnMount</code> for this query."),
+        new("Enabled", "bool?", "null (enabled)", "When false, <code>Execute</code> serves cached data but never fetches — for queries whose inputs aren't ready yet."),
+        new("Select", "Func<T, T>?", "null", "Transforms the cached value before it is published to <code>Data</code> — per query, so two components can project one entry differently. The cache always stores the raw value."),
+        new("PlaceholderData", "T?", "null", "Rendered as <code>Data</code> while the first fetch runs and the cache is empty; never written to the cache."),
+    ];
+}

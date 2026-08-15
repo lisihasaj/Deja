@@ -1,0 +1,58 @@
+@inherits DejaComponentBase
+@inject JsonPlaceholderApi Api
+
+<div class="demo-panel">
+    <h4>
+        Owning component
+        <span class="render-counter">renders: @(++_renders)</span>
+    </h4>
+
+    <StateInspector Query="_declared" Label="Declared query (auto-attached)"/>
+
+    @if (_declared.Data is { } todo)
+    {
+        <p>#@todo.Id — @todo.Title</p>
+    }
+
+    @if (_late is not null)
+    {
+        <StateInspector Query="_late" Label="Late query (attached via Observe)"/>
+        @if (_late.Data is { } user)
+        {
+            <p>@user.Name (@user.Email)</p>
+        }
+    }
+
+    <div class="demo-toolbar" style="margin-top:0.6rem">
+        <button class="demo-button" @onclick="() => _declared.Refetch()">Refetch declared</button>
+        <button class="demo-button" @onclick="CreateLateQuery" disabled="@(_late is not null)">
+            Create a query at runtime
+        </button>
+    </div>
+</div>
+
+<p class="demo-note">
+    The field-declared query was discovered and attached in <code>base.OnInitialized()</code> —
+    no <code>StateHasChanged</code>, no <code>IDisposable</code> anywhere in this component. The
+    runtime-created query only re-renders this component because it's passed through
+    <code>Observe()</code>.
+</p>
+
+@code {
+    // Discovered automatically when base.OnInitialized() scans this component's fields.
+    private readonly Query<TodoDto> _declared = new();
+
+    // Created later, so discovery has already run — Observe() attaches it explicitly.
+    private Query<UserDto>? _late;
+
+    private int _renders;
+
+    protected override Task OnInitializedAsync()
+        => _declared.Execute(DocsKeys.TodoDetail(3), token => Api.GetTodoAsync(3, token), p => p.OnError = _ => { });
+
+    private Task CreateLateQuery()
+    {
+        _late = Observe(new Query<UserDto>());
+        return _late.Execute(DocsKeys.User(1), token => Api.GetUserAsync(1, token), p => p.OnError = _ => { });
+    }
+}

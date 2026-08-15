@@ -1,0 +1,26 @@
+@inject IJSRuntime Js
+
+<div class="code-block @(FileName is not null ? "has-filename" : null)" @ref="_element">
+    @if (FileName is not null)
+    {
+        <div class="code-filename">@FileName</div>
+    }
+    <button type="button" class="code-copy" aria-label="Copy code">Copy</button>
+    <pre><code class="language-@Language">@Code.Trim()</code></pre>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Code { get; set; } = string.Empty;
+    [Parameter] public string Language { get; set; } = "csharp";
+    [Parameter] public string? FileName { get; set; }
+
+    private ElementReference _element;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Js.InvokeVoidAsync("dejaDocs.highlight", _element);
+        }
+    }
+}

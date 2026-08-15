@@ -1,0 +1,75 @@
+@inherits DejaComponentBase
+@inject JsonPlaceholderApi Api
+@inject DejaClient Client
+@inject FailureSwitch Failure
+
+<div class="demo-toolbar">
+    <button class="demo-button danger" @onclick="() => Failure.Arm(FailureSwitch.FailureKind.Generic)">
+        @(Failure.Armed != FailureSwitch.FailureKind.None ? "Next request will fail ✓" : "Arm a failure, then toggle")
+    </button>
+</div>
+
+<StateInspector Query="_todos" Label="List query"/>
+<MutationInspector Mutation="_update" Label="Update mutation"/>
+
+@if (_todos.Data is { } todos)
+{
+    <ul class="demo-list">
+        @foreach (var todo in todos)
+        {
+            <li>
+                <input type="checkbox" checked="@todo.Completed" @onchange="() => Toggle(todo)"/>
+                <span class="@(todo.Completed ? "done" : null)">@todo.Title</span>
+            </li>
+        }
+    </ul>
+}
+else if (_todos.IsLoading)
+{
+    <p class="demo-note">Loading…</p>
+}
+
+@if (_rolledBack)
+{
+    <div class="demo-error">The write failed — the optimistic update was rolled back.</div>
+}
+
+<p class="demo-note">
+    Toggling flips the checkbox <em>immediately</em> via <code>SetData</code>'s updater form; the
+    request runs afterwards. Arm a failure first and the rollback restores the snapshot.
+</p>
+
+@code {
+    private readonly Query<IReadOnlyList<TodoDto>> _todos = new();
+    private readonly Mutation<TodoDto> _update = new();
+    private bool _rolledBack;
+
+    private static QueryKey Key => DocsKeys.TodoList(6);
+
+    protected override Task OnInitializedAsync()
+        => _todos.Execute(Key, token => Api.GetTodosAsync(6, token), p => p.OnError = _ => { });
+
+    private async Task Toggle(TodoDto todo)
+    {
+        _rolledBack = false;
+        var toggled = todo with { Completed = !todo.Completed };
+
+        // 1. Snapshot, 2. write the cache optimistically — every subscriber re-renders now.
+        var snapshot = Client.GetData<IReadOnlyList<TodoDto>>(Key);
+        Client.SetData(Key, (IReadOnlyList<TodoDto>? current)
+            => [.. (current ?? []).Select(t => t.Id == toggled.Id ? toggled : t)]);
+
+        // 3. Run the real request; on failure, restore the snapshot.
+        await _update.Execute(token => Api.UpdateTodoAsync(toggled, token), p =>
+        {
+            p.OnError = _ =>
+            {
+                _rolledBack = true;
+                if (snapshot is not null)
+                {
+                    Client.SetData(Key, snapshot);
+                }
+            };
+        });
+    }
+}

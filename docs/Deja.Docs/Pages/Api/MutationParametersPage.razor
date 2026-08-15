@@ -1,0 +1,57 @@
+@page "/api/mutation-parameters"
+
+<PageTitle>MutationParameters&lt;T&gt; — Deja API</PageTitle>
+
+<h1>MutationParameters&lt;T&gt;</h1>
+<p class="lead">Describes one execution of a <code>Mutation&lt;T&gt;</code>: what to run and which
+    callbacks to invoke.</p>
+
+<CodeBlock Code="public class MutationParameters<T>"/>
+
+<h2>Mutation functions</h2>
+<p>
+    Set exactly one. Precedence when several are set: <code>CancellableMutationFunction</code>
+    &gt; <code>MutationFunction</code> &gt; <code>CancellableVoidMutationFunction</code> &gt;
+    <code>VoidMutationFunction</code>. Only the value-returning shapes write <code>Data</code>.
+    Supplying none throws an <code>ArgumentException</code>.
+</p>
+
+<ApiTable NameHeader="Property" Rows="@_functions"/>
+
+<h2>Callbacks and control</h2>
+
+<ApiTable NameHeader="Property" Rows="@_rest"/>
+
+<h2>Example</h2>
+
+<CodeBlock Code="@Sample"/>
+
+@code {
+    private static readonly ApiRow[] _functions =
+    [
+        new("MutationFunction", "Func<Task<T>>?", "null", "The mutation to run. Takes precedence over <code>VoidMutationFunction</code>."),
+        new("VoidMutationFunction", "Func<Task>?", "null", "A mutation without a return value; used when <code>MutationFunction</code> is not set."),
+        new("CancellableMutationFunction", "Func<CancellationToken, Task<T>>?", "null", "The mutation to run, receiving a cancellation token. Takes precedence over every other shape. The token is cancelled when the owning component is disposed."),
+        new("CancellableVoidMutationFunction", "Func<CancellationToken, Task>?", "null", "A cancellation-aware mutation without a return value."),
+    ];
+
+    private static readonly ApiRow[] _rest =
+    [
+        new("CancellationToken", "CancellationToken?", "null", "Caller-owned lifetime token; null means the owning component's lifetime token. A value set here replaces the ambient token rather than combining with it."),
+        new("OnSuccessAsync / OnSuccess", "Func<T?, Task>? / Action<T?>?", null, "Invoked when the mutation succeeds."),
+        new("OnErrorAsync / OnError", "Func<Exception, Task>? / Action<Exception>?", null, "Invoked when the mutation fails."),
+        new("OnDisplayUserErrorAsync / OnDisplayUserError", "Func<DisplayUserException, Task>? / Action<DisplayUserException>?", null, "Invoked when the mutation fails with a <code>DisplayUserException</code>."),
+        new("OnSettledAsync / OnSettled", "Func<T?, Task>? / Action<T?>?", null, "Invoked when the mutation settles (success or failure; not cancellation)."),
+        new("Client", "DejaClient?", "null", "Cache client override for this execution; usually left null."),
+        new("InvalidateKeys", "IReadOnlyList<QueryKey>?", "null", "Keys to invalidate (prefix-matched) after the mutation succeeds and <code>OnSuccess</code> has run. Every mounted query under them refetches in the background. Ignored without a registered client."),
+    ];
+
+    private const string Sample = """
+await _addTodo.Execute(new MutationParameters<Todo>
+{
+    CancellableMutationFunction = token => Api.AddTodoAsync(title, token),
+    InvalidateKeys = [QueryKey.Of("todos")],
+    OnError = e => _error = e.Message,
+});
+""";
+}

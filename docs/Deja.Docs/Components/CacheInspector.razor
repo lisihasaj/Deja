@@ -1,0 +1,71 @@
+@implements IDisposable
+@inject DejaClient Client
+
+<div class="cache-inspector" aria-label="Cache state">
+    <table>
+        <thead>
+        <tr>
+            <th>Key</th>
+            <th>Data</th>
+            <th>Fetching</th>
+            <th>Invalidated</th>
+            <th>Subscribers</th>
+            <th>Updated</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var key in Keys)
+        {
+            var state = Client.GetState(key);
+            <tr>
+                <td>@key.ToString()</td>
+                @if (state is null)
+                {
+                    <td colspan="5">— no entry —</td>
+                }
+                else
+                {
+                    <td>@(state.HasData ? "✓" : "·")</td>
+                    <td>@(state.IsFetching ? "✓" : "·")</td>
+                    <td>@(state.IsInvalidated ? "✓" : "·")</td>
+                    <td>@state.SubscriberCount</td>
+                    <td>@(state.UpdatedAt?.ToLocalTime().ToString("HH:mm:ss") ?? "—")</td>
+                }
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<QueryKey> Keys { get; set; } = [];
+
+    private readonly CancellationTokenSource _cts = new();
+
+    protected override void OnInitialized()
+    {
+        // GetState returns snapshots, so the inspector polls to stay live.
+        _ = PollAsync(_cts.Token);
+    }
+
+    private async Task PollAsync(CancellationToken token)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(500));
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

@@ -1,0 +1,81 @@
+@inject NavigationManager Nav
+
+<div class="search-box" role="search">
+    <input type="search"
+           placeholder="Search docs…"
+           aria-label="Search documentation"
+           value="@_query"
+           @oninput="OnInput"
+           @onfocus="() => _open = true"
+           @onblur="CloseSoon"
+           @onkeydown="OnKeyDown"/>
+
+    @if (_open && !string.IsNullOrWhiteSpace(_query))
+    {
+        <div class="search-results" role="listbox">
+            @if (_results.Count == 0)
+            {
+                <div class="search-empty">No pages match “@_query”.</div>
+            }
+            @for (var i = 0; i < _results.Count; i++)
+            {
+                var item = _results[i];
+                var selected = i == _selected;
+                <a href="@item.Href" class="@(selected ? "selected" : null)"
+                   @onmousedown="() => Go(item)" @onmousedown:preventDefault>
+                    <span class="result-section">@item.Section</span>
+                    @item.Title
+                </a>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private string _query = string.Empty;
+    private bool _open;
+    private int _selected;
+    private List<NavItem> _results = [];
+
+    private void OnInput(ChangeEventArgs e)
+    {
+        _query = e.Value?.ToString() ?? string.Empty;
+        _results = DocsNav.Search(_query).Take(8).ToList();
+        _selected = 0;
+        _open = true;
+    }
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "ArrowDown":
+                _selected = Math.Min(_selected + 1, _results.Count - 1);
+                break;
+            case "ArrowUp":
+                _selected = Math.Max(_selected - 1, 0);
+                break;
+            case "Enter" when _results.Count > 0:
+                Go(_results[_selected]);
+                break;
+            case "Escape":
+                _open = false;
+                break;
+        }
+    }
+
+    private void Go(NavItem item)
+    {
+        _open = false;
+        _query = string.Empty;
+        _results = [];
+        Nav.NavigateTo(item.Href);
+    }
+
+    // Delayed so a click on a result lands before the dropdown disappears.
+    private async Task CloseSoon()
+    {
+        await Task.Delay(150);
+        _open = false;
+    }
+}

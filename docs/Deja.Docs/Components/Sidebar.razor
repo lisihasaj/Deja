@@ -1,0 +1,45 @@
+@inject NavigationManager Nav
+
+<nav class="docs-sidebar @(Open ? "open" : null)" aria-label="Documentation">
+    @foreach (var navSection in DocsNav.Sections)
+    {
+        <div class="@NavSectionClass(navSection.Title)">
+            <button type="button" class="nav-section-title" @onclick="() => Toggle(navSection.Title)"
+                    aria-expanded="@(!_collapsed.Contains(navSection.Title))">
+                @navSection.Title
+                <span class="chevron" aria-hidden="true">▼</span>
+            </button>
+            <ul>
+                @foreach (var item in navSection.Links)
+                {
+                    <li>
+                        <NavLink href="@item.Href" ActiveClass="active" Match="NavLinkMatch.All">
+                            @item.Title
+                            @if (item.Badge is { } badge)
+                            {
+                                <span class="nav-badge">@badge</span>
+                            }
+                        </NavLink>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+</nav>
+
+@code {
+    [Parameter] public bool Open { get; set; }
+
+    private readonly HashSet<string> _collapsed = [];
+
+    private string NavSectionClass(string title)
+        => _collapsed.Contains(title) ? "nav-section collapsed" : "nav-section";
+
+    private void Toggle(string title)
+    {
+        if (!_collapsed.Remove(title))
+        {
+            _collapsed.Add(title);
+        }
+    }
+}
