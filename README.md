@@ -39,6 +39,8 @@ Déjà vu: you have seen this data before, and Deja remembers it for you.
   retried once automatically (queries are idempotent reads).
 - Success / error / settled callbacks, sync and async, plus dedicated callbacks for
   `DisplayUserException` — errors whose message is meant for the end user.
+- **Manual refetch**: `Refetch()` re-runs the last `Execute` with a forced fresh fetch — see
+  [Manual refetch](#manual-refetch).
 
 ### `Mutation<T>` — declarative async writes
 
@@ -204,6 +206,35 @@ Genuinely shared application state (a `CartService` several unrelated components
 deliberately out of scope: the single-listener rule is what buys the isolation guarantee. Use an
 event on the service, or a library such as
 [`CommunityToolkit.Mvvm`](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/).
+
+## Manual refetch
+
+`Refetch()` re-runs the query's last `Execute` and always fetches — staleness, `RefetchOnMount`
+and `Enabled` are bypassed, because a user pressing a refresh button is an explicit request, not a
+mount policy. On the cached path the result updates the shared entry, so every component on the
+key re-renders; a same-key fetch already in flight is joined rather than duplicated. Before the
+first `Execute` (or after disposal) it does nothing.
+
+```razor
+<button @onclick="() => _todos.Refetch()" disabled="@_todos.IsReFetching">Refresh</button>
+```
+
+To change something for one refresh, pass `RefetchParameters<T>` — the subset of
+`QueryParameters<T>` a refetch may override: the callbacks, `CancellationToken`, `StaleTime` and
+`CacheTime`. The key and fetch function always come from the last `Execute` — changing those is a
+new query, not a refetch. Overrides are one-shot: a property left null keeps the remembered value,
+a later bare `Refetch()` is unaffected.
+
+```csharp
+private Task RefreshTodos() => _todos.Refetch(new RefetchParameters<IReadOnlyList<Todo>>
+{
+    OnSuccess = _ => _toast.Show("Todos refreshed"),
+});
+```
+
+Because Deja never runs queries on its own, `Refetch` is also the natural partner of a *lazy*
+query: `Execute` with `Enabled = false` registers the parameters without fetching, and a later
+`Refetch()` triggers the first actual fetch.
 
 ## Cancellation
 

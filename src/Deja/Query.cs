@@ -30,6 +30,10 @@ public class Query<T> : DejaObservable, IDisposable, ICacheClientConsumer, IComp
     private TimeSpan _staleTime;
     private Func<T, T>? _select;
 
+    // Remembered so Refetch can re-run the last Execute; refetch copies are never stored here,
+    // which is what keeps Refetch overrides one-shot.
+    private QueryParameters<T>? _lastParameters;
+
     // The cached-path analogue of _executionCts: a completed await belonging to an older
     // generation must not run callbacks or touch shared flags.
     private int _cachedGeneration;
@@ -160,10 +164,41 @@ public class Query<T> : DejaObservable, IDisposable, ICacheClientConsumer, IComp
     /// same-key call on this instance joins the in-flight execution (the pre-cache behavior).
     /// Without a key, a newer call supersedes (and cancels) the older one.
     /// </summary>
-    public async Task Execute(QueryParameters<T> parameters)
+    public Task Execute(QueryParameters<T> parameters)
     {
-        if (parameters is null || _disposed) return;
+        if (parameters is null || _disposed) return Task.CompletedTask;
 
+        _lastParameters = parameters;
+        return ExecuteCore(parameters);
+    }
+
+    /// <summary>
+    /// Re-runs the last <see cref="Execute(QueryParameters{T})"/> with a forced fresh fetch:
+    /// staleness, <see cref="QueryParameters{T}.RefetchOnMount"/> and
+    /// <see cref="QueryParameters{T}.Enabled"/> are bypassed — a manual refetch is an explicit
+    /// request, not a mount policy. On the cached path the result updates the shared entry, so
+    /// every component on the key re-renders; a concurrent same-key fetch is joined rather than
+    /// duplicated. Does nothing before the first <c>Execute</c> or after disposal.
+    /// </summary>
+    /// <param name="parameters">
+    /// Optional overrides for this call only — see <see cref="RefetchParameters{T}"/>. The key and
+    /// fetch function always come from the last <c>Execute</c>; a later bare <c>Refetch()</c> is
+    /// unaffected by earlier overrides.
+    /// </param>
+    public Task Refetch(RefetchParameters<T>? parameters = null)
+    {
+        if (_disposed || _lastParameters is not { } last) return Task.CompletedTask;
+
+        var refetch = last.Clone();
+        refetch.Enabled = true;
+        refetch.RefetchOnMount = RefetchOnMount.Always;
+        parameters?.ApplyTo(refetch);
+
+        return ExecuteCore(refetch);
+    }
+
+    private async Task ExecuteCore(QueryParameters<T> parameters)
+    {
         if (parameters.QueryKey is null)
         {
             await ExecuteInternal(parameters);
@@ -627,6 +662,9 @@ public class Query<T> : DejaObservable, IDisposable, ICacheClientConsumer, IComp
 
         if (!disposing) return;
 
+        // Callback closures must not outlive the component that created them.
+        _lastParameters = null;
+
         var cts = _executionCts;
         _executionCts = null;
         if (cts is not null)
@@ -732,6 +770,90 @@ public class QueryParameters<T>
     /// never written to the cache. Cached path only.
     /// </summary>
     public T? PlaceholderData { get; set; }
+
+    // Refetch mutates a copy (forced fetch, one-shot overrides), never the caller's instance.
+    internal QueryParameters<T> Clone() => new()
+    {
+        QueryKey = QueryKey,
+        QueryFunction = QueryFunction,
+        CancellationToken = CancellationToken,
+        OnSuccessAsync = OnSuccessAsync,
+        OnSuccess = OnSuccess,
+        OnErrorAsync = OnErrorAsync,
+        OnError = OnError,
+        OnDisplayUserErrorAsync = OnDisplayUserErrorAsync,
+        OnDisplayUserError = OnDisplayUserError,
+        OnSettledAsync = OnSettledAsync,
+        OnSettled = OnSettled,
+        Client = Client,
+        StaleTime = StaleTime,
+        CacheTime = CacheTime,
+        RefetchOnMount = RefetchOnMount,
+        Enabled = Enabled,
+        Select = Select,
+        PlaceholderData = PlaceholderData,
+    };
+}
+
+/// <summary>
+/// The parameters a <see cref="Query{T}.Refetch"/> may override, for that call only. The identity
+/// of the query — key, fetch function, client — always comes from the last <c>Execute</c>:
+/// changing those is a new query, not a refetch. A property left <see langword="null"/> keeps the
+/// value the last <c>Execute</c> used.
+/// </summary>
+/// <typeparam name="T">The type of the fetched data.</typeparam>
+public class RefetchParameters<T>
+{
+    /// <summary>Replaces <see cref="QueryParameters{T}.CancellationToken"/> for this refetch.</summary>
+    public CancellationToken? CancellationToken { get; set; }
+
+    /// <summary>Replaces <see cref="QueryParameters{T}.OnSuccessAsync"/> for this refetch.</summary>
+    public Func<T?, Task>? OnSuccessAsync { get; set; }
+
+    /// <summary>Replaces <see cref="QueryParameters{T}.OnSuccess"/> for this refetch.</summary>
+    public Action<T?>? OnSuccess { get; set; }
+
+    /// <summary>Replaces <see cref="QueryParameters{T}.OnErrorAsync"/> for this refetch.</summary>
+    public Func<Exception, Task>? OnErrorAsync { get; set; }
+
+    /// <summary>Replaces <see cref="QueryParameters{T}.OnError"/> for this refetch.</summary>
+    public Action<Exception>? OnError { get; set; }
+
+    /// <summary>Replaces <see cref="QueryParameters{T}.OnDisplayUserErrorAsync"/> for this refetch.</summary>
+    public Func<DisplayUserException, Task>? OnDisplayUserErrorAsync { get; set; }
+
+    /// <summary>Replaces <see cref="QueryParameters{T}.OnDisplayUserError"/> for this refetch.</summary>
+    public Action<DisplayUserException>? OnDisplayUserError { get; set; }
+
+    /// <summary>Replaces <see cref="QueryParameters{T}.OnSettledAsync"/> for this refetch.</summary>
+    public Func<T?, Task>? OnSettledAsync { get; set; }
+
+    /// <summary>Replaces <see cref="QueryParameters{T}.OnSettled"/> for this refetch.</summary>
+    public Action<T?>? OnSettled { get; set; }
+
+    /// <summary>
+    /// Replaces <see cref="QueryParameters{T}.StaleTime"/> for this refetch. The refetch itself
+    /// always fetches; this only changes how soon the fresh result counts as stale again.
+    /// </summary>
+    public TimeSpan? StaleTime { get; set; }
+
+    /// <summary>Replaces <see cref="QueryParameters{T}.CacheTime"/> for this refetch.</summary>
+    public TimeSpan? CacheTime { get; set; }
+
+    internal void ApplyTo(QueryParameters<T> target)
+    {
+        if (CancellationToken is not null) target.CancellationToken = CancellationToken;
+        if (OnSuccessAsync is not null) target.OnSuccessAsync = OnSuccessAsync;
+        if (OnSuccess is not null) target.OnSuccess = OnSuccess;
+        if (OnErrorAsync is not null) target.OnErrorAsync = OnErrorAsync;
+        if (OnError is not null) target.OnError = OnError;
+        if (OnDisplayUserErrorAsync is not null) target.OnDisplayUserErrorAsync = OnDisplayUserErrorAsync;
+        if (OnDisplayUserError is not null) target.OnDisplayUserError = OnDisplayUserError;
+        if (OnSettledAsync is not null) target.OnSettledAsync = OnSettledAsync;
+        if (OnSettled is not null) target.OnSettled = OnSettled;
+        if (StaleTime is not null) target.StaleTime = StaleTime;
+        if (CacheTime is not null) target.CacheTime = CacheTime;
+    }
 }
 
 /// <summary>

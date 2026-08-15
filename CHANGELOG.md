@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `Query<T>.Refetch(RefetchParameters<T>? parameters = null)`: re-runs the last `Execute` with a
+  forced fresh fetch — staleness, `RefetchOnMount` and `Enabled` are bypassed, since a manual
+  refetch is an explicit request rather than a mount policy. On the cached path the result updates
+  the shared entry (every component on the key re-renders) and a same-key fetch already in flight
+  is joined rather than duplicated. Before the first `Execute` or after disposal it is a no-op.
+- `RefetchParameters<T>`: the subset of `QueryParameters<T>` a refetch may override — the
+  success/error/settled callbacks, `CancellationToken`, `StaleTime` and `CacheTime`. The key and
+  fetch function always come from the last `Execute`. Overrides apply to that call only; a
+  property left null keeps the remembered value.
+
 ### Changed (error handling)
 
 - **Breaking:** `Mutation<T>.Execute` no longer rethrows unconditionally on failure. It now matches
