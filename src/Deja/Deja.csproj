@@ -54,11 +54,11 @@
        would fail to build with NETSDK1082. This package carries just the component abstractions
        and resolves on both WASM and Server. -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components" Version="8.0.30" />
     <!-- Needed by AddDeja. Already in the transitive closure of
          Microsoft.AspNetCore.Components, so it adds no new dependency in practice; referenced
          explicitly to keep the intent clear. -->
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.11" />
   </ItemGroup>
 
   <ItemGroup>
