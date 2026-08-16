@@ -4,10 +4,12 @@
 <PageTitle>Deja — data fetching and caching for Blazor</PageTitle>
 
 <section class="landing-hero">
-    <h1>Data fetching for Blazor,<br/><span class="accent">without the boilerplate</span></h1>
+    <h1>Data fetching, caching and synchronization for Blazor,<br/><span class="accent">without the boilerplate</span></h1>
     <p class="tagline">
-        Bindable loading, error and refetch state, a shared query cache with request deduplication,
-        and cancellation that just works — for Blazor WebAssembly and Server. Dependency-free.
+        Declare a query, bind its loading and error state, and let a shared keyed cache dedupe the
+        requests. Mutations invalidate keys so every component showing that data refetches itself,
+        and navigating away cancels what's in flight — down to the server. Blazor WebAssembly and
+        Server, dependency-free.
     </p>
 
     <div class="landing-actions">

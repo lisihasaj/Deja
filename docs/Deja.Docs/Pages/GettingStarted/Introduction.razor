@@ -4,8 +4,21 @@
 
 <h1>Introduction</h1>
 <p class="lead">
-    Deja gives Blazor components bindable state for asynchronous work — loading, error, data,
-    refetch — plus a shared query cache, request deduplication and automatic cancellation.
+    Deja does three things for Blazor: it removes the boilerplate around talking to an API, it
+    caches the data you fetched, and it keeps that data synchronized across every component
+    showing it.
+</p>
+
+<h2>Why "Deja"?</h2>
+<p>
+    From <em>déjà vu</em> — <em>already seen</em>. That is exactly what a cache is: the second time
+    you ask for something, you have seen it before, so you get it back instantly instead of waiting
+    for the network again. Navigate to a page, go back, return — the list is already there. Two
+    components ask for the same key at the same moment — one request goes out, both get the answer.
+    A mutation changes the data — every component that has <em>seen</em> that key refetches itself.
+</p>
+<p>
+    The feeling of "I have already loaded this" is the whole point of the library. Hence the name.
 </p>
 
 <h2>The problem</h2>
@@ -31,19 +44,43 @@
     <code>StateHasChanged</code> anywhere.
 </p>
 
-<h2>What you get</h2>
+<h2>More than boilerplate removal</h2>
+<p>
+    Cutting the flags and try/catch out of a component is the part you notice first, but it is the
+    smallest of the three things Deja does.
+</p>
+
+<h3>1. No boilerplate</h3>
 <ul>
     <li><strong>Bindable state</strong> — <code>IsLoading</code>, <code>IsError</code>,
         <code>ErrorMessage</code>, <code>Data</code>, <code>IsReFetching</code>,
         <code>IsCachedData</code>, <code>IsStale</code>.</li>
-    <li><strong>Shared cache</strong> — keyed queries render instantly from cache and revalidate in
-        the background; same-key requests are deduplicated app-wide. See
-        <a href="guides/cache">the cache</a>.</li>
     <li><strong>Cancellation</strong> — a newer execution supersedes and cancels an older one, and
         component disposal aborts whatever is in flight. See
         <a href="guides/cancellation">cancellation</a>.</li>
-    <li><strong>Mutations</strong> — the same bindable treatment for writes, plus key invalidation
-        on success. See <a href="guides/mutations">mutations</a>.</li>
+    <li><strong>Mutations</strong> — the same bindable treatment for writes. See
+        <a href="guides/mutations">mutations</a>.</li>
+</ul>
+
+<h3>2. Caching</h3>
+<ul>
+    <li><strong>Instant renders</strong> — a keyed query that has been seen before paints from
+        cache on the first frame, then revalidates in the background if it is stale.</li>
+    <li><strong>Deduplication</strong> — ten components asking for the same key at the same time
+        produce one request, app-wide. See <a href="guides/cache">the cache</a>.</li>
+</ul>
+
+<h3>3. Synchronization</h3>
+<ul>
+    <li><strong>Invalidation by key</strong> — a mutation invalidates keys by prefix on success, and
+        every component holding that data refetches itself. No events to wire up, no parent
+        callbacks passed down to force a reload.</li>
+    <li><strong>One source of truth</strong> — the same key means the same data everywhere, so two
+        components can never drift out of sync showing two versions of one record.</li>
+</ul>
+
+<h2>And it stays cheap</h2>
+<ul>
     <li><strong>Isolation by design</strong> — state notifies exactly one owning component, so
         siblings never re-render each other. Watch it in the
         <a href="demos/isolation">isolation demo</a>.</li>
