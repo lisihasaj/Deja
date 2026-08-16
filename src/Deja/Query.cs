@@ -182,6 +182,12 @@ public class Query<T> : DejaObservable, IDisposable, ICacheClientConsumer, IComp
     /// same-key call on this instance joins the in-flight execution (the pre-cache behavior).
     /// Without a key, a newer call supersedes (and cancels) the older one.
     /// </summary>
+    /// <remarks>
+    /// Success and settled callbacks run on every completed execution, including one that served
+    /// the cache without fetching, so a dependent request chained from
+    /// <see cref="QueryParameters{T}.OnSuccessAsync"/> behaves the same either way. A cancelled
+    /// execution runs no callbacks.
+    /// </remarks>
     public Task Execute(QueryParameters<T> parameters)
     {
         if (parameters is null || _disposed) return Task.CompletedTask;
@@ -313,6 +319,8 @@ public class Query<T> : DejaObservable, IDisposable, ICacheClientConsumer, IComp
             IsLoading = entry.IsFetching;
             IsReFetching = entry.IsFetching && hasData;
             NotifyChanged();
+
+            await InvokeCacheHitCallbacks(parameters, generation, entry, hasData);
             return;
         }
 
@@ -626,6 +634,31 @@ public class Query<T> : DejaObservable, IDisposable, ICacheClientConsumer, IComp
         parameters.OnSettled?.Invoke(Data);
     }
 
+    // The cached path completes without fetching when the data is fresh, disabled, or
+    // RefetchOnMount.Never. That is still a completed Execute — Data is published and the caller's
+    // await has returned — so success and settled callbacks run, and a chain built on them behaves
+    // the same whether the parent hit the cache or fetched. Success needs data to report; settled
+    // marks the execution finished either way.
+    private async Task InvokeCacheHitCallbacks(
+        QueryParameters<T> parameters,
+        int generation,
+        CacheEntry<T> entry,
+        bool hasData)
+    {
+        if (IsSupersededCached(generation, entry)) return;
+
+        if (hasData)
+        {
+            await InvokeSuccessCallbacks(parameters);
+        }
+
+        // Re-checked: a callback above may have started a newer Execute on this query.
+        if (!IsSupersededCached(generation, entry))
+        {
+            await InvokeSettledCallbacks(parameters);
+        }
+    }
+
     /// <summary>
     /// Resets the query state. With <paramref name="cancelCurrentRequest"/> the in-flight execution
     /// is also cancelled without disposing the query, so it can still be executed again.
@@ -738,10 +771,15 @@ public class QueryParameters<T>
     /// </summary>
     public CancellationToken? CancellationToken { get; set; }
 
-    /// <summary>Async callback invoked when the query succeeds.</summary>
+    /// <summary>
+    /// Async callback invoked when the query succeeds, including when a keyed execution served
+    /// cached data without fetching. It is awaited before <c>Execute</c> completes, so a request
+    /// that depends on this result can be chained from here — the next step sees this one settled.
+    /// Give each chained step its own error callback, or its failure surfaces on this query.
+    /// </summary>
     public Func<T?, Task>? OnSuccessAsync { get; set; }
 
-    /// <summary>Callback invoked when the query succeeds.</summary>
+    /// <summary>Callback invoked when the query succeeds. See <see cref="OnSuccessAsync"/> for chaining.</summary>
     public Action<T?>? OnSuccess { get; set; }
 
     /// <summary>Async callback invoked when the query fails.</summary>
@@ -756,7 +794,11 @@ public class QueryParameters<T>
     /// <summary>Callback invoked when the query fails with a <see cref="DisplayUserException"/>.</summary>
     public Action<DisplayUserException>? OnDisplayUserError { get; set; }
 
-    /// <summary>Async callback invoked when the query settles (success or handled error, not cancellation).</summary>
+    /// <summary>
+    /// Async callback invoked when the query settles (success or handled error, not cancellation),
+    /// including when a keyed execution completed by serving the cache without fetching. Awaited
+    /// before <c>Execute</c> completes.
+    /// </summary>
     public Func<T?, Task>? OnSettledAsync { get; set; }
 
     /// <summary>Callback invoked when the query settles (success or handled error, not cancellation).</summary>

@@ -12,6 +12,8 @@ public static class DocsKeys
 
     public static QueryKey TodoDetail(int id) => QueryKey.Of("todos", "detail", id);
 
+    public static QueryKey TodosByUser(int userId) => QueryKey.Of("todos", "list", "user", userId);
+
     public static QueryKey Posts(int? userId, int page) => QueryKey.Of(
         "posts", "list", new Dictionary<string, object?> { ["userId"] = userId, ["page"] = page });
 

@@ -65,6 +65,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `CancellationToken = cts.Token` compiles as before — so this only breaks code that *reads* it,
   which migrates with `parameters.CancellationToken ?? CancellationToken.None`.
 
+### Fixed (callbacks)
+
+- A keyed `Execute` that served cached data **without fetching** — fresh data under the stale time,
+  `RefetchOnMount.Never`, or `Enabled = false` over a populated entry — returned without running
+  its success and settled callbacks, even though `Data` was published and the caller's `await` had
+  completed. Chaining a dependent request from `OnSuccessAsync` therefore worked on a cache miss
+  and silently did nothing on a cache hit. Serving the cache now counts as a successful completion:
+  `OnSuccess`/`OnSuccessAsync` run when the entry has data, and `OnSettled`/`OnSettledAsync` run
+  whenever the execution finishes. Both are skipped if a callback (or a concurrent `Execute`)
+  superseded the execution in the meantime. Cancellation still suppresses callbacks, unchanged.
+
 ### Fixed (cancellation)
 
 - `Query<T>.ClearData(cancelCurrentRequest: true)` was a no-op on the cached path: it cancelled

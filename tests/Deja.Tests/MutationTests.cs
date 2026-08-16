@@ -269,4 +269,54 @@ public class MutationTests
         Assert.Equal(0, notifications);
         Assert.Equal(1, mutation.Data);
     }
+
+    [Fact]
+    public async Task Execute_OnSuccessAsync_ChainsSeveralQueriesInOrder()
+    {
+        var client = new DejaClient(new DejaOptions
+        {
+            DefaultStaleTime = TimeSpan.FromMinutes(30),
+            DefaultRefetchOnMount = RefetchOnMount.IfStale,
+        });
+
+        var mutation = new Mutation<int>(client);
+        using var first = new Query<int>(client);
+        using var second = new Query<int>(client);
+        var order = new List<string>();
+
+        await mutation.Execute(new MutationParameters<int>
+        {
+            MutationFunction = () => Task.FromResult(5),
+            OnSuccessAsync = async result =>
+            {
+                await first.Execute(new QueryParameters<int>
+                {
+                    QueryKey = QueryKey.Of("first"),
+                    QueryFunction = _ =>
+                    {
+                        order.Add("first");
+                        return Task.FromResult(result);
+                    },
+                });
+
+                // The conditional second hop only runs once the first has settled.
+                if (first.Data > 0)
+                {
+                    await second.Execute(new QueryParameters<int>
+                    {
+                        QueryKey = QueryKey.Of("second"),
+                        QueryFunction = _ =>
+                        {
+                            order.Add("second");
+                            return Task.FromResult(first.Data * 2);
+                        },
+                    });
+                }
+            },
+            OnSettled = _ => order.Add("settled"),
+        });
+
+        Assert.Equal(["first", "second", "settled"], order);
+        Assert.Equal(10, second.Data);
+    }
 }

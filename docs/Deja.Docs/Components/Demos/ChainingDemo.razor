@@ -1,0 +1,101 @@
+@inherits DejaComponentBase
+@inject JsonPlaceholderApi Api
+
+<div class="demo-toolbar">
+    <input class="demo-input" style="flex:1" placeholder="Todo title" @bind="_title" @bind:event="oninput"/>
+    <button class="demo-button primary" @onclick="Run"
+            disabled="@(_create.IsLoading || string.IsNullOrWhiteSpace(_title))">
+        @(_create.IsLoading ? "Running chain…" : "Create + load")
+    </button>
+</div>
+
+<p class="demo-note">
+    Step 1 writes. Steps 2a and 2b start together once the write succeeds and load independently —
+    watch their two <code>IsLoading</code> badges light up and go out on their own. Step 3 only
+    starts after both have settled.
+</p>
+
+<MutationInspector Mutation="_create" Label="1 · Create todo (write)"/>
+<StateInspector Query="_author" Label="2a · Author (parallel)"/>
+<StateInspector Query="_authorTodos" Label="2b · Author's todos (parallel)"/>
+<StateInspector Query="_posts" Label="3 · Posts (after both)"/>
+
+@if (_stepLog.Count > 0)
+{
+    <div class="demo-panel">
+        <h4>Chain timeline</h4>
+        <ol class="demo-list">
+            @foreach (var step in _stepLog)
+            {
+                <li>@step</li>
+            }
+        </ol>
+    </div>
+}
+
+@if (_error is not null)
+{
+    <div class="demo-error">@_error</div>
+}
+
+@code {
+    private readonly Mutation<TodoDto> _create = new();
+    private readonly Query<UserDto> _author = new();
+    private readonly Query<IReadOnlyList<TodoDto>> _authorTodos = new();
+    private readonly Query<IReadOnlyList<PostDto>> _posts = new();
+
+    private readonly List<string> _stepLog = [];
+    private string _title = string.Empty;
+    private string? _error;
+
+    private const int AuthorId = 1;
+
+    private Task Run()
+    {
+        _stepLog.Clear();
+        _error = null;
+
+        return _create.Execute(
+            token => Api.CreateTodoAsync(new NewTodo(AuthorId, _title.Trim(), false), token),
+            p =>
+            {
+                p.OnSuccessAsync = async created =>
+                {
+                    Log($"1 · created todo #{created!.Id} for user {created.UserId}");
+                    _title = string.Empty;
+
+                    // Both start before either is awaited, so they overlap on the wire. Each writes
+                    // only its own query's state, so neither can disturb the other's flags.
+                    var author = _author.Execute(
+                        DocsKeys.User(created.UserId),
+                        t => Api.GetUserAsync(created.UserId, t),
+                        o => o.OnError = Fail("2a"));
+
+                    var authorTodos = _authorTodos.Execute(
+                        DocsKeys.TodosByUser(created.UserId),
+                        t => Api.GetTodosByUserAsync(created.UserId, t),
+                        o => o.OnError = Fail("2b"));
+
+                    await Task.WhenAll(author, authorTodos);
+                    Log($"2 · both settled — author {_author.Data?.Name}, {_authorTodos.Data?.Count ?? 0} todos");
+
+                    // Gated on both: step 3 needs the author id that step 2a resolved.
+                    if (_author.Data is { } user && _authorTodos.Data is { Count: > 0 })
+                    {
+                        await _posts.Execute(
+                            DocsKeys.Posts(user.Id, 1),
+                            t => Api.GetPostsAsync(user.Id, 1, t),
+                            o => o.OnError = Fail("3"));
+
+                        Log($"3 · loaded {_posts.Data?.Count ?? 0} posts for {user.Name}");
+                    }
+                };
+
+                p.OnError = Fail("1");
+            });
+    }
+
+    private Action<Exception> Fail(string step) => e => _error = $"Step {step} failed: {e.Message}";
+
+    private void Log(string message) => _stepLog.Add(message);
+}

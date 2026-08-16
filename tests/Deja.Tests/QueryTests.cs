@@ -440,4 +440,97 @@ public class QueryTests
         Assert.Equal(0, notifications);
         Assert.Equal(1, query.Data);
     }
+
+    // Chaining is built on the callbacks, so they have to fire on every completed Execute — not
+    // only the ones that reached the network. A fresh cache hit that stayed silent would stall
+    // the chain with the parent's data already on screen.
+    private static DejaClient CreateFreshCacheClient()
+        => new(new DejaOptions
+        {
+            DefaultStaleTime = TimeSpan.FromMinutes(30),
+            DefaultRefetchOnMount = RefetchOnMount.IfStale,
+        });
+
+    [Fact]
+    public async Task Execute_CacheHitWithoutFetching_StillRunsSuccessAndSettledCallbacks()
+    {
+        var client = CreateFreshCacheClient();
+        using var seed = new Query<int>(client);
+        await seed.Execute(new QueryParameters<int>
+        {
+            QueryKey = QueryKey.Of("user"),
+            QueryFunction = _ => Task.FromResult(7),
+        });
+
+        using var query = new Query<int>(client);
+        var calls = 0;
+        int? success = null;
+        var settled = 0;
+
+        await query.Execute(new QueryParameters<int>
+        {
+            QueryKey = QueryKey.Of("user"),
+            QueryFunction = _ => Task.FromResult(++calls),
+            OnSuccess = data => success = data,
+            OnSettled = _ => settled++,
+        });
+
+        Assert.Equal(0, calls);
+        Assert.Equal(7, success);
+        Assert.Equal(1, settled);
+    }
+
+    [Fact]
+    public async Task Execute_CacheHit_ChainsADependentQueryFromOnSuccess()
+    {
+        var client = CreateFreshCacheClient();
+        using var seed = new Query<int>(client);
+        await seed.Execute(new QueryParameters<int>
+        {
+            QueryKey = QueryKey.Of("user"),
+            QueryFunction = _ => Task.FromResult(42),
+        });
+
+        using var user = new Query<int>(client);
+        using var orders = new Query<string>(client);
+
+        await user.Execute(new QueryParameters<int>
+        {
+            QueryKey = QueryKey.Of("user"),
+            QueryFunction = _ => Task.FromResult(0),
+            OnSuccessAsync = async id => await orders.Execute(new QueryParameters<string>
+            {
+                QueryKey = QueryKey.Of("orders", id),
+                QueryFunction = _ => Task.FromResult($"orders-{id}"),
+            }),
+        });
+
+        // The chain ran off cached parent data, and the awaited Execute did not return until the
+        // dependent query had finished.
+        Assert.Equal("orders-42", orders.Data);
+    }
+
+    [Fact]
+    public async Task Execute_DisabledWithEmptyCache_SettlesWithoutReportingSuccess()
+    {
+        var client = CreateFreshCacheClient();
+        using var query = new Query<int>(client);
+        var success = 0;
+        var settled = 0;
+
+        await query.Execute(new QueryParameters<int>
+        {
+            QueryKey = QueryKey.Of("user"),
+            QueryFunction = _ => Task.FromResult(1),
+            Enabled = false,
+            OnSuccess = _ => success++,
+            OnSettled = _ => settled++,
+        });
+
+        // Nothing was fetched and nothing was cached, so there is no result to chain from —
+        // but the execution did finish.
+        Assert.Equal(0, success);
+        Assert.Equal(1, settled);
+        Assert.Equal(0, query.Data);
+    }
 }

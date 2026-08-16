@@ -52,6 +52,79 @@
     Cached path only.
 </p>
 
+<h2>Chaining dependent requests</h2>
+<p>
+    When the second request's key or arguments come from the first result, run it from
+    <code>OnSuccessAsync</code>. The callback is awaited, so each step waits for the one before it
+    and the outer <code>Execute</code> only completes once the whole chain has — which means an
+    ordinary <code>if</code> is enough to branch on what the previous step returned.
+</p>
+
+<CodeBlock Language="csharp" Code="@ChainingCode"/>
+
+<p>
+    Callbacks run on every completed <code>Execute</code>, including one that served fresh cached
+    data without fetching, so a chain behaves the same on a cache hit as on a fetch. (A query that
+    is <code>Enabled = false</code> over an empty cache has no result to hand over, so it settles
+    without reporting success.) The same pattern works from a mutation — see
+    <a href="/guides/mutations">Mutations</a>.
+</p>
+
+<h3>Fan-out: a write, two parallel reads, then a third</h3>
+<p>
+    The interesting shape is not a straight line. Here a real write runs first; on success two
+    queries load <em>in parallel</em>; and when both have settled, a fourth request runs off their
+    combined result. The rule that makes this readable: <strong>awaiting is what orders the
+    steps, and each <code>Execute</code> only ever writes its own query's state.</strong>
+</p>
+
+<CodeBlock Language="csharp" Code="@FanOutCode"/>
+
+<p>
+    Read the ordering off the <code>await</code>s. Step 1's <code>OnSuccessAsync</code> is awaited
+    by the mutation, so nothing downstream starts until the write has actually succeeded. Steps 2a
+    and 2b are <em>started</em> before either is awaited — that is the whole trick — so both requests
+    are on the wire at once and the pair costs one round trip rather than two.
+    <code>Task.WhenAll</code> then waits for the slower of the two. Step 3 sits after that await, so
+    it sees both results settled and can be gated on them with a plain <code>if</code>.
+</p>
+
+<p>
+    Because each query owns its own state, the parallel pair cannot interfere with each other:
+    <code>_author.IsLoading</code> goes out when the author request finishes, whether or not the
+    todos request is still running, and each writes only its own <code>Data</code>,
+    <code>IsError</code> and <code>ErrorMessage</code>. Two spinners tied to two queries resolve
+    independently, and a failure in 2b leaves 2a's data on screen untouched. That independence is
+    also why each step carries its own error callback — a failure is then attributed to the request
+    that caused it instead of surfacing on the parent.
+</p>
+
+<p>
+    The loading flags nest rather than compete. The mutation stays <code>IsLoading</code> for the
+    entire chain — its <code>Execute</code> has not returned yet — while each query's flag covers
+    only its own request. So bind a global "working" indicator to the mutation, and per-row
+    spinners to the individual queries.
+</p>
+
+<Callout Type="Callout.CalloutType.Warning" Title="Chains do not re-run on invalidation">
+    <p>
+        Invalidating a parent key refetches that query and re-renders, but it does not re-run the
+        callback chain — the dependent query keeps its previous data. Chains re-run when you call
+        <code>Execute</code>. Invalidate the dependent keys too if they need to follow.
+    </p>
+    <p>
+        Two smaller things on long chains: give every step its own error callback, or a child's
+        failure surfaces on the parent (an unobserved failure throws, and that exception propagates
+        out of the parent's <code>OnSuccessAsync</code>); and the parent stays
+        <code>IsLoading</code> for the whole chain, so bind spinners to the last query or to the
+        combination.
+    </p>
+</Callout>
+
+<DemoCard Title="Write → two parallel reads → one more" SourceFiles="@(new[] { "ChainingDemo.razor" })">
+    <ChainingDemo/>
+</DemoCard>
+
 <h2>Select — per-component projection</h2>
 <p>
     <code>Select</code> transforms the cached value before it is published to <code>Data</code>.
@@ -93,6 +166,53 @@ protected override Task OnInitializedAsync()
 // Each keystroke: the previous in-flight search is cancelled, the newest wins.
 private Task OnSearchChanged(string term)
     => _results.Execute(token => Api.SearchAsync(term, token));
+""";
+
+    private const string ChainingCode = """
+await _user.Execute("user", Api.GetUserAsync, p => p.OnSuccessAsync = async user =>
+{
+    if (user is null) return;
+
+    await _orders.Execute(QueryKey.Of("orders", user.Id), t => Api.GetOrdersAsync(user.Id, t),
+        o => o.OnError = e => Log.Warn(e));
+
+    // Each step sees the previous one settled
+    if (_orders.Data is { Count: > 0 })
+    {
+        await _invoices.Execute(QueryKey.Of("invoices", user.Id), t => Api.GetInvoicesAsync(user.Id, t));
+    }
+});
+""";
+
+    private const string FanOutCode = """
+// 1 — a real write. Everything below runs only if it succeeds.
+await _createTodo.Execute(t => Api.CreateTodoAsync(draft, t), p =>
+{
+    p.OnError = e => _error = e.Message;
+    p.OnSuccessAsync = async created =>
+    {
+        // 2a + 2b — started, not awaited: both requests go out together.
+        var author = _author.Execute(QueryKey.Of("users", "detail", created!.UserId),
+            t => Api.GetUserAsync(created.UserId, t),
+            o => o.OnError = e => _error = $"author: {e.Message}");
+
+        var todos = _authorTodos.Execute(QueryKey.Of("todos", "list", "user", created.UserId),
+            t => Api.GetTodosByUserAsync(created.UserId, t),
+            o => o.OnError = e => _error = $"todos: {e.Message}");
+
+        // Each query drives its own IsLoading/Data/IsError, so these two never
+        // interfere — whichever finishes first clears only its own flags.
+        await Task.WhenAll(author, todos);
+
+        // 3 — runs after both, and can branch on their combined result.
+        if (_author.Data is { } user && _authorTodos.Data is { Count: > 0 })
+        {
+            await _posts.Execute(QueryKey.Of("posts", "list", user.Id),
+                t => Api.GetPostsAsync(user.Id, t),
+                o => o.OnError = e => _error = $"posts: {e.Message}");
+        }
+    };
+});
 """;
 
     private const string FullSample = """

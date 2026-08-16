@@ -43,10 +43,10 @@
 
     private static readonly ApiRow[] _callbacks =
     [
-        new("OnSuccessAsync / OnSuccess", "Func<T?, Task>? / Action<T?>?", null, "Invoked when the query succeeds."),
+        new("OnSuccessAsync / OnSuccess", "Func<T?, Task>? / Action<T?>?", null, "Invoked when the query succeeds, including when a keyed execution served cached data without fetching. The async form is awaited before Execute completes, so a dependent request can be chained from it."),
         new("OnErrorAsync / OnError", "Func<Exception, Task>? / Action<Exception>?", null, "Invoked when the query fails."),
         new("OnDisplayUserErrorAsync / OnDisplayUserError", "Func<DisplayUserException, Task>? / Action<DisplayUserException>?", null, "Invoked when the query fails with a <code>DisplayUserException</code>, before the general error callbacks."),
-        new("OnSettledAsync / OnSettled", "Func<T?, Task>? / Action<T?>?", null, "Invoked when the query settles (success or handled error, not cancellation)."),
+        new("OnSettledAsync / OnSettled", "Func<T?, Task>? / Action<T?>?", null, "Invoked when the query settles (success or handled error, not cancellation), including a cache hit that never fetched."),
     ];
 
     private static readonly ApiRow[] _cache =

@@ -26,6 +26,11 @@ public sealed class JsonPlaceholderApi(HttpClient http, LatencySimulator latency
         () => [.. SeedData.Todos.Take(limit)],
         token);
 
+    public Task<IReadOnlyList<TodoDto>> GetTodosByUserAsync(int userId, CancellationToken token) => RunAsync(
+        async t => (IReadOnlyList<TodoDto>)(await http.GetFromJsonAsync<List<TodoDto>>($"todos?userId={userId}", t))!,
+        () => [.. SeedData.Todos.Where(todo => todo.UserId == userId)],
+        token);
+
     public Task<TodoDto> GetTodoAsync(int id, CancellationToken token) => RunAsync(
         async t => (await http.GetFromJsonAsync<TodoDto>($"todos/{id}", t))!,
         () => SeedData.Todos.FirstOrDefault(todo => todo.Id == id) ?? new TodoDto(id, 1, $"todo #{id}", false),

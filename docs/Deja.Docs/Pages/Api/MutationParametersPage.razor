@@ -38,7 +38,7 @@
     private static readonly ApiRow[] _rest =
     [
         new("CancellationToken", "CancellationToken?", "null", "Caller-owned lifetime token; null means the owning component's lifetime token. A value set here replaces the ambient token rather than combining with it."),
-        new("OnSuccessAsync / OnSuccess", "Func<T?, Task>? / Action<T?>?", null, "Invoked when the mutation succeeds."),
+        new("OnSuccessAsync / OnSuccess", "Func<T?, Task>? / Action<T?>?", null, "Invoked when the mutation succeeds. The async form is awaited before InvalidateKeys runs and before Execute completes, so follow-up queries or mutations can be chained from it."),
         new("OnErrorAsync / OnError", "Func<Exception, Task>? / Action<Exception>?", null, "Invoked when the mutation fails."),
         new("OnDisplayUserErrorAsync / OnDisplayUserError", "Func<DisplayUserException, Task>? / Action<DisplayUserException>?", null, "Invoked when the mutation fails with a <code>DisplayUserException</code>."),
         new("OnSettledAsync / OnSettled", "Func<T?, Task>? / Action<T?>?", null, "Invoked when the mutation settles (success or failure; not cancellation)."),

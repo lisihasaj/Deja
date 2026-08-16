@@ -53,6 +53,12 @@ Behavioural facts to document (all verified in source):
 - Callback order on success: `OnSuccessAsync`, then `OnSuccess` (Query.cs:547–555); on error:
   `OnDisplayUserErrorAsync`, `OnDisplayUserError` (only for `DisplayUserException`), `OnErrorAsync`,
   `OnError` (Query.cs:558–590); settled last, not on cancellation (Query.cs:592–600).
+- Callbacks run on every completed `Execute`, fetch or not. The cached path's no-fetch return
+  (fresh data, `RefetchOnMount.Never`, `Enabled = false`) invokes success when the entry has data
+  and settled unconditionally, via `InvokeCacheHitCallbacks` (Query.cs:310–318, Query.cs:636–666);
+  supersede is re-checked between the two, since a chained `Execute` started from a success
+  callback retires the generation. This is what makes `OnSuccessAsync` usable for chaining a
+  dependent request — the chain behaves the same on a cache hit as on a fetch.
 
 ## `QueryParameters<T>` — src/Deja/Query.cs:686
 

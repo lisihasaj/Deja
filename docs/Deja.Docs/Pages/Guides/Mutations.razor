@@ -41,6 +41,24 @@
         <code>AddDeja()</code> the keys are silently ignored.</p>
 </Callout>
 
+<h2>Chaining follow-up requests</h2>
+<p>
+    <code>InvalidateKeys</code> covers "refresh these keys afterwards". When the follow-up's key or
+    arguments come from the mutation result — or when one request depends on another's outcome —
+    chain from <code>OnSuccessAsync</code> instead. It is awaited, so each step waits for the
+    previous one and the mutation's own <code>Execute</code> completes only once the chain has.
+</p>
+
+<CodeBlock Code="@ChainingSample"/>
+
+<p>
+    Ordering across the two is fixed: <code>OnSuccess</code> runs first, then
+    <code>InvalidateKeys</code> (whose refetches are awaited), then <code>OnSettled</code> — so a
+    settled callback sees the invalidated queries already refetched. Queries chained this way follow
+    the same rules as in <a href="/guides/queries">Queries</a>: give each step its own error
+    callback so a failure is attributed to the request that caused it.
+</p>
+
 <h2>The unhandled-failure contract</h2>
 <p>
     On failure the mutation publishes its error state and runs the error callbacks. Then comes the
@@ -88,5 +106,20 @@ private Task Add() => _addTodo.Execute(
     private const string InvalidateSample = """
 p.InvalidateKeys = [QueryKey.Of("todos")];
 // invalidates ["todos"], ["todos","list",1], ["todos","detail",42], …
+""";
+
+    private const string ChainingSample = """
+await _createOrder.Execute(() => Api.CreateOrderAsync(_draft), p => p.OnSuccessAsync = async order =>
+{
+    // The follow-up key comes from the result, which InvalidateKeys cannot express
+    await _lines.Execute(QueryKey.Of("orders", order!.Id, "lines"),
+        t => Api.GetOrderLinesAsync(order.Id, t),
+        o => o.OnError = e => _error = e.Message);
+
+    if (_lines.Data is { Count: 0 })
+    {
+        await _notify.Execute(() => Api.FlagEmptyOrderAsync(order.Id));
+    }
+});
 """;
 }

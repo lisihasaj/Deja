@@ -330,10 +330,15 @@ public class MutationParameters<T>
     /// </summary>
     public CancellationToken? CancellationToken { get; set; }
 
-    /// <summary>Callback invoked when the mutation succeeds.</summary>
+    /// <summary>Callback invoked when the mutation succeeds. See <see cref="OnSuccessAsync"/> for chaining.</summary>
     public Action<T?>? OnSuccess { get; set; }
 
-    /// <summary>Async callback invoked when the mutation succeeds.</summary>
+    /// <summary>
+    /// Async callback invoked when the mutation succeeds, awaited before <see cref="InvalidateKeys"/>
+    /// is processed and before <c>Execute</c> completes. Chain follow-up queries or mutations from
+    /// here when their key or arguments come from this result; for a plain "refresh these keys
+    /// afterwards", prefer <see cref="InvalidateKeys"/>.
+    /// </summary>
     public Func<T?, Task>? OnSuccessAsync { get; set; }
 
     /// <summary>Async callback invoked when the mutation fails.</summary>

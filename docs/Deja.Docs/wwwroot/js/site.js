@@ -8,6 +8,11 @@ window.dejaDocs = (function () {
             .replace(/\s+/g, '-');
     }
 
+    // <base href="/"> makes bare "#id" resolve to the home page, so qualify with the current path
+    function fragmentHref(id) {
+        return location.pathname + location.search + '#' + id;
+    }
+
     function ensureHeadingIds(article) {
         const seen = new Set();
         article.querySelectorAll('h2, h3').forEach(h => {
@@ -18,10 +23,13 @@ window.dejaDocs = (function () {
             }
             seen.add(h.id);
 
-            if (!h.querySelector('.heading-anchor')) {
+            const existing = h.querySelector('.heading-anchor');
+            if (existing) {
+                existing.href = fragmentHref(h.id);
+            } else {
                 const a = document.createElement('a');
                 a.className = 'heading-anchor';
-                a.href = '#' + h.id;
+                a.href = fragmentHref(h.id);
                 a.textContent = '#';
                 a.setAttribute('aria-label', 'Link to this section');
                 h.appendChild(a);
@@ -43,7 +51,8 @@ window.dejaDocs = (function () {
             const li = document.createElement('li');
             li.className = h.tagName === 'H3' ? 'toc-h3' : 'toc-h2';
             const a = document.createElement('a');
-            a.href = '#' + h.id;
+            a.href = fragmentHref(h.id);
+            a.dataset.tocTarget = h.id;
             a.textContent = h.textContent.replace(/#$/, '');
             li.appendChild(a);
             toc.appendChild(li);
@@ -57,7 +66,7 @@ window.dejaDocs = (function () {
             for (const entry of entries) {
                 if (!entry.isIntersecting) continue;
                 toc.querySelectorAll('a').forEach(a => a.classList.remove('active'));
-                const active = toc.querySelector('a[href="#' + entry.target.id + '"]');
+                const active = toc.querySelector('a[data-toc-target="' + entry.target.id + '"]');
                 if (active) active.classList.add('active');
             }
         }, { rootMargin: '-15% 0px -75% 0px' });

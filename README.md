@@ -43,7 +43,10 @@ Déjà vu: you have seen this data before, and Deja remembers it for you.
 - **Timeout resilience**: an `HttpClient` timeout caused by a frozen background browser tab is
   retried once automatically (queries are idempotent reads).
 - Success / error / settled callbacks, sync and async, plus dedicated callbacks for
-  `DisplayUserException` — errors whose message is meant for the end user.
+  `DisplayUserException` — errors whose message is meant for the end user. Awaited, and run on
+  every completed `Execute` including a cache hit that never fetched, so a request that depends on
+  a previous result chains from `OnSuccessAsync` — see
+  [Chaining dependent requests](#chaining-dependent-requests).
 - **Manual refetch**: `Refetch()` re-runs the last `Execute` with a forced fresh fetch — see
   [Manual refetch](#manual-refetch).
 
@@ -54,6 +57,8 @@ Déjà vu: you have seen this data before, and Deja remembers it for you.
   cancellation-aware counterpart (`CancellableMutationFunction`, `CancellableVoidMutationFunction`)
   so an in-flight write does not outlive the component that started it.
 - Success / error / settled callbacks, sync and async, with `DisplayUserException` support.
+  Awaited, so a mutation can drive follow-up reads or writes from `OnSuccessAsync` — see
+  [Chaining dependent requests](#chaining-dependent-requests).
 - `InvalidateKeys`: after a successful mutation, the listed keys are invalidated (prefix-matched)
   and every mounted query under them refetches — in every component showing that data.
 
@@ -240,6 +245,66 @@ private Task RefreshTodos() => _todos.Refetch(new RefetchParameters<IReadOnlyLis
 Because Deja never runs queries on its own, `Refetch` is also the natural partner of a *lazy*
 query: `Execute` with `Enabled = false` registers the parameters without fetching, and a later
 `Refetch()` triggers the first actual fetch.
+
+## Chaining dependent requests
+
+When one request needs the result of another, run the second from the first's `OnSuccessAsync`.
+The callback is awaited, so each step genuinely waits for the one before it, and the outer
+`Execute` does not complete until the whole chain has:
+
+```csharp
+await _user.Execute("user", Api.GetUserAsync, p => p.OnSuccessAsync = async user =>
+{
+    if (user is null) return;
+
+    await _orders.Execute(QueryKey.Of("orders", user.Id), t => Api.GetOrdersAsync(user.Id, t));
+
+    // Each step sees the previous one settled, so an ordinary if is enough to branch
+    if (_orders.Data is { Count: > 0 })
+    {
+        await _invoices.Execute(QueryKey.Of("invoices", user.Id), t => Api.GetInvoicesAsync(user.Id, t));
+    }
+});
+```
+
+Callbacks run on **every** completed `Execute`, including one that served fresh cached data
+without fetching — a chain behaves the same whether the parent hit the cache or went to the
+network. (`OnSuccess` needs a result to hand over, so a query that is `Enabled = false` with an
+empty cache settles without reporting success.)
+
+The same works from a mutation, which is the natural place to fan out into several reads:
+
+```csharp
+await _save.Execute(() => Api.SaveAsync(_dto), p => p.OnSuccessAsync = async saved =>
+{
+    await _todos.Refetch();
+
+    if (saved!.AffectsStats)
+    {
+        await _stats.Refetch();
+    }
+});
+```
+
+For a plain "refresh these keys afterwards", prefer `InvalidateKeys` — it refetches every mounted
+query on those keys, in every component, with no callback wiring. Reach for `OnSuccessAsync` when
+the next request's *key or arguments* come from the previous result, which is what invalidation
+cannot express. `InvalidateKeys` runs after `OnSuccess` and is awaited, so `OnSettled` sees the
+refetches finished.
+
+Three things worth knowing when a chain gets long:
+
+- **Give every step its own `OnError`.** A failing query with no error callback throws
+  `InvalidOperationException`, which propagates out of the parent's `OnSuccessAsync` into the
+  parent's error handling — so the parent would report the *child's* failure as its own. With an
+  error callback the failure stays where it happened.
+- **The parent stays loading for the whole chain.** Because the callback is awaited inside the
+  parent's execution, `_user.IsLoading` covers every step. Bind a spinner to the last query in the
+  chain, or to the combination (`_user.IsLoading || _orders.IsLoading`).
+- **Invalidation does not cascade.** Invalidating `user` refetches `user` and re-renders, but it
+  does not re-run the callback chain — so `orders` keeps its previous data. Chains re-run when you
+  call `Execute`, not when a parent entry is invalidated underneath them. Invalidate the dependent
+  keys too if they need to follow.
 
 ## Cancellation
 
