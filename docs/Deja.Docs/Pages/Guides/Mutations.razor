@@ -1,4 +1,5 @@
 @page "/guides/mutations"
+@page "/de/guides/mutations"
 @inherits DocPage
 
 <PageTitle>Mutations — Deja</PageTitle>
@@ -149,7 +150,7 @@
             Die Reihenfolge zwischen beiden ist fest: Zuerst läuft <code>OnSuccess</code>, dann
             <code>InvalidateKeys</code> (dessen Refetches awaited werden), dann <code>OnSettled</code> —
             ein Settled-Callback sieht die invalidierten Queries also bereits neu geladen. So verkettete
-            Queries folgen denselben Regeln wie in <a href="/guides/queries">Queries</a>: Gib jedem
+            Queries folgen denselben Regeln wie in <a href="/de/guides/queries">Queries</a>: Gib jedem
             Schritt seinen eigenen Error-Callback, damit ein Fehlschlag dem Request zugeordnet wird, der
             ihn verursacht hat.
         </p>

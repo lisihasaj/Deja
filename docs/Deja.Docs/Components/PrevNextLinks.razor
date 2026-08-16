@@ -6,14 +6,14 @@
     <nav class="prev-next" aria-label="@(Lang == Language.De ? "Benachbarte Seiten" : "Adjacent pages")">
         @if (_prev is not null)
         {
-            <a href="@_prev.Href" class="pn-prev">
+            <a href="@LanguageService.PathFor(_prev.Href, Lang)" class="pn-prev">
                 <span class="pn-label">@(Lang == Language.De ? "← Zurück" : "← Previous")</span>
                 <span class="pn-title">@_prev.TitleFor(Lang)</span>
             </a>
         }
         @if (_next is not null)
         {
-            <a href="@_next.Href" class="pn-next">
+            <a href="@LanguageService.PathFor(_next.Href, Lang)" class="pn-next">
                 <span class="pn-label">@(Lang == Language.De ? "Weiter →" : "Next →")</span>
                 <span class="pn-title">@_next.TitleFor(Lang)</span>
             </a>
@@ -41,11 +41,7 @@
 
     private void Update()
     {
-        var href = Nav.ToBaseRelativePath(Nav.Uri).TrimEnd('/');
-        var hash = href.IndexOf('#');
-        if (hash >= 0) href = href[..hash];
-
-        (_prev, _next) = DocsNav.Around(href);
+        (_prev, _next) = DocsNav.Around(LanguageService.RouteOf(Nav.ToBaseRelativePath(Nav.Uri)));
     }
 
     public void Dispose() => Nav.LocationChanged -= OnLocationChanged;

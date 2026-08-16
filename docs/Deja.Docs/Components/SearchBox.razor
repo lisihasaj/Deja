@@ -23,7 +23,7 @@
             {
                 var item = _results[i];
                 var selected = i == _selected;
-                <a href="@item.Href" class="@(selected ? "selected" : null)"
+                <a href="@LanguageService.PathFor(item.Href, Lang)" class="@(selected ? "selected" : null)"
                    @onmousedown="() => Go(item)" @onmousedown:preventDefault>
                     <span class="result-section">@item.SectionFor(Lang)</span>
                     @item.TitleFor(Lang)
@@ -73,7 +73,7 @@
         _open = false;
         _query = string.Empty;
         _results = [];
-        Nav.NavigateTo(item.Href);
+        Nav.NavigateTo(LanguageService.PathFor(item.Href, Lang));
     }
 
     // Delayed so a click on a result lands before the dropdown disappears.

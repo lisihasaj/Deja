@@ -13,7 +13,7 @@
                 @foreach (var item in navSection.Links)
                 {
                     <li>
-                        <NavLink href="@item.Href" ActiveClass="active" Match="NavLinkMatch.All">
+                        <NavLink href="@LanguageService.PathFor(item.Href, Lang)" ActiveClass="active" Match="NavLinkMatch.All">
                             @item.TitleFor(Lang)
                             @if (item.Badge is { } badge)
                             {

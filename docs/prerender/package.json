@@ -1,0 +1,12 @@
+{
+  "name": "deja-docs-prerender",
+  "private": true,
+  "type": "module",
+  "description": "Renders each published docs route to static HTML so crawlers that do not execute WebAssembly see the content.",
+  "scripts": {
+    "prerender": "node prerender.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.62.1"
+  }
+}

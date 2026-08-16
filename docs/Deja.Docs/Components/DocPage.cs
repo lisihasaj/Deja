@@ -14,4 +14,7 @@ public abstract class DocPage : ComponentBase
     protected bool De => Lang == Language.De;
 
     protected string T(string en, string de) => De ? de : en;
+
+    /// <summary>Prefixes an in-site route so links stay inside the current language tree.</summary>
+    protected string Localize(string route) => LanguageService.PathFor(route.TrimStart('/'), Lang);
 }

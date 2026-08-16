@@ -4,6 +4,7 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using Deja.Docs.Navigation;
+using Deja.Docs.Services;
 
 if (args.Length < 2)
 {
@@ -38,21 +39,38 @@ string WithHead(string block) => seoBlock.Replace(shell, $"<!--seo-->\n{block}\n
 const string Robots = "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1";
 var ogImage = SeoMeta.OgImageUrl(baseUrl);
 
-string CommonTags(string title, string description, string canonical, string ogType, string? ogDescription = null)
+// The German site lives under /de/ so crawlers can reach it; the client-side toggle only ever
+// switched a localStorage flag, which left every translated page invisible to non-JS clients.
+const string DePrefix = "de/";
+
+static string PathFor(string href, Language lang) =>
+    lang == Language.De ? DePrefix + href : href;
+
+string UrlFor(string href, Language lang) => baseUrl + PathFor(href, lang);
+
+string AlternateTags(string href) => $"""
+        <link rel="alternate" hreflang="en" href="{UrlFor(href, Language.En)}"/>
+            <link rel="alternate" hreflang="de" href="{UrlFor(href, Language.De)}"/>
+            <link rel="alternate" hreflang="x-default" href="{UrlFor(href, Language.En)}"/>
+    """;
+
+string CommonTags(string title, string description, string canonical, string ogType, Language lang, string href, string? ogDescription = null)
 {
     var t = WebUtility.HtmlEncode(title);
     var d = WebUtility.HtmlEncode(description);
     var og = WebUtility.HtmlEncode(ogDescription ?? description);
-    var alt = WebUtility.HtmlEncode(SeoMeta.LandingTitle);
+    var alt = WebUtility.HtmlEncode(lang == Language.De ? SeoMeta.LandingTitleDe : SeoMeta.LandingTitle);
+    var locale = lang == Language.De ? "de_DE" : "en_US";
 
     return $"""
             <title>{t}</title>
             <meta name="description" content="{d}"/>
             <link rel="canonical" href="{canonical}"/>
+            {AlternateTags(href)}
             <meta name="robots" content="{Robots}"/>
             <meta property="og:type" content="{ogType}"/>
             <meta property="og:site_name" content="{SeoMeta.SiteName}"/>
-            <meta property="og:locale" content="en_US"/>
+            <meta property="og:locale" content="{locale}"/>
             <meta property="og:title" content="{t}"/>
             <meta property="og:description" content="{og}"/>
             <meta property="og:url" content="{canonical}"/>
@@ -70,23 +88,66 @@ string CommonTags(string title, string description, string canonical, string ogT
 
 static string JsonLd(string json) => $"    <script type=\"application/ld+json\">{json}</script>";
 
-var landingBlock = CommonTags(SeoMeta.LandingTitle, SeoMeta.LandingDescription, baseUrl, "website", SeoMeta.LandingOgDescription)
-    + "\n" + JsonLd(SeoMeta.SoftwareJsonLd(baseUrl))
-    + "\n" + JsonLd(SeoMeta.WebSiteJsonLd(baseUrl));
+// The prerenderer replaces the body marker per route; it needs the file list and the language
+// each file must be rendered in.
+var manifest = new List<string>();
 
-File.WriteAllText(indexPath, WithHead(landingBlock));
-Console.WriteLine("index.html            ← landing head");
-
-foreach (var item in DocsNav.All)
+void WriteRoute(string href, Language lang, string head)
 {
-    var block = CommonTags(SeoMeta.TitleFor(item), item.Description, SeoMeta.CanonicalFor(baseUrl, item), "article")
-        + "\n" + JsonLd(SeoMeta.BreadcrumbJsonLd(baseUrl, item));
+    var path = PathFor(href, lang);
+    var html = WithHead(head);
 
-    var dir = Path.Combine(wwwroot, item.Href.Replace('/', Path.DirectorySeparatorChar));
-    Directory.CreateDirectory(dir);
-    File.WriteAllText(Path.Combine(dir, "index.html"), WithHead(block));
-    Console.WriteLine($"{item.Href}/index.html".PadRight(42) + "← prerendered head");
+    if (lang == Language.De)
+    {
+        html = html.Replace("<html lang=\"en\">", "<html lang=\"de\">");
+    }
+
+    string file;
+    if (path.Length == 0)
+    {
+        file = "index.html";
+    }
+    else
+    {
+        var dir = Path.Combine(wwwroot, path.Replace('/', Path.DirectorySeparatorChar));
+        Directory.CreateDirectory(dir);
+        file = path + "/index.html";
+    }
+
+    File.WriteAllText(Path.Combine(wwwroot, file.Replace('/', Path.DirectorySeparatorChar)), html);
+    manifest.Add($$"""{"href":"{{path}}","lang":"{{(lang == Language.De ? "de" : "en")}}","file":"{{file}}"}""");
+    Console.WriteLine(file.PadRight(46) + $"← head [{(lang == Language.De ? "de" : "en")}]");
 }
+
+foreach (var lang in new[] { Language.En, Language.De })
+{
+    var de = lang == Language.De;
+
+    var landingBlock = CommonTags(
+            de ? SeoMeta.LandingTitleDe : SeoMeta.LandingTitle,
+            de ? SeoMeta.LandingDescriptionDe : SeoMeta.LandingDescription,
+            UrlFor("", lang), "website", lang, "",
+            de ? SeoMeta.LandingOgDescriptionDe : SeoMeta.LandingOgDescription)
+        + "\n" + JsonLd(SeoMeta.SoftwareJsonLd(baseUrl))
+        + "\n" + JsonLd(SeoMeta.WebSiteJsonLd(baseUrl));
+
+    WriteRoute("", lang, landingBlock);
+
+    foreach (var item in DocsNav.All)
+    {
+        var block = CommonTags(
+                SeoMeta.TitleFor(item, lang), item.DescriptionFor(lang),
+                UrlFor(item.Href, lang), "article", lang, item.Href)
+            + "\n" + JsonLd(SeoMeta.BreadcrumbJsonLd(baseUrl, item));
+
+        WriteRoute(item.Href, lang, block);
+    }
+}
+
+File.WriteAllText(
+    Path.Combine(wwwroot, "prerender-routes.json"),
+    "[\n  " + string.Join(",\n  ", manifest) + "\n]\n");
+Console.WriteLine($"prerender-routes.json ← {manifest.Count} routes");
 
 // GitHub Pages serves 404.html with a 200 for unknown SPA routes; noindex keeps junk URLs out
 var notFoundBlock = $"""
@@ -137,21 +198,32 @@ static string PriorityFor(string href) => href switch
 
 var sitemap = new StringBuilder()
     .AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
-    .AppendLine("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
+    .AppendLine("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" xmlns:xhtml=\"http://www.w3.org/1999/xhtml\">");
+
+var urls = 0;
 
 foreach (var href in DocsNav.All.Select(l => l.Href).Prepend(""))
 {
-    sitemap.AppendLine("  <url>");
-    sitemap.AppendLine(CultureInfo.InvariantCulture, $"    <loc>{baseUrl}{href}</loc>");
-    if (LastMod(href) is { } lastMod) sitemap.AppendLine(CultureInfo.InvariantCulture, $"    <lastmod>{lastMod}</lastmod>");
-    sitemap.AppendLine(CultureInfo.InvariantCulture, $"    <changefreq>{(href.Length == 0 ? "weekly" : "monthly")}</changefreq>");
-    sitemap.AppendLine(CultureInfo.InvariantCulture, $"    <priority>{PriorityFor(href)}</priority>");
-    sitemap.AppendLine("  </url>");
+    var lastMod = LastMod(href);
+
+    foreach (var lang in new[] { Language.En, Language.De })
+    {
+        sitemap.AppendLine("  <url>");
+        sitemap.AppendLine(CultureInfo.InvariantCulture, $"    <loc>{UrlFor(href, lang)}</loc>");
+        sitemap.AppendLine(CultureInfo.InvariantCulture, $"    <xhtml:link rel=\"alternate\" hreflang=\"en\" href=\"{UrlFor(href, Language.En)}\"/>");
+        sitemap.AppendLine(CultureInfo.InvariantCulture, $"    <xhtml:link rel=\"alternate\" hreflang=\"de\" href=\"{UrlFor(href, Language.De)}\"/>");
+        sitemap.AppendLine(CultureInfo.InvariantCulture, $"    <xhtml:link rel=\"alternate\" hreflang=\"x-default\" href=\"{UrlFor(href, Language.En)}\"/>");
+        if (lastMod is not null) sitemap.AppendLine(CultureInfo.InvariantCulture, $"    <lastmod>{lastMod}</lastmod>");
+        sitemap.AppendLine(CultureInfo.InvariantCulture, $"    <changefreq>{(href.Length == 0 ? "weekly" : "monthly")}</changefreq>");
+        sitemap.AppendLine(CultureInfo.InvariantCulture, $"    <priority>{PriorityFor(href)}</priority>");
+        sitemap.AppendLine("  </url>");
+        urls++;
+    }
 }
 
 sitemap.AppendLine("</urlset>");
 File.WriteAllText(Path.Combine(wwwroot, "sitemap.xml"), sitemap.ToString());
-Console.WriteLine($"sitemap.xml           ← {DocsNav.All.Count + 1} urls");
+Console.WriteLine($"sitemap.xml           ← {urls} urls");
 
 return 0;
 

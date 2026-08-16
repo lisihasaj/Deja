@@ -37,10 +37,29 @@ jobs:
       - name: Publish docs site
         run: dotnet publish docs/Deja.Docs/Deja.Docs.csproj -c Release -o publish
 
-      # Prerenders one index.html per route (crawler-visible head tags), writes sitemap.xml,
-      # rewrites <base href> for the repo subpath and emits a noindex 404.html SPA fallback.
+      # Writes one index.html per route in both languages (crawler-visible head tags), plus
+      # sitemap.xml, the prerender manifest, the /Deja/ <base href> and a noindex 404.html.
       - name: Generate SEO files
         run: dotnet run --project docs/Deja.Docs.Seo -c Release -- publish/wwwroot https://lisihasaj.github.io/Deja/
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs/prerender/package-lock.json
+
+      - name: Install prerenderer
+        working-directory: docs/prerender
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      # Bakes each route's rendered DOM into its index.html. Without this the body is a loading
+      # splash, so crawlers that skip WebAssembly index no documentation text at all.
+      - name: Prerender routes
+        working-directory: docs/prerender
+        run: node prerender.mjs "$GITHUB_WORKSPACE/publish/wwwroot" https://lisihasaj.github.io/Deja/
 
       # A silent failure here would publish a site whose asset URLs all resolve
       # against the domain root instead of the /Deja/ subpath.
@@ -51,6 +70,21 @@ jobs:
           grep -qF '<meta name="robots" content="noindex, follow"/>' publish/wwwroot/404.html
           test -s publish/wwwroot/sitemap.xml
           test -f publish/wwwroot/.nojekyll
+          grep -qF '<html lang="de">' publish/wwwroot/de/guides/query-keys/index.html
+          grep -qF 'hreflang="de"' publish/wwwroot/index.html
+
+      # The prerendered body is the whole point of the step above; catch a silent regression
+      # that leaves the boot splash in place.
+      - name: Verify prerendered content
+        run: |
+          for page in index.html guides/query-keys/index.html de/guides/query-keys/index.html; do
+            if grep -qF 'boot-splash-hint' "publish/wwwroot/$page"; then
+              echo "::error::$page was not prerendered (boot splash still present)"
+              exit 1
+            fi
+          done
+          grep -qF '<h1' publish/wwwroot/guides/query-keys/index.html
+          grep -qF '<h1' publish/wwwroot/de/guides/query-keys/index.html
 
       - name: Configure Pages
         uses: actions/configure-pages@v6
