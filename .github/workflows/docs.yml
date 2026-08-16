@@ -14,9 +14,11 @@ permissions:
   pages: write
   id-token: write
 
+# Let an in-progress deployment finish rather than cancelling it, so the live
+# site is never left half-published.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -40,8 +42,21 @@ jobs:
       - name: Generate SEO files
         run: dotnet run --project docs/Deja.Docs.Seo -c Release -- publish/wwwroot https://lisihasaj.github.io/Deja/
 
+      # A silent failure here would publish a site whose asset URLs all resolve
+      # against the domain root instead of the /Deja/ subpath.
+      - name: Verify SEO output
+        run: |
+          grep -qF '<base href="/Deja/"/>' publish/wwwroot/index.html
+          grep -qF '<link rel="canonical" href="https://lisihasaj.github.io/Deja/"/>' publish/wwwroot/index.html
+          grep -qF '<meta name="robots" content="noindex, follow"/>' publish/wwwroot/404.html
+          test -s publish/wwwroot/sitemap.xml
+          test -f publish/wwwroot/.nojekyll
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v6
+
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: publish/wwwroot
 
@@ -54,4 +69,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

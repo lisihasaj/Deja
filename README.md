@@ -6,9 +6,8 @@
 
 Déjà vu: you have seen this data before, and Deja remembers it for you.
 
-> **Status: early preview.** Deja is being extracted from a production Blazor application. The docs
-> site and the NuGet package are being published shortly — both links above go live with the first
-> release. Expect breaking changes while the version is 0.x.
+> **Status: early preview.** Deja is being extracted from a production Blazor application.
+> Expect breaking changes while the version is 0.x.
 
 Deja does three things for Blazor: it removes the boilerplate around talking to an API, it caches
 what you fetched, and it keeps that data synchronized across every component showing it. If you know
