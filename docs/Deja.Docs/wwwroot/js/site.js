@@ -4,6 +4,7 @@ window.dejaDocs = (function () {
 
     function slugify(text) {
         return text.toLowerCase().trim()
+            .replaceAll('ä', 'ae').replaceAll('ö', 'oe').replaceAll('ü', 'ue').replaceAll('ß', 'ss')
             .replace(/[^\w\s-]/g, '')
             .replace(/\s+/g, '-');
     }
@@ -89,6 +90,15 @@ window.dejaDocs = (function () {
         }
     }
 
+    function setLang(lang) {
+        if (lang === 'de') {
+            localStorage.setItem('deja-docs-lang', 'de');
+        } else {
+            localStorage.removeItem('deja-docs-lang');
+        }
+        document.documentElement.lang = lang === 'de' ? 'de' : 'en';
+    }
+
     function effectiveTheme() {
         const set = document.documentElement.getAttribute('data-theme');
         if (set) return set;
@@ -104,12 +114,12 @@ window.dejaDocs = (function () {
         try {
             await navigator.clipboard.writeText(code.textContent);
             const original = button.textContent;
-            button.textContent = 'Copied!';
+            button.textContent = document.documentElement.lang === 'de' ? 'Kopiert!' : 'Copied!';
             setTimeout(() => { button.textContent = original; }, 1200);
         } catch {
             // Clipboard unavailable (e.g. insecure context); leave the button as-is.
         }
     });
 
-    return { buildToc, highlight, setTheme, effectiveTheme };
+    return { buildToc, highlight, setTheme, effectiveTheme, setLang };
 })();

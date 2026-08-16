@@ -1,16 +1,34 @@
 @page "/not-found"
 @layout DocsLayout
+@inherits DocPage
 
-<PageTitle>Page not found — Deja</PageTitle>
+<PageTitle>@T("Page not found — Deja", "Seite nicht gefunden — Deja")</PageTitle>
 
-<h1>Page not found</h1>
-<p class="lead">The page you're after doesn't exist (or moved).</p>
+<Localized>
+    <En>
+        <h1>Page not found</h1>
+        <p class="lead">The page you're after doesn't exist (or moved).</p>
 
-<p>Try the <a href="">landing page</a> or jump straight to a section:</p>
+        <p>Try the <a href="">landing page</a> or jump straight to a section:</p>
 
-<ul>
-    <li><a href="getting-started/introduction">Introduction</a></li>
-    <li><a href="getting-started/quick-start">Quick start</a></li>
-    <li><a href="guides/queries">Guides</a></li>
-    <li><a href="api/query">API reference</a></li>
-</ul>
+        <ul>
+            <li><a href="getting-started/introduction">Introduction</a></li>
+            <li><a href="getting-started/quick-start">Quick start</a></li>
+            <li><a href="guides/queries">Guides</a></li>
+            <li><a href="api/query">API reference</a></li>
+        </ul>
+    </En>
+    <De>
+        <h1>Seite nicht gefunden</h1>
+        <p class="lead">Die gesuchte Seite existiert nicht (oder wurde verschoben).</p>
+
+        <p>Versuche die <a href="">Startseite</a> oder springe direkt zu einem Abschnitt:</p>
+
+        <ul>
+            <li><a href="getting-started/introduction">Einführung</a></li>
+            <li><a href="getting-started/quick-start">Schnellstart</a></li>
+            <li><a href="guides/queries">Anleitungen</a></li>
+            <li><a href="api/query">API-Referenz</a></li>
+        </ul>
+    </De>
+</Localized>

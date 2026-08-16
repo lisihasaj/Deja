@@ -1,150 +1,328 @@
 @page "/guides/queries"
+@inherits DocPage
 
 <PageTitle>Queries — Deja</PageTitle>
 
-<h1>Queries</h1>
-<p class="lead">
-    A <code>Query&lt;T&gt;</code> tracks a single asynchronous read and exposes its lifecycle as
-    bindable state. This guide covers the three ways to run one and the parameters that shape an
-    execution.
-</p>
+<Localized>
+    <En>
+        <h1>Queries</h1>
+        <p class="lead">
+            A <code>Query&lt;T&gt;</code> tracks a single asynchronous read and exposes its lifecycle as
+            bindable state. This guide covers the three ways to run one and the parameters that shape an
+            execution.
+        </p>
 
-<h2>Three Execute overloads</h2>
+        <h2>Three Execute overloads</h2>
 
-<p><strong>Keyed shorthand</strong> — the common case. The key opts the query into the shared
-    cache; anything else is set through the optional configure hook:</p>
+        <p><strong>Keyed shorthand</strong> — the common case. The key opts the query into the shared
+            cache; anything else is set through the optional configure hook:</p>
+    </En>
+    <De>
+        <h1>Queries</h1>
+        <p class="lead">
+            Eine <code>Query&lt;T&gt;</code> verfolgt einen einzelnen asynchronen Lesevorgang und stellt
+            dessen Lebenszyklus als bindbaren Zustand bereit. Dieser Leitfaden behandelt die drei
+            Möglichkeiten, eine Query auszuführen, und die Parameter, die eine Ausführung steuern.
+        </p>
+
+        <h2>Drei Execute-Überladungen</h2>
+
+        <p><strong>Kurzform mit Key</strong> — der übliche Fall. Der Key meldet die Query beim
+            gemeinsamen Cache an; alles Weitere wird über den optionalen Configure-Hook gesetzt:</p>
+    </De>
+</Localized>
 
 <CodeBlock Code="@KeyedSample"/>
 
-<p><strong>Unkeyed shorthand</strong> — a fetch that never touches the cache. A newer call
-    supersedes (and cancels) an older in-flight one, which is exactly what a type-ahead search
-    wants:</p>
+<Localized>
+    <En>
+        <p><strong>Unkeyed shorthand</strong> — a fetch that never touches the cache. A newer call
+            supersedes (and cancels) an older in-flight one, which is exactly what a type-ahead search
+            wants:</p>
+    </En>
+    <De>
+        <p><strong>Kurzform ohne Key</strong> — ein Fetch, der den Cache nie berührt. Ein neuerer Aufruf
+            verdrängt (und cancelt) einen älteren, noch laufenden — genau das, was eine Type-ahead-Suche
+            braucht:</p>
+    </De>
+</Localized>
 
 <CodeBlock Code="@UnkeyedSample"/>
 
-<p><strong>Full form</strong> — everything explicit, for when the call site builds parameters
-    programmatically:</p>
+<Localized>
+    <En>
+        <p><strong>Full form</strong> — everything explicit, for when the call site builds parameters
+            programmatically:</p>
+    </En>
+    <De>
+        <p><strong>Vollständige Form</strong> — alles explizit, für Aufrufstellen, die ihre Parameter
+            programmatisch zusammenbauen:</p>
+    </De>
+</Localized>
 
 <CodeBlock Code="@FullSample"/>
 
-<h2>The state surface</h2>
+<Localized>
+    <En>
+        <h2>The state surface</h2>
 
-<ul>
-    <li><code>IsLoading</code> — true while any execution is loading.</li>
-    <li><code>IsReFetching</code> — true while an execution <em>after the first</em> is loading;
-        drive subtle refresh indicators with this and keep the data on screen.</li>
-    <li><code>IsError</code> / <code>ErrorMessage</code> — the most recent failure; cleared by a
-        successful refetch.</li>
-    <li><code>Data</code> — the most recent result.</li>
-    <li><code>ReFetchCount</code> — how many times the query has executed.</li>
-    <li><code>UpdatedAt</code> — when the current data was fetched (cached path only).</li>
-    <li><code>IsCachedData</code> — true while <code>Data</code> came from the cache and no fresh
-        fetch has completed during this query's subscription.</li>
-    <li><code>IsStale</code> — true when the observed cache entry is invalidated or older than the
-        effective stale time (always false on the uncached path).</li>
-</ul>
+        <ul>
+            <li><code>IsLoading</code> — true while any execution is loading.</li>
+            <li><code>IsReFetching</code> — true while an execution <em>after the first</em> is loading;
+                drive subtle refresh indicators with this and keep the data on screen.</li>
+            <li><code>IsError</code> / <code>ErrorMessage</code> — the most recent failure; cleared by a
+                successful refetch.</li>
+            <li><code>Data</code> — the most recent result.</li>
+            <li><code>ReFetchCount</code> — how many times the query has executed.</li>
+            <li><code>UpdatedAt</code> — when the current data was fetched (cached path only).</li>
+            <li><code>IsCachedData</code> — true while <code>Data</code> came from the cache and no fresh
+                fetch has completed during this query's subscription.</li>
+            <li><code>IsStale</code> — true when the observed cache entry is invalidated or older than the
+                effective stale time (always false on the uncached path).</li>
+        </ul>
 
-<h2>Enabled — dependent queries</h2>
-<p>
-    <code>Enabled = false</code> serves cached data but never fetches — for queries whose inputs
-    aren't ready yet (no user selected, a filter still empty). <code>null</code>, the default,
-    means enabled. When the input arrives, execute again with <code>Enabled = true</code>.
-    Cached path only.
-</p>
+        <h2>Enabled — dependent queries</h2>
+        <p>
+            <code>Enabled = false</code> serves cached data but never fetches — for queries whose inputs
+            aren't ready yet (no user selected, a filter still empty). <code>null</code>, the default,
+            means enabled. When the input arrives, execute again with <code>Enabled = true</code>.
+            Cached path only.
+        </p>
 
-<h2>Chaining dependent requests</h2>
-<p>
-    When the second request's key or arguments come from the first result, run it from
-    <code>OnSuccessAsync</code>. The callback is awaited, so each step waits for the one before it
-    and the outer <code>Execute</code> only completes once the whole chain has — which means an
-    ordinary <code>if</code> is enough to branch on what the previous step returned.
-</p>
+        <h2>Chaining dependent requests</h2>
+        <p>
+            When the second request's key or arguments come from the first result, run it from
+            <code>OnSuccessAsync</code>. The callback is awaited, so each step waits for the one before it
+            and the outer <code>Execute</code> only completes once the whole chain has — which means an
+            ordinary <code>if</code> is enough to branch on what the previous step returned.
+        </p>
+    </En>
+    <De>
+        <h2>Der bindbare Zustand</h2>
+
+        <ul>
+            <li><code>IsLoading</code> — true, solange irgendeine Ausführung lädt.</li>
+            <li><code>IsReFetching</code> — true, solange eine Ausführung <em>nach der ersten</em> lädt;
+                steuere damit dezente Aktualisierungs-Indikatoren und lass die Daten auf dem
+                Bildschirm.</li>
+            <li><code>IsError</code> / <code>ErrorMessage</code> — der jüngste Fehlschlag; wird von einem
+                erfolgreichen Refetch gelöscht.</li>
+            <li><code>Data</code> — das jüngste Ergebnis.</li>
+            <li><code>ReFetchCount</code> — wie oft die Query ausgeführt wurde.</li>
+            <li><code>UpdatedAt</code> — wann die aktuellen Daten geladen wurden (nur auf dem gecachten
+                Pfad).</li>
+            <li><code>IsCachedData</code> — true, solange <code>Data</code> aus dem Cache stammt und
+                während der Subscription dieser Query noch kein frischer Fetch abgeschlossen wurde.</li>
+            <li><code>IsStale</code> — true, wenn der beobachtete Cache-Eintrag invalidiert oder älter als
+                die effektive Stale-Time ist (auf dem ungecachten Pfad immer false).</li>
+        </ul>
+
+        <h2>Enabled — abhängige Queries</h2>
+        <p>
+            <code>Enabled = false</code> liefert gecachte Daten, lädt aber nie — für Queries, deren
+            Eingaben noch nicht bereitstehen (kein Benutzer ausgewählt, ein Filter noch leer).
+            <code>null</code>, der Standard, bedeutet aktiviert. Sobald die Eingabe da ist, führe erneut
+            mit <code>Enabled = true</code> aus. Nur auf dem gecachten Pfad.
+        </p>
+
+        <h2>Abhängige Requests verketten</h2>
+        <p>
+            Wenn Key oder Argumente des zweiten Requests aus dem ersten Ergebnis stammen, starte ihn aus
+            <code>OnSuccessAsync</code>. Der Callback wird awaited, jeder Schritt wartet also auf den
+            vorherigen, und das äußere <code>Execute</code> ist erst abgeschlossen, wenn die ganze Kette
+            durch ist — ein gewöhnliches <code>if</code> genügt daher, um auf das Ergebnis des vorherigen
+            Schritts zu verzweigen.
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock Language="csharp" Code="@ChainingCode"/>
 
-<p>
-    Callbacks run on every completed <code>Execute</code>, including one that served fresh cached
-    data without fetching, so a chain behaves the same on a cache hit as on a fetch. (A query that
-    is <code>Enabled = false</code> over an empty cache has no result to hand over, so it settles
-    without reporting success.) The same pattern works from a mutation — see
-    <a href="/guides/mutations">Mutations</a>.
-</p>
+<Localized>
+    <En>
+        <p>
+            Callbacks run on every completed <code>Execute</code>, including one that served fresh cached
+            data without fetching, so a chain behaves the same on a cache hit as on a fetch. (A query that
+            is <code>Enabled = false</code> over an empty cache has no result to hand over, so it settles
+            without reporting success.) The same pattern works from a mutation — see
+            <a href="/guides/mutations">Mutations</a>.
+        </p>
 
-<h3>Fan-out: a write, two parallel reads, then a third</h3>
-<p>
-    The interesting shape is not a straight line. Here a real write runs first; on success two
-    queries load <em>in parallel</em>; and when both have settled, a fourth request runs off their
-    combined result. The rule that makes this readable: <strong>awaiting is what orders the
-    steps, and each <code>Execute</code> only ever writes its own query's state.</strong>
-</p>
+        <h3>Fan-out: a write, two parallel reads, then a third</h3>
+        <p>
+            The interesting shape is not a straight line. Here a real write runs first; on success two
+            queries load <em>in parallel</em>; and when both have settled, a fourth request runs off their
+            combined result. The rule that makes this readable: <strong>awaiting is what orders the
+            steps, and each <code>Execute</code> only ever writes its own query's state.</strong>
+        </p>
+    </En>
+    <De>
+        <p>
+            Callbacks laufen bei jedem abgeschlossenen <code>Execute</code>, auch bei einem, das frische
+            gecachte Daten ohne Fetch geliefert hat — eine Kette verhält sich bei einem Cache-Treffer
+            also genauso wie bei einem Fetch. (Eine Query mit <code>Enabled = false</code> über einem
+            leeren Cache hat kein Ergebnis weiterzureichen; sie kommt zur Ruhe, ohne Erfolg zu melden.)
+            Dasselbe Muster funktioniert aus einer Mutation heraus — siehe
+            <a href="/guides/mutations">Mutations</a>.
+        </p>
+
+        <h3>Fan-out: ein Schreibvorgang, zwei parallele Lesevorgänge, dann ein dritter</h3>
+        <p>
+            Die interessante Form ist keine gerade Linie. Hier läuft zuerst ein echter Schreibvorgang;
+            bei Erfolg laden zwei Queries <em>parallel</em>; und wenn beide abgeschlossen sind, läuft ein
+            vierter Request auf ihrem kombinierten Ergebnis. Die Regel, die das lesbar macht:
+            <strong>das Awaiten ordnet die Schritte, und jedes <code>Execute</code> schreibt immer nur
+            den Zustand seiner eigenen Query.</strong>
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock Language="csharp" Code="@FanOutCode"/>
 
-<p>
-    Read the ordering off the <code>await</code>s. Step 1's <code>OnSuccessAsync</code> is awaited
-    by the mutation, so nothing downstream starts until the write has actually succeeded. Steps 2a
-    and 2b are <em>started</em> before either is awaited — that is the whole trick — so both requests
-    are on the wire at once and the pair costs one round trip rather than two.
-    <code>Task.WhenAll</code> then waits for the slower of the two. Step 3 sits after that await, so
-    it sees both results settled and can be gated on them with a plain <code>if</code>.
-</p>
+<Localized>
+    <En>
+        <p>
+            Read the ordering off the <code>await</code>s. Step 1's <code>OnSuccessAsync</code> is awaited
+            by the mutation, so nothing downstream starts until the write has actually succeeded. Steps 2a
+            and 2b are <em>started</em> before either is awaited — that is the whole trick — so both requests
+            are on the wire at once and the pair costs one round trip rather than two.
+            <code>Task.WhenAll</code> then waits for the slower of the two. Step 3 sits after that await, so
+            it sees both results settled and can be gated on them with a plain <code>if</code>.
+        </p>
 
-<p>
-    Because each query owns its own state, the parallel pair cannot interfere with each other:
-    <code>_author.IsLoading</code> goes out when the author request finishes, whether or not the
-    todos request is still running, and each writes only its own <code>Data</code>,
-    <code>IsError</code> and <code>ErrorMessage</code>. Two spinners tied to two queries resolve
-    independently, and a failure in 2b leaves 2a's data on screen untouched. That independence is
-    also why each step carries its own error callback — a failure is then attributed to the request
-    that caused it instead of surfacing on the parent.
-</p>
+        <p>
+            Because each query owns its own state, the parallel pair cannot interfere with each other:
+            <code>_author.IsLoading</code> goes out when the author request finishes, whether or not the
+            todos request is still running, and each writes only its own <code>Data</code>,
+            <code>IsError</code> and <code>ErrorMessage</code>. Two spinners tied to two queries resolve
+            independently, and a failure in 2b leaves 2a's data on screen untouched. That independence is
+            also why each step carries its own error callback — a failure is then attributed to the request
+            that caused it instead of surfacing on the parent.
+        </p>
 
-<p>
-    The loading flags nest rather than compete. The mutation stays <code>IsLoading</code> for the
-    entire chain — its <code>Execute</code> has not returned yet — while each query's flag covers
-    only its own request. So bind a global "working" indicator to the mutation, and per-row
-    spinners to the individual queries.
-</p>
+        <p>
+            The loading flags nest rather than compete. The mutation stays <code>IsLoading</code> for the
+            entire chain — its <code>Execute</code> has not returned yet — while each query's flag covers
+            only its own request. So bind a global "working" indicator to the mutation, and per-row
+            spinners to the individual queries.
+        </p>
 
-<Callout Type="Callout.CalloutType.Warning" Title="Chains do not re-run on invalidation">
-    <p>
-        Invalidating a parent key refetches that query and re-renders, but it does not re-run the
-        callback chain — the dependent query keeps its previous data. Chains re-run when you call
-        <code>Execute</code>. Invalidate the dependent keys too if they need to follow.
-    </p>
-    <p>
-        Two smaller things on long chains: give every step its own error callback, or a child's
-        failure surfaces on the parent (an unobserved failure throws, and that exception propagates
-        out of the parent's <code>OnSuccessAsync</code>); and the parent stays
-        <code>IsLoading</code> for the whole chain, so bind spinners to the last query or to the
-        combination.
-    </p>
-</Callout>
+        <Callout Type="Callout.CalloutType.Warning" Title="Chains do not re-run on invalidation">
+            <p>
+                Invalidating a parent key refetches that query and re-renders, but it does not re-run the
+                callback chain — the dependent query keeps its previous data. Chains re-run when you call
+                <code>Execute</code>. Invalidate the dependent keys too if they need to follow.
+            </p>
+            <p>
+                Two smaller things on long chains: give every step its own error callback, or a child's
+                failure surfaces on the parent (an unobserved failure throws, and that exception propagates
+                out of the parent's <code>OnSuccessAsync</code>); and the parent stays
+                <code>IsLoading</code> for the whole chain, so bind spinners to the last query or to the
+                combination.
+            </p>
+        </Callout>
+    </En>
+    <De>
+        <p>
+            Lies die Reihenfolge an den <code>await</code>s ab. Das <code>OnSuccessAsync</code> von
+            Schritt 1 wird von der Mutation awaited, nichts Nachgelagertes startet also, bevor der
+            Schreibvorgang tatsächlich erfolgreich war. Die Schritte 2a und 2b werden <em>gestartet</em>,
+            bevor einer von beiden awaited wird — das ist der ganze Trick — beide Requests sind also
+            gleichzeitig unterwegs, und das Paar kostet einen Roundtrip statt zwei.
+            <code>Task.WhenAll</code> wartet dann auf den langsameren der beiden. Schritt 3 steht hinter
+            diesem await, sieht also beide Ergebnisse abgeschlossen und kann mit einem schlichten
+            <code>if</code> an sie geknüpft werden.
+        </p>
 
-<DemoCard Title="Write → two parallel reads → one more" SourceFiles="@(new[] { "ChainingDemo.razor" })">
+        <p>
+            Weil jede Query ihren eigenen Zustand besitzt, kann sich das parallele Paar nicht gegenseitig
+            stören: <code>_author.IsLoading</code> erlischt, wenn der Author-Request fertig ist — egal ob
+            der Todos-Request noch läuft — und jede schreibt nur ihr eigenes <code>Data</code>,
+            <code>IsError</code> und <code>ErrorMessage</code>. Zwei Spinner an zwei Queries lösen sich
+            unabhängig voneinander auf, und ein Fehlschlag in 2b lässt die Daten von 2a unberührt auf dem
+            Bildschirm. Diese Unabhängigkeit ist auch der Grund, warum jeder Schritt seinen eigenen
+            Error-Callback trägt — ein Fehlschlag wird so dem Request zugeordnet, der ihn verursacht hat,
+            statt am Parent aufzutauchen.
+        </p>
+
+        <p>
+            Die Lade-Flags verschachteln sich, statt zu konkurrieren. Die Mutation bleibt für die gesamte
+            Kette <code>IsLoading</code> — ihr <code>Execute</code> ist noch nicht zurückgekehrt —
+            während das Flag jeder Query nur ihren eigenen Request abdeckt. Binde also einen globalen
+            „Arbeitet“-Indikator an die Mutation und Spinner pro Zeile an die einzelnen Queries.
+        </p>
+
+        <Callout Type="Callout.CalloutType.Warning" Title="Ketten laufen bei Invalidierung nicht erneut">
+            <p>
+                Das Invalidieren eines Parent-Keys lädt diese Query neu und rendert neu, führt aber die
+                Callback-Kette nicht erneut aus — die abhängige Query behält ihre bisherigen Daten.
+                Ketten laufen erneut, wenn du <code>Execute</code> aufrufst. Invalidiere auch die
+                abhängigen Keys, wenn sie folgen sollen.
+            </p>
+            <p>
+                Zwei kleinere Dinge bei langen Ketten: Gib jedem Schritt seinen eigenen Error-Callback,
+                sonst taucht der Fehlschlag eines Kinds am Parent auf (ein unbeobachteter Fehlschlag
+                wirft, und diese Exception propagiert aus dem <code>OnSuccessAsync</code> des Parents
+                heraus); und der Parent bleibt für die ganze Kette <code>IsLoading</code>, binde Spinner
+                also an die letzte Query oder an die Kombination.
+            </p>
+        </Callout>
+    </De>
+</Localized>
+
+<DemoCard Title='@T("Write → two parallel reads → one more", "Schreibvorgang → zwei parallele Lesevorgänge → noch einer")' SourceFiles="@(new[] { "ChainingDemo.razor" })">
     <ChainingDemo/>
 </DemoCard>
 
-<h2>Select — per-component projection</h2>
-<p>
-    <code>Select</code> transforms the cached value before it is published to <code>Data</code>.
-    It is per query, so two components can project one entry differently — the cache always stores
-    the raw value.
-</p>
+<Localized>
+    <En>
+        <h2>Select — per-component projection</h2>
+        <p>
+            <code>Select</code> transforms the cached value before it is published to <code>Data</code>.
+            It is per query, so two components can project one entry differently — the cache always stores
+            the raw value.
+        </p>
 
-<h2>PlaceholderData</h2>
-<p>
-    Rendered as <code>Data</code> while the first fetch runs and the cache is empty; never written
-    to the cache. Use it for skeleton rows that are typed like real data.
-</p>
+        <h2>PlaceholderData</h2>
+        <p>
+            Rendered as <code>Data</code> while the first fetch runs and the cache is empty; never written
+            to the cache. Use it for skeleton rows that are typed like real data.
+        </p>
 
-<Callout Type="Callout.CalloutType.Warning" Title="Keyed joins drop parameters">
-    <p>A same-key <code>Execute</code> made while one is in flight <em>joins</em> that execution:
-        the second call's parameters are dropped and no supersede happens. Don't reuse one key
-        across calls whose parameters differ — omit the key to get supersede semantics instead.</p>
-</Callout>
+        <Callout Type="Callout.CalloutType.Warning" Title="Keyed joins drop parameters">
+            <p>A same-key <code>Execute</code> made while one is in flight <em>joins</em> that execution:
+                the second call's parameters are dropped and no supersede happens. Don't reuse one key
+                across calls whose parameters differ — omit the key to get supersede semantics instead.</p>
+        </Callout>
 
-<h2>Live demo</h2>
+        <h2>Live demo</h2>
+    </En>
+    <De>
+        <h2>Select — Projektion pro Komponente</h2>
+        <p>
+            <code>Select</code> transformiert den gecachten Wert, bevor er nach <code>Data</code>
+            veröffentlicht wird. Es gilt pro Query, zwei Komponenten können denselben Eintrag also
+            unterschiedlich projizieren — der Cache speichert immer den Rohwert.
+        </p>
+
+        <h2>PlaceholderData</h2>
+        <p>
+            Wird als <code>Data</code> gerendert, solange der erste Fetch läuft und der Cache leer ist;
+            wird nie in den Cache geschrieben. Nutze es für Skeleton-Zeilen, die wie echte Daten
+            typisiert sind.
+        </p>
+
+        <Callout Type="Callout.CalloutType.Warning" Title="Joins mit Key verwerfen Parameter">
+            <p>Ein <code>Execute</code> mit demselben Key, während eines läuft, <em>schließt sich</em>
+                dieser Ausführung an: Die Parameter des zweiten Aufrufs werden verworfen, und es findet
+                keine Verdrängung statt. Verwende einen Key nicht für Aufrufe mit unterschiedlichen
+                Parametern wieder — lass den Key weg, um stattdessen Verdrängungs-Semantik zu
+                bekommen.</p>
+        </Callout>
+
+        <h2>Live-Demo</h2>
+    </De>
+</Localized>
 
 <DemoCard Title="Enabled · Select · PlaceholderData" SourceFiles="@(new[] { "QueriesDemo.razor" })">
     <QueriesDemo/>

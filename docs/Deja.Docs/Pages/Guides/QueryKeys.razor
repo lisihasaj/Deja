@@ -1,79 +1,171 @@
 @page "/guides/query-keys"
+@inherits DocPage
 
-<PageTitle>Query keys — Deja</PageTitle>
+<PageTitle>@T("Query keys — Deja", "Query-Keys — Deja")</PageTitle>
 
-<h1>Query keys</h1>
-<p class="lead">
-    A <code>QueryKey</code> is a structured, ordered cache identity. Build hierarchical keys and
-    you get prefix invalidation for free.
-</p>
+<Localized>
+    <En>
+        <h1>Query keys</h1>
+        <p class="lead">
+            A <code>QueryKey</code> is a structured, ordered cache identity. Build hierarchical keys and
+            you get prefix invalidation for free.
+        </p>
 
-<h2>Building keys</h2>
+        <h2>Building keys</h2>
+    </En>
+    <De>
+        <h1>Query-Keys</h1>
+        <p class="lead">
+            Ein <code>QueryKey</code> ist eine strukturierte, geordnete Cache-Identität. Baue
+            hierarchische Keys und du bekommst Präfix-Invalidierung gratis dazu.
+        </p>
+
+        <h2>Keys bauen</h2>
+    </De>
+</Localized>
 
 <CodeBlock Code="@BuildSample"/>
 
-<p>
-    Segment order matters — <code>Of("todos", 1)</code> and <code>Of(1, "todos")</code> are
-    different keys. Supported segment types: strings, numeric primitives, <code>bool</code>,
-    <code>char</code>, <code>Guid</code>, dates and times, <code>TimeSpan</code>, enums,
-    <code>null</code>, collections of these, and string-keyed dictionaries. An unsupported type
-    throws at construction — failing loudly at the call site beats a silently colliding entry.
-</p>
+<Localized>
+    <En>
+        <p>
+            Segment order matters — <code>Of("todos", 1)</code> and <code>Of(1, "todos")</code> are
+            different keys. Supported segment types: strings, numeric primitives, <code>bool</code>,
+            <code>char</code>, <code>Guid</code>, dates and times, <code>TimeSpan</code>, enums,
+            <code>null</code>, collections of these, and string-keyed dictionaries. An unsupported type
+            throws at construction — failing loudly at the call site beats a silently colliding entry.
+        </p>
 
-<h2>Canonical form</h2>
-<p>
-    Each key computes a canonical string once (what <code>ToString()</code> shows, e.g.
-    <code>["todos",{"page":2}]</code>). Strings are quoted and escaped so <code>["a,b"]</code> and
-    <code>["a","b"]</code> can't collide; numbers and dates use the invariant culture; enums use
-    their numeric value so renaming a member can't silently change a key. Equality — including
-    <code>==</code> — is value equality on this canonical form.
-</p>
+        <h2>Canonical form</h2>
+        <p>
+            Each key computes a canonical string once (what <code>ToString()</code> shows, e.g.
+            <code>["todos",{"page":2}]</code>). Strings are quoted and escaped so <code>["a,b"]</code> and
+            <code>["a","b"]</code> can't collide; numbers and dates use the invariant culture; enums use
+            their numeric value so renaming a member can't silently change a key. Equality — including
+            <code>==</code> — is value equality on this canonical form.
+        </p>
 
-<h2>Dictionaries normalise filter objects</h2>
-<p>
-    Dictionary segments are written with their keys sorted, so property order in an ad-hoc filter
-    doesn't change identity:
-</p>
+        <h2>Dictionaries normalise filter objects</h2>
+        <p>
+            Dictionary segments are written with their keys sorted, so property order in an ad-hoc filter
+            doesn't change identity:
+        </p>
+    </En>
+    <De>
+        <p>
+            Die Reihenfolge der Segmente zählt — <code>Of("todos", 1)</code> und
+            <code>Of(1, "todos")</code> sind verschiedene Keys. Unterstützte Segmenttypen: Strings,
+            numerische Primitive, <code>bool</code>, <code>char</code>, <code>Guid</code>, Datums- und
+            Zeitwerte, <code>TimeSpan</code>, Enums, <code>null</code>, Collections daraus sowie
+            Dictionaries mit String-Keys. Ein nicht unterstützter Typ wirft schon bei der Konstruktion —
+            lautes Scheitern an der Aufrufstelle ist besser als ein still kollidierender Eintrag.
+        </p>
+
+        <h2>Kanonische Form</h2>
+        <p>
+            Jeder Key berechnet einmalig einen kanonischen String (das, was <code>ToString()</code> zeigt,
+            z.&nbsp;B. <code>["todos",{"page":2}]</code>). Strings werden in Anführungszeichen gesetzt und
+            escapet, damit <code>["a,b"]</code> und <code>["a","b"]</code> nicht kollidieren können;
+            Zahlen und Datumswerte nutzen die invariante Kultur; Enums nutzen ihren numerischen Wert,
+            damit das Umbenennen eines Members einen Key nicht still verändern kann. Gleichheit —
+            einschließlich <code>==</code> — ist Wertgleichheit auf dieser kanonischen Form.
+        </p>
+
+        <h2>Dictionaries normalisieren Filterobjekte</h2>
+        <p>
+            Dictionary-Segmente werden mit sortierten Keys geschrieben, die Eigenschaftsreihenfolge in
+            einem Ad-hoc-Filter ändert die Identität also nicht:
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock Code="@DictSample"/>
 
-<Callout Type="Callout.CalloutType.Warning" Title="Anonymous types are not supported">
-    <p><code>QueryKey.Of("todos", new { Page = 2 })</code> throws. Key hashing runs on every cache
-        lookup and must stay trimming- and AOT-safe, which reflection over anonymous types is not.
-        Use a <code>Dictionary&lt;string, object?&gt;</code> for ad-hoc shapes, or implement
-        <code>IQueryKeySegment</code> on a named type.</p>
-</Callout>
+<Localized>
+    <En>
+        <Callout Type="Callout.CalloutType.Warning" Title="Anonymous types are not supported">
+            <p><code>QueryKey.Of("todos", new { Page = 2 })</code> throws. Key hashing runs on every cache
+                lookup and must stay trimming- and AOT-safe, which reflection over anonymous types is not.
+                Use a <code>Dictionary&lt;string, object?&gt;</code> for ad-hoc shapes, or implement
+                <code>IQueryKeySegment</code> on a named type.</p>
+        </Callout>
 
-<h2>Prefix matching</h2>
-<p>
-    <code>StartsWith</code> compares segment-by-segment on canonical forms — never as a string
-    prefix, so <code>["todo"]</code> does not match <code>["todos"]</code>. Invalidation,
-    <code>Remove</code> and <code>RefetchAsync</code> all match by prefix by default:
-</p>
+        <h2>Prefix matching</h2>
+        <p>
+            <code>StartsWith</code> compares segment-by-segment on canonical forms — never as a string
+            prefix, so <code>["todo"]</code> does not match <code>["todos"]</code>. Invalidation,
+            <code>Remove</code> and <code>RefetchAsync</code> all match by prefix by default:
+        </p>
+    </En>
+    <De>
+        <Callout Type="Callout.CalloutType.Warning" Title="Anonyme Typen werden nicht unterstützt">
+            <p><code>QueryKey.Of("todos", new { Page = 2 })</code> wirft eine Exception. Das Key-Hashing
+                läuft bei jedem Cache-Lookup und muss trimming- und AOT-sicher bleiben — Reflection über
+                anonyme Typen ist das nicht. Nutze ein <code>Dictionary&lt;string, object?&gt;</code> für
+                Ad-hoc-Formen oder implementiere <code>IQueryKeySegment</code> auf einem benannten Typ.</p>
+        </Callout>
+
+        <h2>Präfix-Matching</h2>
+        <p>
+            <code>StartsWith</code> vergleicht Segment für Segment auf den kanonischen Formen — nie als
+            String-Präfix, <code>["todo"]</code> matcht also nicht <code>["todos"]</code>. Invalidierung,
+            <code>Remove</code> und <code>RefetchAsync</code> matchen standardmäßig alle per Präfix:
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock Code="@PrefixSample"/>
 
-<h2>IQueryKeySegment</h2>
-<p>
-    Implement <code>IQueryKeySegment</code> on a custom type to let it participate directly:
-    <code>ToKeySegment()</code> must return a stable, deterministic string — equal values, equal
-    strings, across sessions.
-</p>
+<Localized>
+    <En>
+        <h2>IQueryKeySegment</h2>
+        <p>
+            Implement <code>IQueryKeySegment</code> on a custom type to let it participate directly:
+            <code>ToKeySegment()</code> must return a stable, deterministic string — equal values, equal
+            strings, across sessions.
+        </p>
 
-<h2>Strings convert implicitly</h2>
-<p>
-    <code>QueryKey = "todos"</code> means <code>QueryKey.Of("todos")</code>. Null or whitespace
-    converts to <em>no key</em> — the uncached path.
-</p>
+        <h2>Strings convert implicitly</h2>
+        <p>
+            <code>QueryKey = "todos"</code> means <code>QueryKey.Of("todos")</code>. Null or whitespace
+            converts to <em>no key</em> — the uncached path.
+        </p>
 
-<h2>Model: a keys class</h2>
-<p>This site keeps every demo key in one static class — one place to see the whole hierarchy:</p>
+        <h2>Model: a keys class</h2>
+        <p>This site keeps every demo key in one static class — one place to see the whole hierarchy:</p>
+    </En>
+    <De>
+        <h2>IQueryKeySegment</h2>
+        <p>
+            Implementiere <code>IQueryKeySegment</code> auf einem eigenen Typ, damit er direkt teilnehmen
+            kann: <code>ToKeySegment()</code> muss einen stabilen, deterministischen String zurückgeben —
+            gleiche Werte, gleiche Strings, über Sessions hinweg.
+        </p>
+
+        <h2>Strings konvertieren implizit</h2>
+        <p>
+            <code>QueryKey = "todos"</code> bedeutet <code>QueryKey.Of("todos")</code>. Null oder
+            Whitespace konvertiert zu <em>keinem Key</em> — dem ungecachten Pfad.
+        </p>
+
+        <h2>Muster: eine Keys-Klasse</h2>
+        <p>Diese Seite hält jeden Demo-Key in einer statischen Klasse — ein Ort, an dem die ganze
+            Hierarchie sichtbar ist:</p>
+    </De>
+</Localized>
 
 <CodeBlock FileName="DocsKeys.cs" Code="@KeysClassSample"/>
 
-<h2>Live demo</h2>
+<Localized>
+    <En>
+        <h2>Live demo</h2>
+    </En>
+    <De>
+        <h2>Live-Demo</h2>
+    </De>
+</Localized>
 
-<DemoCard Title="Hierarchical keys + prefix invalidation" SourceFiles="@(new[] { "QueryKeysDemo.razor" })">
+<DemoCard Title='@T("Hierarchical keys + prefix invalidation", "Hierarchische Keys + Präfix-Invalidierung")' SourceFiles="@(new[] { "QueryKeysDemo.razor" })">
     <QueryKeysDemo/>
 </DemoCard>
 

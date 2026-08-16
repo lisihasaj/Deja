@@ -1,129 +1,314 @@
 @page "/api/deja-client"
+@inherits DocPage
 
-<PageTitle>DejaClient — Deja API</PageTitle>
+<PageTitle>@T("DejaClient — Deja API", "DejaClient — Deja API")</PageTitle>
 
-<h1>DejaClient</h1>
-<p class="lead">
-    The shared query cache: a registry of entries keyed by <code>QueryKey</code>, plus
-    invalidation, manual reads/writes, per-prefix defaults, and eviction of idle entries.
-</p>
+<Localized>
+    <En>
+        <h1>DejaClient</h1>
+        <p class="lead">
+            The shared query cache: a registry of entries keyed by <code>QueryKey</code>, plus
+            invalidation, manual reads/writes, per-prefix defaults, and eviction of idle entries.
+        </p>
+    </En>
+    <De>
+        <h1>DejaClient</h1>
+        <p class="lead">
+            Der gemeinsame Query-Cache: ein Register von Einträgen, adressiert über
+            <code>QueryKey</code>, dazu Invalidierung, manuelle Lese-/Schreibzugriffe, Defaults pro
+            Präfix und Verdrängung inaktiver Einträge.
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock Code="public sealed class DejaClient : IDisposable"/>
 
-<h2>Registration</h2>
+<Localized>
+    <En><h2>Registration</h2></En>
+    <De><h2>Registrierung</h2></De>
+</Localized>
 
 <ApiMember Id="adddeja" Name="AddDeja (extension)"
            Signature="public static IServiceCollection AddDeja(this IServiceCollection services, Action<DejaOptions>? configure = null)">
-    <p>Registers <code>DejaOptions</code> (singleton) and <code>DejaClient</code>
-        (<strong>Scoped</strong>). Scoped is the only correct lifetime across both hosting models:
-        per browser tab on WebAssembly, per user circuit on Blazor Server — a singleton on Server
-        would share one user's cached API responses with every other user. Do not "optimise" this
-        to a singleton.</p>
+    <Localized>
+        <En>
+            <p>Registers <code>DejaOptions</code> (singleton) and <code>DejaClient</code>
+                (<strong>Scoped</strong>). Scoped is the only correct lifetime across both hosting models:
+                per browser tab on WebAssembly, per user circuit on Blazor Server — a singleton on Server
+                would share one user's cached API responses with every other user. Do not "optimise" this
+                to a singleton.</p>
+        </En>
+        <De>
+            <p>Registriert <code>DejaOptions</code> (Singleton) und <code>DejaClient</code>
+                (<strong>Scoped</strong>). Scoped ist die einzig korrekte Lifetime für beide
+                Hosting-Modelle: pro Browser-Tab auf WebAssembly, pro User-Circuit auf Blazor Server —
+                ein Singleton auf dem Server würde die gecachten API-Antworten eines Users mit allen
+                anderen Usern teilen. „Optimiere“ das nicht zu einem Singleton.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="ctor" Name="DejaClient(DejaOptions?)"
            Signature="public DejaClient(DejaOptions? options = null)">
-    <p>Creates a standalone client (e.g. for tests), optionally with non-default options, and
-        starts the eviction loop.</p>
+    <Localized>
+        <En>
+            <p>Creates a standalone client (e.g. for tests), optionally with non-default options, and
+                starts the eviction loop.</p>
+        </En>
+        <De>
+            <p>Erstellt einen eigenständigen Client (z. B. für Tests), optional mit abweichenden
+                Optionen, und startet die Verdrängungsschleife.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
-<h2>Reading</h2>
+<Localized>
+    <En><h2>Reading</h2></En>
+    <De><h2>Lesen</h2></De>
+</Localized>
 
 <ApiMember Id="getdata" Name="GetData&lt;T&gt;" Signature="public T? GetData<T>(QueryKey key)">
-    <p>The cached data under <code>key</code>, or <code>default</code> when the key is absent,
-        has no data yet, or was stored with a different <code>T</code>.</p>
+    <Localized>
+        <En>
+            <p>The cached data under <code>key</code>, or <code>default</code> when the key is absent,
+                has no data yet, or was stored with a different <code>T</code>.</p>
+        </En>
+        <De>
+            <p>Die gecachten Daten unter <code>key</code>, oder <code>default</code>, wenn der Key
+                fehlt, noch keine Daten hat oder mit einem anderen <code>T</code> gespeichert
+                wurde.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="trygetdata" Name="TryGetData&lt;T&gt;"
            Signature="public bool TryGetData<T>(QueryKey key, out T? data)">
-    <p>Reads the cached data under <code>key</code>. Returns false when the key is absent or has
-        no data. A key stored with a different <code>T</code> also returns false rather than
-        throwing — it almost always means two call sites disagree about the key's shape, and is
-        reported as a debug-level warning.</p>
+    <Localized>
+        <En>
+            <p>Reads the cached data under <code>key</code>. Returns false when the key is absent or has
+                no data. A key stored with a different <code>T</code> also returns false rather than
+                throwing — it almost always means two call sites disagree about the key's shape, and is
+                reported as a debug-level warning.</p>
+        </En>
+        <De>
+            <p>Liest die gecachten Daten unter <code>key</code>. Gibt false zurück, wenn der Key fehlt
+                oder keine Daten hat. Auch ein Key, der mit einem anderen <code>T</code> gespeichert
+                wurde, liefert false, statt zu werfen — das bedeutet fast immer, dass zwei
+                Aufrufstellen sich über die Form des Keys uneinig sind, und wird als Warnung auf
+                Debug-Level gemeldet.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="getstate" Name="GetState"
            Signature="public CacheEntryState? GetState(QueryKey key)">
-    <p>A read-only snapshot of the entry under <code>key</code> — data presence, fetching flag,
-        invalidation, subscriber count, timestamps — or null when absent. Values are coherent at
-        the moment of the call and do not update afterwards. This site's cache inspectors poll it.</p>
+    <Localized>
+        <En>
+            <p>A read-only snapshot of the entry under <code>key</code> — data presence, fetching flag,
+                invalidation, subscriber count, timestamps — or null when absent. Values are coherent at
+                the moment of the call and do not update afterwards. This site's cache inspectors poll it.</p>
+        </En>
+        <De>
+            <p>Ein schreibgeschützter Schnappschuss des Eintrags unter <code>key</code> —
+                Vorhandensein von Daten, Fetch-Flag, Invalidierung, Subscriber-Anzahl, Zeitstempel —
+                oder null, wenn der Eintrag fehlt. Die Werte sind zum Zeitpunkt des Aufrufs in sich
+                konsistent und aktualisieren sich danach nicht mehr. Die Cache-Inspektoren dieser
+                Seite pollen ihn.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
-<h2>Writing</h2>
+<Localized>
+    <En><h2>Writing</h2></En>
+    <De><h2>Schreiben</h2></De>
+</Localized>
 
 <ApiMember Id="setdata" Name="SetData&lt;T&gt; (value)"
            Signature="public void SetData<T>(QueryKey key, T data)">
-    <p>Writes <code>data</code> under <code>key</code> (creating the entry when absent) and
-        notifies every subscribed query. The manual alternative to invalidation when the new value
-        is already known — e.g. appending a mutation result to a cached list. Throws
-        <code>InvalidOperationException</code> when the key holds data of a different type.</p>
+    <Localized>
+        <En>
+            <p>Writes <code>data</code> under <code>key</code> (creating the entry when absent) and
+                notifies every subscribed query. The manual alternative to invalidation when the new value
+                is already known — e.g. appending a mutation result to a cached list. Throws
+                <code>InvalidOperationException</code> when the key holds data of a different type.</p>
+        </En>
+        <De>
+            <p>Schreibt <code>data</code> unter <code>key</code> (und erstellt den Eintrag, falls er
+                fehlt) und benachrichtigt jede abonnierte Query. Die manuelle Alternative zur
+                Invalidierung, wenn der neue Wert bereits bekannt ist — z. B. um das Ergebnis einer
+                Mutation an eine gecachte Liste anzuhängen. Wirft
+                <code>InvalidOperationException</code>, wenn der Key Daten eines anderen Typs
+                hält.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="setdata-updater" Name="SetData&lt;T&gt; (updater)"
            Signature="public void SetData<T>(QueryKey key, Func<T?, T> updater)">
-    <p>Transforms the cached value under <code>key</code>: <code>updater</code> receives the
-        current data (or <code>default</code> when none) and returns the new value. The building
-        block of the <a href="demos/optimistic-write">optimistic write pattern</a>.</p>
+    <Localized>
+        <En>
+            <p>Transforms the cached value under <code>key</code>: <code>updater</code> receives the
+                current data (or <code>default</code> when none) and returns the new value. The building
+                block of the <a href="demos/optimistic-write">optimistic write pattern</a>.</p>
+        </En>
+        <De>
+            <p>Transformiert den gecachten Wert unter <code>key</code>: <code>updater</code> erhält
+                die aktuellen Daten (oder <code>default</code>, wenn keine vorhanden sind) und gibt
+                den neuen Wert zurück. Der Baustein des Patterns
+                <a href="demos/optimistic-write">Optimistisches Schreiben</a>.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
-<h2>Invalidation and refetch</h2>
+<Localized>
+    <En><h2>Invalidation and refetch</h2></En>
+    <De><h2>Invalidierung und Refetch</h2></De>
+</Localized>
 
 <ApiMember Id="invalidate" Name="InvalidateAsync"
            Signature="public Task InvalidateAsync(QueryKey key, InvalidateOptions? options = null)">
-    <p>Marks every entry matching <code>key</code> stale — by prefix unless
-        <code>InvalidateOptions.Exact</code> — and refetches per
-        <code>InvalidateOptions.RefetchType</code>: by default entries with live subscribers
-        refetch in the background (existing data stays on screen, no loading flash), while
-        subscriber-less entries stay marked and refetch when a component next mounts on them. The
-        returned task completes when the triggered refetches settle.</p>
+    <Localized>
+        <En>
+            <p>Marks every entry matching <code>key</code> stale — by prefix unless
+                <code>InvalidateOptions.Exact</code> — and refetches per
+                <code>InvalidateOptions.RefetchType</code>: by default entries with live subscribers
+                refetch in the background (existing data stays on screen, no loading flash), while
+                subscriber-less entries stay marked and refetch when a component next mounts on them. The
+                returned task completes when the triggered refetches settle.</p>
+        </En>
+        <De>
+            <p>Markiert jeden Eintrag, der auf <code>key</code> passt, als stale — per Präfix, sofern
+                nicht <code>InvalidateOptions.Exact</code> — und lädt gemäß
+                <code>InvalidateOptions.RefetchType</code> neu: Standardmäßig refetchen Einträge mit
+                aktiven Subscribern im Hintergrund (vorhandene Daten bleiben auf dem Bildschirm, kein
+                Lade-Flackern), während Einträge ohne Subscriber markiert bleiben und neu laden,
+                sobald die nächste Komponente auf ihnen mountet. Der zurückgegebene Task ist
+                abgeschlossen, sobald die angestoßenen Refetches beendet sind.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="invalidate-all" Name="InvalidateAllAsync"
            Signature="public Task InvalidateAllAsync()">
-    <p>Invalidates every entry in the cache; active entries refetch in the background.</p>
+    <Localized>
+        <En>
+            <p>Invalidates every entry in the cache; active entries refetch in the background.</p>
+        </En>
+        <De>
+            <p>Invalidiert jeden Eintrag im Cache; aktive Einträge refetchen im Hintergrund.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="refetch" Name="RefetchAsync"
            Signature="public Task RefetchAsync(QueryKey key, QueryFilter? filter = null)">
-    <p>Refetches every entry matching <code>key</code> that has a fetch function, regardless of
-        staleness. Failures are recorded on the entries, not thrown.</p>
+    <Localized>
+        <En>
+            <p>Refetches every entry matching <code>key</code> that has a fetch function, regardless of
+                staleness. Failures are recorded on the entries, not thrown.</p>
+        </En>
+        <De>
+            <p>Lädt jeden Eintrag neu, der auf <code>key</code> passt und eine Fetch-Funktion hat —
+                unabhängig davon, ob er stale ist. Fehler werden auf den Einträgen vermerkt, nicht
+                geworfen.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
-<h2>Removal</h2>
+<Localized>
+    <En><h2>Removal</h2></En>
+    <De><h2>Entfernen</h2></De>
+</Localized>
 
 <ApiMember Id="remove" Name="Remove"
            Signature="public void Remove(QueryKey key, QueryFilter? filter = null)">
-    <p>Removes every entry matching <code>key</code>, cancelling in-flight fetches. Subscribed
-        queries keep rendering their last data; their next <code>Execute</code> starts from an
-        empty entry.</p>
+    <Localized>
+        <En>
+            <p>Removes every entry matching <code>key</code>, cancelling in-flight fetches. Subscribed
+                queries keep rendering their last data; their next <code>Execute</code> starts from an
+                empty entry.</p>
+        </En>
+        <De>
+            <p>Entfernt jeden Eintrag, der auf <code>key</code> passt, und bricht laufende Fetches ab.
+                Abonnierte Queries rendern weiterhin ihre letzten Daten; ihr nächstes
+                <code>Execute</code> startet mit einem leeren Eintrag.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="clear" Name="Clear" Signature="public void Clear()">
-    <p>Removes every entry, cancelling in-flight fetches.</p>
+    <Localized>
+        <En>
+            <p>Removes every entry, cancelling in-flight fetches.</p>
+        </En>
+        <De>
+            <p>Entfernt jeden Eintrag und bricht laufende Fetches ab.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
-<h2>Defaults and lifecycle</h2>
+<Localized>
+    <En><h2>Defaults and lifecycle</h2></En>
+    <De><h2>Defaults und Lebenszyklus</h2></De>
+</Localized>
 
 <ApiMember Id="setdefaults" Name="SetDefaults"
            Signature="public void SetDefaults(QueryKey prefix, QueryDefaults defaults)">
-    <p>Registers defaults for every key starting with <code>prefix</code>, replacing any previous
-        defaults for the same prefix. Precedence, most specific wins: per-query value &gt; longest
-        matching prefix &gt; <a href="api/deja-options">DejaOptions</a> — registration order does
-        not matter.</p>
+    <Localized>
+        <En>
+            <p>Registers defaults for every key starting with <code>prefix</code>, replacing any previous
+                defaults for the same prefix. Precedence, most specific wins: per-query value &gt; longest
+                matching prefix &gt; <a href="api/deja-options">DejaOptions</a> — registration order does
+                not matter.</p>
+        </En>
+        <De>
+            <p>Registriert Defaults für jeden Key, der mit <code>prefix</code> beginnt, und ersetzt
+                dabei frühere Defaults für dasselbe Präfix. Vorrang, das Spezifischste gewinnt: Wert
+                pro Query &gt; längstes passendes Präfix &gt;
+                <a href="api/deja-options">DejaOptions</a> — die Reihenfolge der Registrierung spielt
+                keine Rolle.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="dispose" Name="Dispose" Signature="public void Dispose()">
-    <p>Stops the eviction timer and drops every entry; called by DI when the scope ends.</p>
+    <Localized>
+        <En>
+            <p>Stops the eviction timer and drops every entry; called by DI when the scope ends.</p>
+        </En>
+        <De>
+            <p>Stoppt den Verdrängungs-Timer und verwirft jeden Eintrag; wird von der DI aufgerufen,
+                wenn der Scope endet.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
-<h2>Eviction behaviour</h2>
-<ul>
-    <li>Entries with live subscribers are never evicted.</li>
-    <li>A subscriber-less entry is dropped once its cache time elapses (checked every
-        <code>EvictionInterval</code>).</li>
-    <li>With <code>MaxEntries</code> set, least-recently-used subscriber-less entries are evicted
-        first when the cap is exceeded; the cache may exceed the cap while everything in it is on
-        screen.</li>
-    <li>Executing a query against a key that already holds a different data type throws — two call
-        sites disagreeing about a key's shape is a bug that silent replacement would mask.</li>
-</ul>
+<Localized>
+    <En>
+        <h2>Eviction behaviour</h2>
+        <ul>
+            <li>Entries with live subscribers are never evicted.</li>
+            <li>A subscriber-less entry is dropped once its cache time elapses (checked every
+                <code>EvictionInterval</code>).</li>
+            <li>With <code>MaxEntries</code> set, least-recently-used subscriber-less entries are evicted
+                first when the cap is exceeded; the cache may exceed the cap while everything in it is on
+                screen.</li>
+            <li>Executing a query against a key that already holds a different data type throws — two call
+                sites disagreeing about a key's shape is a bug that silent replacement would mask.</li>
+        </ul>
+    </En>
+    <De>
+        <h2>Verdrängungsverhalten</h2>
+        <ul>
+            <li>Einträge mit aktiven Subscribern werden nie verdrängt.</li>
+            <li>Ein Eintrag ohne Subscriber wird verworfen, sobald seine Cache-Zeit abgelaufen ist
+                (geprüft alle <code>EvictionInterval</code>).</li>
+            <li>Ist <code>MaxEntries</code> gesetzt, werden beim Überschreiten der Grenze zuerst die am
+                längsten nicht genutzten Einträge ohne Subscriber verdrängt; der Cache darf die Grenze
+                überschreiten, solange alles darin auf dem Bildschirm ist.</li>
+            <li>Eine Query gegen einen Key auszuführen, der bereits Daten eines anderen Typs hält,
+                wirft — wenn zwei Aufrufstellen sich über die Form eines Keys uneinig sind, ist das
+                ein Bug, den stilles Ersetzen verschleiern würde.</li>
+        </ul>
+    </De>
+</Localized>

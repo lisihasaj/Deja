@@ -1,26 +1,52 @@
 @page "/api/enums"
+@inherits DocPage
 
-<PageTitle>Enums & options — Deja API</PageTitle>
+<PageTitle>@T("Enums & options — Deja API", "Enums & Optionen — Deja API")</PageTitle>
 
-<h1>Enums &amp; supporting types</h1>
-<p class="lead">The smaller public types: enums, filters, the cache snapshot, the user-facing
-    exception, and the observable contract.</p>
+<Localized>
+    <En>
+        <h1>Enums &amp; supporting types</h1>
+        <p class="lead">The smaller public types: enums, filters, the cache snapshot, the user-facing
+            exception, and the observable contract.</p>
+    </En>
+    <De>
+        <h1>Enums &amp; unterstützende Typen</h1>
+        <p class="lead">Die kleineren öffentlichen Typen: Enums, Filter, der Cache-Schnappschuss, die
+            für Endnutzer bestimmte Exception und der Observable-Vertrag.</p>
+    </De>
+</Localized>
 
 <h2>RefetchOnMount</h2>
 
 <ApiMember Id="refetchonmount" Name="RefetchOnMount"
            Signature="public enum RefetchOnMount { Never, IfStale, Always }">
-    <p>Controls whether a keyed <code>Execute</code> that finds cached data also refetches in the
-        background. A key with no cached data always fetches, regardless of this setting.</p>
-    <ApiTable NameHeader="Value" Rows="@_refetchOnMount"/>
+    <Localized>
+        <En>
+            <p>Controls whether a keyed <code>Execute</code> that finds cached data also refetches in the
+                background. A key with no cached data always fetches, regardless of this setting.</p>
+        </En>
+        <De>
+            <p>Steuert, ob ein <code>Execute</code> mit Key, das gecachte Daten vorfindet, zusätzlich
+                im Hintergrund neu lädt. Ein Key ohne gecachte Daten fetcht immer, unabhängig von
+                dieser Einstellung.</p>
+        </De>
+    </Localized>
+    <ApiTable NameHeader='@T("Value", "Wert")' Rows="@RefetchOnMountRows"/>
 </ApiMember>
 
 <h2>RefetchType</h2>
 
 <ApiMember Id="refetchtype" Name="RefetchType"
            Signature="public enum RefetchType { Active, All, None }">
-    <p>Which invalidated entries refetch immediately.</p>
-    <ApiTable NameHeader="Value" Rows="@_refetchType"/>
+    <Localized>
+        <En>
+            <p>Which invalidated entries refetch immediately.</p>
+        </En>
+        <De>
+            <p>Welche invalidierten Einträge sofort neu laden.</p>
+        </De>
+    </Localized>
+    <ApiTable NameHeader='@T("Value", "Wert")' Rows="@RefetchTypeRows"/>
 </ApiMember>
 
 <h2>InvalidateOptions</h2>
@@ -32,9 +58,19 @@
     public Func<QueryKey, bool>? Predicate { get; set; }
     public RefetchType RefetchType { get; set; } = RefetchType.Active;
 }">
-    <p>Options for <code>DejaClient.InvalidateAsync</code>. With <code>Exact</code> false (the
-        default) the key matches by prefix — invalidating <code>["todos"]</code> also invalidates
-        <code>["todos", 1]</code>. <code>Predicate</code> filters the matched keys further.</p>
+    <Localized>
+        <En>
+            <p>Options for <code>DejaClient.InvalidateAsync</code>. With <code>Exact</code> false (the
+                default) the key matches by prefix — invalidating <code>["todos"]</code> also invalidates
+                <code>["todos", 1]</code>. <code>Predicate</code> filters the matched keys further.</p>
+        </En>
+        <De>
+            <p>Optionen für <code>DejaClient.InvalidateAsync</code>. Mit <code>Exact</code> false (dem
+                Default) passt der Key per Präfix — wer <code>["todos"]</code> invalidiert,
+                invalidiert auch <code>["todos", 1]</code>. <code>Predicate</code> filtert die
+                passenden Keys weiter.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <h2>QueryFilter</h2>
@@ -45,8 +81,16 @@
     public bool Exact { get; set; }
     public Func<QueryKey, bool>? Predicate { get; set; }
 }">
-    <p>Narrows which entries a key matches in <code>DejaClient.Remove</code> and
-        <code>DejaClient.RefetchAsync</code>. Prefix matching by default.</p>
+    <Localized>
+        <En>
+            <p>Narrows which entries a key matches in <code>DejaClient.Remove</code> and
+                <code>DejaClient.RefetchAsync</code>. Prefix matching by default.</p>
+        </En>
+        <De>
+            <p>Schränkt ein, welche Einträge ein Key in <code>DejaClient.Remove</code> und
+                <code>DejaClient.RefetchAsync</code> trifft. Standardmäßig Präfix-Matching.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <h2>CacheEntryState</h2>
@@ -62,9 +106,19 @@
     public bool IsFetching { get; init; }
     public int SubscriberCount { get; init; }
 }">
-    <p>A read-only snapshot of one cache entry, returned by <code>DejaClient.GetState</code>.
-        Values are coherent with each other at the moment of the call and do not update
-        afterwards. The cache inspectors on this site render exactly this record.</p>
+    <Localized>
+        <En>
+            <p>A read-only snapshot of one cache entry, returned by <code>DejaClient.GetState</code>.
+                Values are coherent with each other at the moment of the call and do not update
+                afterwards. The cache inspectors on this site render exactly this record.</p>
+        </En>
+        <De>
+            <p>Ein schreibgeschützter Schnappschuss eines Cache-Eintrags, zurückgegeben von
+                <code>DejaClient.GetState</code>. Die Werte sind zum Zeitpunkt des Aufrufs
+                untereinander konsistent und aktualisieren sich danach nicht mehr. Die
+                Cache-Inspektoren auf dieser Seite rendern genau diesen Record.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <h2>DisplayUserException</h2>
@@ -80,12 +134,25 @@
     public DisplayUserException(string message, string internalMessage)
     public DisplayUserException(string message, string internalMessage, Exception ex)
 }">
-    <p>An exception whose <code>DisplayMessage</code> is safe — and intended — to be shown to the
-        end user. Queries and mutations route it to the dedicated
-        <code>OnDisplayUserError</code> callbacks in addition to the general error callbacks. The
-        single-message constructors use the message for both display and
-        <code>Exception.Message</code>; the two-message constructors separate the user-facing
-        message from the internal one.</p>
+    <Localized>
+        <En>
+            <p>An exception whose <code>DisplayMessage</code> is safe — and intended — to be shown to the
+                end user. Queries and mutations route it to the dedicated
+                <code>OnDisplayUserError</code> callbacks in addition to the general error callbacks. The
+                single-message constructors use the message for both display and
+                <code>Exception.Message</code>; the two-message constructors separate the user-facing
+                message from the internal one.</p>
+        </En>
+        <De>
+            <p>Eine Exception, deren <code>DisplayMessage</code> gefahrlos — und absichtlich — dem
+                Endnutzer angezeigt werden kann. Queries und Mutations leiten sie zusätzlich zu den
+                allgemeinen Fehler-Callbacks an die dedizierten
+                <code>OnDisplayUserError</code>-Callbacks weiter. Die Konstruktoren mit einer Message
+                verwenden sie sowohl für die Anzeige als auch für <code>Exception.Message</code>; die
+                Konstruktoren mit zwei Messages trennen die für den Nutzer bestimmte Message von der
+                internen.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <h2>DejaObservable / IDejaObservable</h2>
@@ -95,14 +162,29 @@
 {
     IDisposable Attach(Action listener);
 }">
-    <p>State that can notify exactly one owner when it changes — implemented by
-        <code>Query&lt;T&gt;</code> and <code>Mutation&lt;T&gt;</code>, consumed by
-        <code>DejaComponentBase</code>. <code>Attach</code> registers the sole listener and
-        returns a handle whose disposal detaches it (idempotently); attaching while a listener is
-        already registered throws <code>InvalidOperationException</code>. Deliberately
-        single-listener rather than a multicast event: the one component that owns the state is
-        the only thing that may be notified by it — which is what keeps two components holding
-        their own queries from re-rendering each other.</p>
+    <Localized>
+        <En>
+            <p>State that can notify exactly one owner when it changes — implemented by
+                <code>Query&lt;T&gt;</code> and <code>Mutation&lt;T&gt;</code>, consumed by
+                <code>DejaComponentBase</code>. <code>Attach</code> registers the sole listener and
+                returns a handle whose disposal detaches it (idempotently); attaching while a listener is
+                already registered throws <code>InvalidOperationException</code>. Deliberately
+                single-listener rather than a multicast event: the one component that owns the state is
+                the only thing that may be notified by it — which is what keeps two components holding
+                their own queries from re-rendering each other.</p>
+        </En>
+        <De>
+            <p>Zustand, der genau einen Besitzer über Änderungen benachrichtigen kann — implementiert
+                von <code>Query&lt;T&gt;</code> und <code>Mutation&lt;T&gt;</code>, konsumiert von
+                <code>DejaComponentBase</code>. <code>Attach</code> registriert den einzigen Listener
+                und gibt ein Handle zurück, dessen Dispose ihn (idempotent) wieder löst; ein Attach,
+                während bereits ein Listener registriert ist, wirft
+                <code>InvalidOperationException</code>. Bewusst single-listener statt eines
+                Multicast-Events: Die eine Komponente, der der Zustand gehört, ist das Einzige, das
+                von ihm benachrichtigt werden darf — genau das verhindert, dass zwei Komponenten mit
+                eigenen Queries einander neu rendern.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="dejaobservable" Name="DejaObservable"
@@ -111,25 +193,50 @@
     public IDisposable Attach(Action listener)
     protected void NotifyChanged()
 }">
-    <p>Base implementation holding the single listener slot. Derived state calls
-        <code>NotifyChanged()</code> once per state transition, after every property in the
-        transition has been set; it is a safe no-op when nothing is attached. Extend it if you
-        build custom observable state that a <code>DejaComponentBase</code> component should
-        re-render for.</p>
+    <Localized>
+        <En>
+            <p>Base implementation holding the single listener slot. Derived state calls
+                <code>NotifyChanged()</code> once per state transition, after every property in the
+                transition has been set; it is a safe no-op when nothing is attached. Extend it if you
+                build custom observable state that a <code>DejaComponentBase</code> component should
+                re-render for.</p>
+        </En>
+        <De>
+            <p>Basisimplementierung, die den einzelnen Listener-Slot hält. Abgeleiteter Zustand ruft
+                <code>NotifyChanged()</code> einmal pro Zustandsübergang auf, nachdem jede Property
+                des Übergangs gesetzt wurde; ohne angehefteten Listener ist es ein sicherer No-op.
+                Erweitere sie, wenn du eigenen beobachtbaren Zustand baust, für den eine
+                <code>DejaComponentBase</code>-Komponente neu rendern soll.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 @code {
-    private static readonly ApiRow[] _refetchOnMount =
-    [
-        new("Never", "0", null, "Serve the cache and never refetch on mount. Invalidation still refetches."),
-        new("IfStale", "1", null, "Refetch in the background only when the data is older than the stale time."),
-        new("Always", "2", null, "Always refetch in the background, even when the data is still fresh."),
-    ];
+    private ApiRow[] RefetchOnMountRows => De
+        ?
+        [
+            new("Never", "0", null, "Bedient den Cache und lädt beim Mount nie neu. Invalidierung lädt weiterhin neu."),
+            new("IfStale", "1", null, "Lädt nur dann im Hintergrund neu, wenn die Daten älter als die Stale-Time sind."),
+            new("Always", "2", null, "Lädt immer im Hintergrund neu, selbst wenn die Daten noch frisch sind."),
+        ]
+        :
+        [
+            new("Never", "0", null, "Serve the cache and never refetch on mount. Invalidation still refetches."),
+            new("IfStale", "1", null, "Refetch in the background only when the data is older than the stale time."),
+            new("Always", "2", null, "Always refetch in the background, even when the data is still fresh."),
+        ];
 
-    private static readonly ApiRow[] _refetchType =
-    [
-        new("Active", "0", null, "Refetch entries that have live subscribers; entries without stay marked stale and refetch when a component next mounts on them."),
-        new("All", "1", null, "Refetch every matched entry, subscribed or not."),
-        new("None", "2", null, "Only mark entries stale; nothing refetches until the next mount."),
-    ];
+    private ApiRow[] RefetchTypeRows => De
+        ?
+        [
+            new("Active", "0", null, "Lädt Einträge mit aktiven Subscribern neu; Einträge ohne bleiben als stale markiert und laden neu, sobald die nächste Komponente auf ihnen mountet."),
+            new("All", "1", null, "Lädt jeden passenden Eintrag neu, abonniert oder nicht."),
+            new("None", "2", null, "Markiert Einträge nur als stale; bis zum nächsten Mount lädt nichts neu."),
+        ]
+        :
+        [
+            new("Active", "0", null, "Refetch entries that have live subscribers; entries without stay marked stale and refetch when a component next mounts on them."),
+            new("All", "1", null, "Refetch every matched entry, subscribed or not."),
+            new("None", "2", null, "Only mark entries stale; nothing refetches until the next mount."),
+        ];
 }

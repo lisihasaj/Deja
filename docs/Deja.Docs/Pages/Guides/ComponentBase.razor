@@ -1,130 +1,274 @@
 @page "/guides/component-base"
+@inherits DocPage
 
-<PageTitle>Component base — Deja</PageTitle>
+<PageTitle>@T("Component base — Deja", "Komponenten-Basisklasse — Deja")</PageTitle>
 
-<h1>Component base</h1>
-<p class="lead">
-    <code>DejaComponentBase</code> is the glue: it discovers the queries and mutations a component
-    owns, re-renders the component when they change, scopes them to the component's lifetime, and
-    cleans everything up on dispose.
-</p>
+<Localized>
+    <En>
+        <h1>Component base</h1>
+        <p class="lead">
+            <code>DejaComponentBase</code> is the glue: it discovers the queries and mutations a component
+            owns, re-renders the component when they change, scopes them to the component's lifetime, and
+            cleans everything up on dispose.
+        </p>
 
-<h2>Discovery at initialisation</h2>
-<p>
-    When <code>OnInitialized</code> runs, the base scans the component's fields and properties
-    (walking the type hierarchy) and attaches to every <code>Query&lt;T&gt;</code> /
-    <code>Mutation&lt;T&gt;</code> it finds. <code>[Parameter]</code>,
-    <code>[CascadingParameter]</code> and <code>[Inject]</code> members are skipped — parameters
-    are owned by the parent that passed them.
-</p>
+        <h2>Discovery at initialisation</h2>
+        <p>
+            When <code>OnInitialized</code> runs, the base scans the component's fields and properties
+            (walking the type hierarchy) and attaches to every <code>Query&lt;T&gt;</code> /
+            <code>Mutation&lt;T&gt;</code> it finds. <code>[Parameter]</code>,
+            <code>[CascadingParameter]</code> and <code>[Inject]</code> members are skipped — parameters
+            are owned by the parent that passed them.
+        </p>
+    </En>
+    <De>
+        <h1>Komponenten-Basisklasse</h1>
+        <p class="lead">
+            <code>DejaComponentBase</code> ist das Bindeglied: Es entdeckt die Queries und Mutations, die
+            eine Komponente besitzt, rendert die Komponente neu, wenn sie sich ändern, bindet sie an die
+            Lebensdauer der Komponente und räumt beim Dispose alles auf.
+        </p>
+
+        <h2>Entdeckung bei der Initialisierung</h2>
+        <p>
+            Wenn <code>OnInitialized</code> läuft, scannt die Basisklasse die Felder und Eigenschaften
+            der Komponente (entlang der Typhierarchie) und hängt sich an jede gefundene
+            <code>Query&lt;T&gt;</code> / <code>Mutation&lt;T&gt;</code>. <code>[Parameter]</code>-,
+            <code>[CascadingParameter]</code>- und <code>[Inject]</code>-Member werden übersprungen —
+            Parameter gehören dem Parent, der sie übergeben hat.
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock Code="@DiscoverySample"/>
 
-<Callout Type="Callout.CalloutType.Warning" Title="Always call base.OnInitialized()">
-    <p>An override that skips <code>base.OnInitialized()</code> compiles and renders once — then
-        the component silently stops reacting, because nothing was attached. Deja reports this
-        once as a <code>console.error</code> on first render. The fix is to call the base first,
-        conventionally on the override's first line; attaching each piece of state by hand with
-        <code>Observe()</code> works, but only as a fallback where calling the base isn't
-        possible.</p>
-</Callout>
+<Localized>
+    <En>
+        <Callout Type="Callout.CalloutType.Warning" Title="Always call base.OnInitialized()">
+            <p>An override that skips <code>base.OnInitialized()</code> compiles and renders once — then
+                the component silently stops reacting, because nothing was attached. Deja reports this
+                once as a <code>console.error</code> on first render. The fix is to call the base first,
+                conventionally on the override's first line; attaching each piece of state by hand with
+                <code>Observe()</code> works, but only as a fallback where calling the base isn't
+                possible.</p>
+        </Callout>
 
-<h2 id="observe">Observe() — for the state discovery can't see</h2>
-<p>
-    Most components never call <code>Observe()</code>. A query held in a field is found by the
-    scan above and attached for you — that is the whole point of the base component, and it is the
-    path you should be on. <code>Observe()</code> is the same attach step, exposed by hand for the
-    cases the scan structurally cannot reach.
-</p>
-<p>There are only two:</p>
-<ul>
-    <li><strong>The state didn't exist at initialisation.</strong> The scan runs once, inside
-        <code>OnInitialized</code>. A query created later — in an event handler, or per row into a
-        <code>List&lt;Query&lt;T&gt;&gt;</code> — wasn't there to be found, and nothing rescans.</li>
-    <li><strong>Your override skipped <code>base.OnInitialized()</code>.</strong> The scan never
-        ran at all. Calling the base is the real fix; <code>Observe()</code> is the fallback when
-        you can't.</li>
-</ul>
+        <h2 id="observe">Observe() — for the state discovery can't see</h2>
+        <p>
+            Most components never call <code>Observe()</code>. A query held in a field is found by the
+            scan above and attached for you — that is the whole point of the base component, and it is the
+            path you should be on. <code>Observe()</code> is the same attach step, exposed by hand for the
+            cases the scan structurally cannot reach.
+        </p>
+        <p>There are only two:</p>
+        <ul>
+            <li><strong>The state didn't exist at initialisation.</strong> The scan runs once, inside
+                <code>OnInitialized</code>. A query created later — in an event handler, or per row into a
+                <code>List&lt;Query&lt;T&gt;&gt;</code> — wasn't there to be found, and nothing rescans.</li>
+            <li><strong>Your override skipped <code>base.OnInitialized()</code>.</strong> The scan never
+                ran at all. Calling the base is the real fix; <code>Observe()</code> is the fallback when
+                you can't.</li>
+        </ul>
+    </En>
+    <De>
+        <Callout Type="Callout.CalloutType.Warning" Title="Rufe immer base.OnInitialized() auf">
+            <p>Ein Override, das <code>base.OnInitialized()</code> auslässt, kompiliert und rendert
+                einmal — dann hört die Komponente stillschweigend auf zu reagieren, weil nichts angehängt
+                wurde. Deja meldet das einmalig als <code>console.error</code> beim ersten Render. Die
+                Lösung ist, zuerst die Basisklasse aufzurufen, üblicherweise in der ersten Zeile des
+                Overrides; jedes Stück Zustand von Hand mit <code>Observe()</code> anzuhängen
+                funktioniert, aber nur als Fallback, wo der Aufruf der Basisklasse nicht möglich
+                ist.</p>
+        </Callout>
+
+        <h2 id="observe">Observe() — für den Zustand, den die Entdeckung nicht sieht</h2>
+        <p>
+            Die meisten Komponenten rufen <code>Observe()</code> nie auf. Eine Query in einem Feld wird
+            vom obigen Scan gefunden und für dich angehängt — genau das ist der Sinn der Basiskomponente,
+            und auf diesem Pfad solltest du bleiben. <code>Observe()</code> ist derselbe
+            Anhänge-Schritt, von Hand verfügbar gemacht für die Fälle, die der Scan strukturell nicht
+            erreichen kann.
+        </p>
+        <p>Es gibt nur zwei:</p>
+        <ul>
+            <li><strong>Der Zustand existierte bei der Initialisierung noch nicht.</strong> Der Scan
+                läuft einmal, innerhalb von <code>OnInitialized</code>. Eine später erzeugte Query — in
+                einem Event-Handler, oder pro Zeile in eine <code>List&lt;Query&lt;T&gt;&gt;</code> — war
+                nicht da, um gefunden zu werden, und nichts scannt erneut.</li>
+            <li><strong>Dein Override hat <code>base.OnInitialized()</code> ausgelassen.</strong> Der
+                Scan lief nie. Der eigentliche Fix ist der Aufruf der Basisklasse;
+                <code>Observe()</code> ist der Fallback, wenn das nicht geht.</li>
+        </ul>
+    </De>
+</Localized>
 
 <CodeBlock Code="@ObserveSample"/>
 
-<p>
-    <code>Observe()</code> returns the state, so it can be used inline as above, and attaching the
-    same instance twice is a no-op — it is safe to call defensively.
-</p>
+<Localized>
+    <En>
+        <p>
+            <code>Observe()</code> returns the state, so it can be used inline as above, and attaching the
+            same instance twice is a no-op — it is safe to call defensively.
+        </p>
 
-<h3>What you see when it's missing</h3>
-<p>
-    There is no exception and no stack trace, which is what makes this worth recognising by its
-    symptom: <strong>the fetch succeeds but the screen never updates.</strong> Blazor renders once
-    after your event handler returns — while the fetch is still in flight — and unattached state
-    has no way to ask for a second render. <code>Data</code> really is populated; the component
-    just never hears about it. Two quieter consequences follow from the same missing wiring:
-</p>
-<ul>
-    <li>The query never receives the registered <code>DejaClient</code>, so it bypasses the shared
-        cache. Anything documented <em>cached path only</em> —
-        <code>Enabled</code>, <code>Select</code>, <code>PlaceholderData</code>,
-        <code>StaleTime</code> — is silently inert.</li>
-    <li>It never receives <code>ComponentToken</code>, so an in-flight fetch isn't cancelled when
-        the component is disposed.</li>
-</ul>
+        <h3>What you see when it's missing</h3>
+        <p>
+            There is no exception and no stack trace, which is what makes this worth recognising by its
+            symptom: <strong>the fetch succeeds but the screen never updates.</strong> Blazor renders once
+            after your event handler returns — while the fetch is still in flight — and unattached state
+            has no way to ask for a second render. <code>Data</code> really is populated; the component
+            just never hears about it. Two quieter consequences follow from the same missing wiring:
+        </p>
+        <ul>
+            <li>The query never receives the registered <code>DejaClient</code>, so it bypasses the shared
+                cache. Anything documented <em>cached path only</em> —
+                <code>Enabled</code>, <code>Select</code>, <code>PlaceholderData</code>,
+                <code>StaleTime</code> — is silently inert.</li>
+            <li>It never receives <code>ComponentToken</code>, so an in-flight fetch isn't cancelled when
+                the component is disposed.</li>
+        </ul>
 
-<Callout Type="Callout.CalloutType.Info" Title="Not sure whether you need it?">
-    <p>Ask where the query lives. Assigned to a field or property before the first render — you
-        don't need <code>Observe()</code>. Created inside a method that runs after the component is
-        already on screen — you do.</p>
-</Callout>
+        <Callout Type="Callout.CalloutType.Info" Title="Not sure whether you need it?">
+            <p>Ask where the query lives. Assigned to a field or property before the first render — you
+                don't need <code>Observe()</code>. Created inside a method that runs after the component is
+                already on screen — you do.</p>
+        </Callout>
 
-<h2>How often it re-renders</h2>
-<p>
-    The base does not re-render on every notification it could. A query notifies once per state
-    transition, a notification identical to the previous one is dropped, and a render already
-    queued absorbs the ones behind it — so one request costs two renders (start, finish) no matter
-    how many components share the key or how many queries run at once. See
-    <a href="guides/rendering">rendering &amp; re-renders</a> for the full contract.
-</p>
+        <h2>How often it re-renders</h2>
+        <p>
+            The base does not re-render on every notification it could. A query notifies once per state
+            transition, a notification identical to the previous one is dropped, and a render already
+            queued absorbs the ones behind it — so one request costs two renders (start, finish) no matter
+            how many components share the key or how many queries run at once. See
+            <a href="guides/rendering">rendering &amp; re-renders</a> for the full contract.
+        </p>
 
-<h2>The single-owner rule</h2>
-<p>
-    Deja state notifies exactly one listener — the owning component. Passing a live
-    <code>Query&lt;T&gt;</code> to a second component and observing it there throws: share the
-    <em>data</em> instead, either by passing <code>Data</code> down as a
-    <code>[Parameter]</code>, or by giving both components their own query on the same
-    <a href="guides/query-keys">key</a>. This rule is what makes the
-    <a href="demos/isolation">isolation guarantee</a> provable rather than aspirational.
-</p>
+        <h2>The single-owner rule</h2>
+        <p>
+            Deja state notifies exactly one listener — the owning component. Passing a live
+            <code>Query&lt;T&gt;</code> to a second component and observing it there throws: share the
+            <em>data</em> instead, either by passing <code>Data</code> down as a
+            <code>[Parameter]</code>, or by giving both components their own query on the same
+            <a href="guides/query-keys">key</a>. This rule is what makes the
+            <a href="demos/isolation">isolation guarantee</a> provable rather than aspirational.
+        </p>
 
-<h2>ComponentToken</h2>
-<p>
-    <code>ComponentToken</code> is a <code>CancellationToken</code> cancelled when the component is
-    disposed. The component's queries and mutations already use it — pass it explicitly only to
-    work Deja doesn't run for you, like a direct API call from an event handler. After disposal it
-    reads as an already-cancelled token rather than throwing.
-</p>
+        <h2>ComponentToken</h2>
+        <p>
+            <code>ComponentToken</code> is a <code>CancellationToken</code> cancelled when the component is
+            disposed. The component's queries and mutations already use it — pass it explicitly only to
+            work Deja doesn't run for you, like a direct API call from an event handler. After disposal it
+            reads as an already-cancelled token rather than throwing.
+        </p>
 
-<h2>Cleanup: override the hooks, don't redeclare</h2>
-<p>
-    A derived component adds cleanup by overriding the base's hooks — <code>Dispose()</code> for
-    synchronous work, <code>DisposeAsync()</code> for asynchronous; both run during disposal,
-    before the base detaches state and disposes the queries the component owns:
-</p>
+        <h2>Cleanup: override the hooks, don't redeclare</h2>
+        <p>
+            A derived component adds cleanup by overriding the base's hooks — <code>Dispose()</code> for
+            synchronous work, <code>DisposeAsync()</code> for asynchronous; both run during disposal,
+            before the base detaches state and disposes the queries the component owns:
+        </p>
+    </En>
+    <De>
+        <p>
+            <code>Observe()</code> gibt den Zustand zurück, es lässt sich also wie oben inline verwenden,
+            und dieselbe Instanz zweimal anzuhängen ist ein No-op — der Aufruf ist auch defensiv sicher.
+        </p>
+
+        <h3>Was du siehst, wenn es fehlt</h3>
+        <p>
+            Es gibt keine Exception und keinen Stacktrace — genau deshalb lohnt es sich, das Problem am
+            Symptom zu erkennen: <strong>der Fetch gelingt, aber der Bildschirm aktualisiert sich
+            nie.</strong> Blazor rendert einmal, nachdem dein Event-Handler zurückgekehrt ist — während
+            der Fetch noch läuft — und nicht angehängter Zustand hat keine Möglichkeit, einen zweiten
+            Render anzufordern. <code>Data</code> ist wirklich befüllt; die Komponente erfährt nur nie
+            davon. Aus derselben fehlenden Verdrahtung folgen zwei leisere Konsequenzen:
+        </p>
+        <ul>
+            <li>Die Query erhält nie den registrierten <code>DejaClient</code> und umgeht damit den
+                gemeinsamen Cache. Alles, was als <em>nur auf dem gecachten Pfad</em> dokumentiert ist —
+                <code>Enabled</code>, <code>Select</code>, <code>PlaceholderData</code>,
+                <code>StaleTime</code> — ist stillschweigend wirkungslos.</li>
+            <li>Sie erhält nie <code>ComponentToken</code>, ein laufender Fetch wird beim Dispose der
+                Komponente also nicht abgebrochen.</li>
+        </ul>
+
+        <Callout Type="Callout.CalloutType.Info" Title="Unsicher, ob du es brauchst?">
+            <p>Frag dich, wo die Query lebt. Vor dem ersten Render einem Feld oder einer Eigenschaft
+                zugewiesen — dann brauchst du <code>Observe()</code> nicht. In einer Methode erzeugt, die
+                läuft, wenn die Komponente schon auf dem Bildschirm ist — dann schon.</p>
+        </Callout>
+
+        <h2>Wie oft neu gerendert wird</h2>
+        <p>
+            Die Basisklasse rendert nicht bei jeder Benachrichtigung neu, bei der sie könnte. Eine Query
+            benachrichtigt einmal pro Zustandsübergang, eine Benachrichtigung, die mit der vorherigen
+            identisch ist, wird verworfen, und ein bereits eingereihter Render absorbiert die dahinter —
+            ein Request kostet also zwei Renders (Start, Ende), egal wie viele Komponenten sich den Key
+            teilen oder wie viele Queries gleichzeitig laufen. Siehe
+            <a href="guides/rendering">Rendering &amp; Re-Renders</a> für den vollständigen Vertrag.
+        </p>
+
+        <h2>Die Ein-Besitzer-Regel</h2>
+        <p>
+            Deja-Zustand benachrichtigt genau einen Listener — die besitzende Komponente. Eine lebende
+            <code>Query&lt;T&gt;</code> an eine zweite Komponente zu übergeben und dort zu beobachten
+            wirft: Teile stattdessen die <em>Daten</em>, entweder indem du <code>Data</code> als
+            <code>[Parameter]</code> nach unten reichst, oder indem beide Komponenten ihre eigene Query
+            auf demselben <a href="guides/query-keys">Key</a> bekommen. Diese Regel macht die
+            <a href="demos/isolation">Isolationsgarantie</a> beweisbar statt bloß erhofft.
+        </p>
+
+        <h2>ComponentToken</h2>
+        <p>
+            <code>ComponentToken</code> ist ein <code>CancellationToken</code>, das beim Dispose der
+            Komponente gecancelt wird. Die Queries und Mutations der Komponente nutzen es bereits — reiche
+            es nur explizit weiter für Arbeit, die Deja nicht für dich ausführt, etwa einen direkten
+            API-Aufruf aus einem Event-Handler. Nach dem Dispose liest es sich als bereits gecanceltes
+            Token, statt zu werfen.
+        </p>
+
+        <h2>Aufräumen: überschreibe die Hooks, deklariere nicht neu</h2>
+        <p>
+            Eine abgeleitete Komponente ergänzt Aufräumarbeiten, indem sie die Hooks der Basisklasse
+            überschreibt — <code>Dispose()</code> für synchrone Arbeit, <code>DisposeAsync()</code> für
+            asynchrone; beide laufen während des Disposals, bevor die Basisklasse den Zustand abhängt und
+            die Queries disposed, die die Komponente besitzt:
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock Code="@DisposeSample"/>
 
-<Callout Type="Callout.CalloutType.Danger" Title="Guard rail: redeclared disposal throws">
-    <p>Do <em>not</em> add <code>@("@implements IDisposable")</code> or
-        <code>@("@implements IAsyncDisposable")</code> to a Deja component. Blazor only calls
-        <code>DisposeAsync</code> once <code>IAsyncDisposable</code> is present, so a redeclared
-        <code>DisposeAsync</code> would replace Deja's disposal entirely (leaking attachments and
-        in-flight fetches), and a redeclared <code>Dispose</code> would never run at all. The
-        constructor detects either and throws an <code>InvalidOperationException</code> naming the
-        fix.</p>
-</Callout>
+<Localized>
+    <En>
+        <Callout Type="Callout.CalloutType.Danger" Title="Guard rail: redeclared disposal throws">
+            <p>Do <em>not</em> add <code>@("@implements IDisposable")</code> or
+                <code>@("@implements IAsyncDisposable")</code> to a Deja component. Blazor only calls
+                <code>DisposeAsync</code> once <code>IAsyncDisposable</code> is present, so a redeclared
+                <code>DisposeAsync</code> would replace Deja's disposal entirely (leaking attachments and
+                in-flight fetches), and a redeclared <code>Dispose</code> would never run at all. The
+                constructor detects either and throws an <code>InvalidOperationException</code> naming the
+                fix.</p>
+        </Callout>
 
-<h2>Live demo</h2>
+        <h2>Live demo</h2>
+    </En>
+    <De>
+        <Callout Type="Callout.CalloutType.Danger" Title="Leitplanke: neu deklariertes Disposal wirft">
+            <p>Füge einer Deja-Komponente <em>kein</em> <code>@("@implements IDisposable")</code> oder
+                <code>@("@implements IAsyncDisposable")</code> hinzu. Blazor ruft
+                <code>DisposeAsync</code> nur auf, wenn <code>IAsyncDisposable</code> vorhanden ist; ein
+                neu deklariertes <code>DisposeAsync</code> würde Dejas Disposal also vollständig ersetzen
+                (und dabei Anhänge sowie laufende Fetches leaken), und ein neu deklariertes
+                <code>Dispose</code> würde gar nie laufen. Der Konstruktor erkennt beides und wirft eine
+                <code>InvalidOperationException</code>, die die Lösung benennt.</p>
+        </Callout>
 
-<DemoCard Title="Discovery, Observe() and render isolation" SourceFiles="@(new[] { "ComponentBaseDemo.razor" })">
+        <h2>Live-Demo</h2>
+    </De>
+</Localized>
+
+<DemoCard Title='@T("Discovery, Observe() and render isolation", "Entdeckung, Observe() und Render-Isolation")' SourceFiles="@(new[] { "ComponentBaseDemo.razor" })">
     <ComponentBaseDemo/>
 </DemoCard>
 

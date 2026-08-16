@@ -1,21 +1,41 @@
 @page "/"
 @layout LandingLayout
+@inherits DocPage
 
-<PageTitle>Deja — data fetching and caching for Blazor</PageTitle>
+<PageTitle>@T("Deja — data fetching and caching for Blazor", "Deja — Datenabruf und Caching für Blazor")</PageTitle>
 
 <section class="landing-hero">
-    <h1>Data fetching, caching and synchronization for Blazor,<br/><span class="accent">without the boilerplate</span></h1>
-    <p class="tagline">
-        Declare a query, bind its loading and error state, and let a shared keyed cache dedupe the
-        requests. Mutations invalidate keys so every component showing that data refetches itself,
-        and navigating away cancels what's in flight — down to the server. Blazor WebAssembly and
-        Server, dependency-free.
-    </p>
+    <Localized>
+        <En>
+            <h1>Data fetching, caching and synchronization for Blazor,<br/><span class="accent">without the boilerplate</span></h1>
+            <p class="tagline">
+                Declare a query, bind its loading and error state, and let a shared keyed cache dedupe the
+                requests. Mutations invalidate keys so every component showing that data refetches itself,
+                and navigating away cancels what's in flight — down to the server. Blazor WebAssembly and
+                Server, dependency-free.
+            </p>
 
-    <div class="landing-actions">
-        <a class="button-primary" href="getting-started/quick-start">Get started</a>
-        <a class="button-secondary" href="demos/todo-list">See live demos</a>
-    </div>
+            <div class="landing-actions">
+                <a class="button-primary" href="getting-started/quick-start">Get started</a>
+                <a class="button-secondary" href="demos/todo-list">See live demos</a>
+            </div>
+        </En>
+        <De>
+            <h1>Datenabruf, Caching und Synchronisierung für Blazor,<br/><span class="accent">ohne Boilerplate</span></h1>
+            <p class="tagline">
+                Deklariere eine Query, binde ihren Lade- und Fehlerzustand, und lass einen gemeinsamen,
+                keybasierten Cache die Requests deduplizieren. Mutations invalidieren Keys, sodass jede
+                Komponente, die diese Daten anzeigt, sich selbst neu lädt — und beim Wegnavigieren wird
+                abgebrochen, was gerade läuft, bis hinunter zum Server. Blazor WebAssembly und Server,
+                ohne Abhängigkeiten.
+            </p>
+
+            <div class="landing-actions">
+                <a class="button-primary" href="getting-started/quick-start">Loslegen</a>
+                <a class="button-secondary" href="demos/todo-list">Live-Demos ansehen</a>
+            </div>
+        </De>
+    </Localized>
 
     <div class="landing-install">
         <span>$ dotnet add package Deja</span>
@@ -27,40 +47,83 @@
 </section>
 
 <section class="landing-grid">
-    <div class="landing-card">
-        <h3>⚡ Bindable async state</h3>
-        <p>Declare a <code>Query&lt;T&gt;</code>, bind <code>IsLoading</code>, <code>IsError</code>
-            and <code>Data</code> in markup. No flags, no try/catch, no StateHasChanged.</p>
-    </div>
-    <div class="landing-card">
-        <h3>🗄 Shared query cache</h3>
-        <p>Components sharing a key render instantly from cache, join one in-flight request, and
-            revalidate in the background when stale.</p>
-    </div>
-    <div class="landing-card">
-        <h3>✂️ Automatic cancellation</h3>
-        <p>Navigating away aborts in-flight requests down to the server. A newer load supersedes
-            and cancels an older one, so stale responses never win.</p>
-    </div>
-    <div class="landing-card">
-        <h3>🔒 Component isolation</h3>
-        <p>State notifies exactly one owner. Two side-by-side components can never re-render each
-            other — provable in the <a href="demos/isolation">isolation demo</a>.</p>
-    </div>
-    <div class="landing-card">
-        <h3>✍️ Mutations & invalidation</h3>
-        <p><code>Mutation&lt;T&gt;</code> tracks writes and invalidates query keys by prefix on
-            success, so every affected list refetches itself.</p>
-    </div>
-    <div class="landing-card">
-        <h3>📦 Dependency-free</h3>
-        <p>No JSON serializers, no reflection-heavy magic — trimming- and AOT-safe, multi-targeting
-            net8.0 through net10.0.</p>
-    </div>
+    <Localized>
+        <En>
+            <div class="landing-card">
+                <h3>⚡ Bindable async state</h3>
+                <p>Declare a <code>Query&lt;T&gt;</code>, bind <code>IsLoading</code>, <code>IsError</code>
+                    and <code>Data</code> in markup. No flags, no try/catch, no StateHasChanged.</p>
+            </div>
+            <div class="landing-card">
+                <h3>🗄 Shared query cache</h3>
+                <p>Components sharing a key render instantly from cache, join one in-flight request, and
+                    revalidate in the background when stale.</p>
+            </div>
+            <div class="landing-card">
+                <h3>✂️ Automatic cancellation</h3>
+                <p>Navigating away aborts in-flight requests down to the server. A newer load supersedes
+                    and cancels an older one, so stale responses never win.</p>
+            </div>
+            <div class="landing-card">
+                <h3>🔒 Component isolation</h3>
+                <p>State notifies exactly one owner. Two side-by-side components can never re-render each
+                    other — provable in the <a href="demos/isolation">isolation demo</a>.</p>
+            </div>
+            <div class="landing-card">
+                <h3>✍️ Mutations & invalidation</h3>
+                <p><code>Mutation&lt;T&gt;</code> tracks writes and invalidates query keys by prefix on
+                    success, so every affected list refetches itself.</p>
+            </div>
+            <div class="landing-card">
+                <h3>📦 Dependency-free</h3>
+                <p>No JSON serializers, no reflection-heavy magic — trimming- and AOT-safe, multi-targeting
+                    net8.0 through net10.0.</p>
+            </div>
+        </En>
+        <De>
+            <div class="landing-card">
+                <h3>⚡ Bindbarer asynchroner Zustand</h3>
+                <p>Deklariere eine <code>Query&lt;T&gt;</code>, binde <code>IsLoading</code>, <code>IsError</code>
+                    und <code>Data</code> im Markup. Keine Flags, kein try/catch, kein StateHasChanged.</p>
+            </div>
+            <div class="landing-card">
+                <h3>🗄 Gemeinsamer Query-Cache</h3>
+                <p>Komponenten mit demselben Key rendern sofort aus dem Cache, teilen sich einen laufenden
+                    Request und revalidieren im Hintergrund, wenn die Daten stale sind.</p>
+            </div>
+            <div class="landing-card">
+                <h3>✂️ Automatischer Abbruch</h3>
+                <p>Wegnavigieren bricht laufende Requests ab — bis hinunter zum Server. Ein neuerer
+                    Ladevorgang verdrängt und bricht einen älteren ab, veraltete Antworten gewinnen also nie.</p>
+            </div>
+            <div class="landing-card">
+                <h3>🔒 Komponenten-Isolation</h3>
+                <p>Zustand benachrichtigt genau einen Besitzer. Zwei Komponenten nebeneinander können
+                    einander nie neu rendern — beweisbar in der <a href="demos/isolation">Isolations-Demo</a>.</p>
+            </div>
+            <div class="landing-card">
+                <h3>✍️ Mutations & Invalidierung</h3>
+                <p><code>Mutation&lt;T&gt;</code> verfolgt Schreibvorgänge und invalidiert Query-Keys bei
+                    Erfolg per Präfix, sodass jede betroffene Liste sich selbst neu lädt.</p>
+            </div>
+            <div class="landing-card">
+                <h3>📦 Ohne Abhängigkeiten</h3>
+                <p>Keine JSON-Serialisierer, keine reflektionslastige Magie — trimming- und AOT-sicher,
+                    mit Multi-Targeting von net8.0 bis net10.0.</p>
+            </div>
+        </De>
+    </Localized>
 </section>
 
 <footer class="landing-footer">
-    These docs run on Deja itself — every demo is the real library fetching from a live API.
+    <Localized>
+        <En>
+            These docs run on Deja itself — every demo is the real library fetching from a live API.
+        </En>
+        <De>
+            Diese Doku läuft auf Deja selbst — jede Demo ist die echte Bibliothek, die von einer echten API lädt.
+        </De>
+    </Localized>
 </footer>
 
 @code {

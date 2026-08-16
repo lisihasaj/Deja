@@ -5,11 +5,18 @@
     {
         <div class="code-filename">@FileName</div>
     }
-    <button type="button" class="code-copy" aria-label="Copy code">Copy</button>
+    <button type="button" class="code-copy" aria-label="@(IsDe ? "Code kopieren" : "Copy code")">
+        @(IsDe ? "Kopieren" : "Copy")
+    </button>
     <pre><code class="language-@Language">@Code.Trim()</code></pre>
 </div>
 
 @code {
+    // The Language parameter below (the syntax name) shadows the Services.Language enum.
+    [CascadingParameter] public Services.Language Lang { get; set; }
+
+    private bool IsDe => Lang == Services.Language.De;
+
     [Parameter, EditorRequired] public string Code { get; set; } = string.Empty;
     [Parameter] public string Language { get; set; } = "csharp";
     [Parameter] public string? FileName { get; set; }

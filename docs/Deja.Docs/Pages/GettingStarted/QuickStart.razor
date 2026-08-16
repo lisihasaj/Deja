@@ -1,54 +1,118 @@
 @page "/getting-started/quick-start"
+@inherits DocPage
 
-<PageTitle>Quick start — Deja</PageTitle>
+<PageTitle>@T("Quick start — Deja", "Schnellstart — Deja")</PageTitle>
 
-<h1>Quick start</h1>
-<p class="lead">From zero to a cached, cancellable, auto-rendering query in three steps.</p>
+<Localized>
+    <En>
+        <h1>Quick start</h1>
+        <p class="lead">From zero to a cached, cancellable, auto-rendering query in three steps.</p>
 
-<h2>1. Declare a query and execute it</h2>
+        <h2>1. Declare a query and execute it</h2>
+    </En>
+    <De>
+        <h1>Schnellstart</h1>
+        <p class="lead">In drei Schritten von null zu einer gecachten, abbrechbaren Query, die automatisch rendert.</p>
+
+        <h2>1. Query deklarieren und ausführen</h2>
+    </De>
+</Localized>
 
 <CodeBlock FileName="Todos.razor" Language="cshtml" Code="@Step1"/>
 
-<p>
-    <code>Execute("todos", Api.GetTodosAsync)</code> is the keyed shorthand: the first argument is
-    the cache key (a string converts implicitly to <code>QueryKey.Of("todos")</code>), the second
-    is any <code>Func&lt;CancellationToken, Task&lt;T&gt;&gt;</code>. Deja passes a token that is
-    cancelled when a newer load supersedes this one or the component is disposed.
-</p>
+<Localized>
+    <En>
+        <p>
+            <code>Execute("todos", Api.GetTodosAsync)</code> is the keyed shorthand: the first argument is
+            the cache key (a string converts implicitly to <code>QueryKey.Of("todos")</code>), the second
+            is any <code>Func&lt;CancellationToken, Task&lt;T&gt;&gt;</code>. Deja passes a token that is
+            cancelled when a newer load supersedes this one or the component is disposed.
+        </p>
 
-<h2>2. Bind the state</h2>
-<p>Everything the request lifecycle exposes is a bindable property:</p>
+        <h2>2. Bind the state</h2>
+        <p>Everything the request lifecycle exposes is a bindable property:</p>
 
-<ul>
-    <li><code>IsLoading</code> — any execution in flight</li>
-    <li><code>IsReFetching</code> — an execution <em>after</em> the first; use for subtle refresh
-        indicators instead of a full-page spinner</li>
-    <li><code>IsError</code> / <code>ErrorMessage</code> — the most recent failure</li>
-    <li><code>Data</code> — the most recent result</li>
-    <li><code>IsCachedData</code> / <code>IsStale</code> / <code>UpdatedAt</code> — cache facts for
-        keyed queries</li>
-</ul>
+        <ul>
+            <li><code>IsLoading</code> — any execution in flight</li>
+            <li><code>IsReFetching</code> — an execution <em>after</em> the first; use for subtle refresh
+                indicators instead of a full-page spinner</li>
+            <li><code>IsError</code> / <code>ErrorMessage</code> — the most recent failure</li>
+            <li><code>Data</code> — the most recent result</li>
+            <li><code>IsCachedData</code> / <code>IsStale</code> / <code>UpdatedAt</code> — cache facts for
+                keyed queries</li>
+        </ul>
 
-<h2>3. Write with a mutation, invalidate the key</h2>
+        <h2>3. Write with a mutation, invalidate the key</h2>
+    </En>
+    <De>
+        <p>
+            <code>Execute("todos", Api.GetTodosAsync)</code> ist die Kurzform mit Key: Das erste Argument
+            ist der Cache-Key (ein String konvertiert implizit zu <code>QueryKey.Of("todos")</code>), das
+            zweite ein beliebiges <code>Func&lt;CancellationToken, Task&lt;T&gt;&gt;</code>. Deja übergibt
+            einen Token, der abgebrochen wird, wenn ein neuerer Ladevorgang diesen verdrängt oder die
+            Komponente disposed wird.
+        </p>
 
-<CodeBlock FileName="Todos.razor (continued)" Language="cshtml" Code="@Step2"/>
+        <h2>2. Zustand binden</h2>
+        <p>Alles, was der Request-Lebenszyklus offenlegt, ist eine bindbare Eigenschaft:</p>
 
-<p>
-    On success, every mounted query whose key starts with <code>"todos"</code> refetches in the
-    background — in every component showing that data. No event wiring, no manual reload calls.
-</p>
+        <ul>
+            <li><code>IsLoading</code> — irgendeine Ausführung läuft</li>
+            <li><code>IsReFetching</code> — eine Ausführung <em>nach</em> der ersten; nutze sie für dezente
+                Aktualisierungs-Indikatoren statt eines ganzseitigen Spinners</li>
+            <li><code>IsError</code> / <code>ErrorMessage</code> — der letzte Fehler</li>
+            <li><code>Data</code> — das letzte Ergebnis</li>
+            <li><code>IsCachedData</code> / <code>IsStale</code> / <code>UpdatedAt</code> — Cache-Fakten
+                für Queries mit Key</li>
+        </ul>
 
-<h2>See it live</h2>
-<p>
-    That's the whole loop. The <a href="demos/todo-list">todo list demo</a> is exactly this
-    pattern running against a live API, with a state inspector attached. From here:
-</p>
+        <h2>3. Mit einer Mutation schreiben, den Key invalidieren</h2>
+    </De>
+</Localized>
 
-<ul>
-    <li><a href="guides/queries">Queries</a> — the full parameter surface</li>
-    <li><a href="guides/cache">The cache</a> — what a key buys you</li>
-    <li><a href="guides/component-base">Component base</a> — what the base class does for you</li>
-</ul>
+<CodeBlock FileName='@T("Todos.razor (continued)", "Todos.razor (Fortsetzung)")' Language="cshtml" Code="@Step2"/>
+
+<Localized>
+    <En>
+        <p>
+            On success, every mounted query whose key starts with <code>"todos"</code> refetches in the
+            background — in every component showing that data. No event wiring, no manual reload calls.
+        </p>
+
+        <h2>See it live</h2>
+        <p>
+            That's the whole loop. The <a href="demos/todo-list">todo list demo</a> is exactly this
+            pattern running against a live API, with a state inspector attached. From here:
+        </p>
+
+        <ul>
+            <li><a href="guides/queries">Queries</a> — the full parameter surface</li>
+            <li><a href="guides/cache">The cache</a> — what a key buys you</li>
+            <li><a href="guides/component-base">Component base</a> — what the base class does for you</li>
+        </ul>
+    </En>
+    <De>
+        <p>
+            Bei Erfolg lädt jede eingehängte Query, deren Key mit <code>"todos"</code> beginnt, im
+            Hintergrund neu — in jeder Komponente, die diese Daten anzeigt. Keine Event-Verdrahtung,
+            keine manuellen Reload-Aufrufe.
+        </p>
+
+        <h2>Sieh es live</h2>
+        <p>
+            Das ist die ganze Schleife. Die <a href="demos/todo-list">Todo-Listen-Demo</a> ist genau
+            dieses Muster, laufend gegen eine echte API, mit angeschlossenem State-Inspector. Von hier
+            aus:
+        </p>
+
+        <ul>
+            <li><a href="guides/queries">Queries</a> — der komplette Parameterumfang</li>
+            <li><a href="guides/cache">Der Cache</a> — was dir ein Key bringt</li>
+            <li><a href="guides/component-base">Komponenten-Basisklasse</a> — was die Basisklasse für
+                dich übernimmt</li>
+        </ul>
+    </De>
+</Localized>
 
 @code {
     private const string Step1 = """

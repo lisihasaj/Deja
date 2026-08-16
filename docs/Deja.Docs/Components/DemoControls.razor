@@ -5,10 +5,10 @@
 
 <div class="demo-controls @(_open ? null : "collapsed")">
     <button type="button" class="demo-controls-header" @onclick="() => _open = !_open" aria-expanded="@_open">
-        🎛 Demo controls
+        🎛 @(Lang == Language.De ? "Demo-Steuerung" : "Demo controls")
         @if (Api.IsOffline)
         {
-            <span class="offline-badge">offline sample data</span>
+            <span class="offline-badge">@(Lang == Language.De ? "Offline-Beispieldaten" : "offline sample data")</span>
         }
     </button>
 
@@ -16,22 +16,26 @@
     {
         <div class="demo-controls-body">
             <div>
-                <label for="latency-slider">Artificial latency: @Latency.DelayMs ms</label>
+                <label for="latency-slider">@(Lang == Language.De ? "Künstliche Latenz" : "Artificial latency"): @Latency.DelayMs ms</label>
                 <input id="latency-slider" type="range" min="0" max="2000" step="100"
                        value="@Latency.DelayMs"
                        @oninput="e => Latency.DelayMs = int.Parse((string)e.Value!)"/>
             </div>
 
             <div>
-                <label>Failure injection</label>
+                <label>@(Lang == Language.De ? "Fehler injizieren" : "Failure injection")</label>
                 <div class="demo-toolbar" style="margin:0">
                     <button type="button" class="demo-button danger"
                             @onclick="() => Failure.Arm(FailureSwitch.FailureKind.Generic)">
-                        @(Failure.Armed == FailureSwitch.FailureKind.Generic ? "Armed ✓" : "Fail next")
+                        @(Failure.Armed == FailureSwitch.FailureKind.Generic
+                            ? (Lang == Language.De ? "Scharf ✓" : "Armed ✓")
+                            : (Lang == Language.De ? "Nächster schlägt fehl" : "Fail next"))
                     </button>
                     <button type="button" class="demo-button danger"
                             @onclick="() => Failure.Arm(FailureSwitch.FailureKind.DisplayUser)">
-                        @(Failure.Armed == FailureSwitch.FailureKind.DisplayUser ? "Armed ✓" : "Fail (user-facing)")
+                        @(Failure.Armed == FailureSwitch.FailureKind.DisplayUser
+                            ? (Lang == Language.De ? "Scharf ✓" : "Armed ✓")
+                            : (Lang == Language.De ? "Fehlschlag (nutzergerichtet)" : "Fail (user-facing)"))
                     </button>
                 </div>
             </div>
@@ -39,7 +43,9 @@
             @if (Api.IsOffline)
             {
                 <div class="demo-note">
-                    JSONPlaceholder is unreachable — demos are serving embedded sample data.
+                    @(Lang == Language.De
+                        ? "JSONPlaceholder ist nicht erreichbar — die Demos liefern eingebettete Beispieldaten."
+                        : "JSONPlaceholder is unreachable — demos are serving embedded sample data.")
                 </div>
             }
         </div>
@@ -47,6 +53,8 @@
 </div>
 
 @code {
+    [CascadingParameter] public Language Lang { get; set; }
+
     private bool _open;
 
     protected override void OnInitialized()

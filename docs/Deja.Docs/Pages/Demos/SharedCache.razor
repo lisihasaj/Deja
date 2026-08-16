@@ -1,26 +1,58 @@
 @page "/demos/shared-cache"
+@inherits DocPage
 
-<PageTitle>Shared cache demo — Deja</PageTitle>
+<PageTitle>@T("Shared cache demo — Deja", "Demo: Gemeinsamer Cache — Deja")</PageTitle>
 
-<h1>Shared cache</h1>
-<p class="lead">
-    Two sibling components execute the same key. One fetch serves both; a refetch from either
-    updates both; the inspector shows the single entry they subscribe to.
-</p>
+<Localized>
+    <En>
+        <h1>Shared cache</h1>
+        <p class="lead">
+            Two sibling components execute the same key. One fetch serves both; a refetch from either
+            updates both; the inspector shows the single entry they subscribe to.
+        </p>
+    </En>
+    <De>
+        <h1>Gemeinsamer Cache</h1>
+        <p class="lead">
+            Zwei Geschwister-Komponenten führen denselben Key aus. Ein Fetch bedient beide; ein Refetch
+            aus einem der beiden Panels aktualisiert beide; der Inspector zeigt den einen Eintrag, den
+            sie abonniert haben.
+        </p>
+    </De>
+</Localized>
 
-<DemoCard Title="Two components, one key, one fetch" SourceFiles="@(new[] { "SharedCacheDemo.razor", "SharedCachePanel.razor" })">
+<DemoCard Title='@T("Two components, one key, one fetch", "Zwei Komponenten, ein Key, ein Fetch")' SourceFiles="@(new[] { "SharedCacheDemo.razor", "SharedCachePanel.razor" })">
     <SharedCacheDemo/>
 </DemoCard>
 
-<h2>What to look for</h2>
-<ul>
-    <li><strong>Subscribers: 2</strong> in the cache inspector — both panels observe the same
-        entry.</li>
-    <li>On first load, panel B joins panel A's in-flight fetch: the network tab shows one request
-        for two components.</li>
-    <li>"Refetch from this panel" updates <em>both</em> panels — through the entry, never
-        panel-to-panel. Each panel's query notifies only its own component; the shared entry is
-        the multicast point.</li>
-    <li>Each refetch bumps both render counters — but so would any shared-data design; the
-        <a href="demos/isolation">isolation demo</a> shows the counters standing still.</li>
-</ul>
+<Localized>
+    <En>
+        <h2>What to look for</h2>
+        <ul>
+            <li><strong>Subscribers: 2</strong> in the cache inspector — both panels observe the same
+                entry.</li>
+            <li>On first load, panel B joins panel A's in-flight fetch: the network tab shows one request
+                for two components.</li>
+            <li>"Refetch from this panel" updates <em>both</em> panels — through the entry, never
+                panel-to-panel. Each panel's query notifies only its own component; the shared entry is
+                the multicast point.</li>
+            <li>Each refetch bumps both render counters — but so would any shared-data design; the
+                <a href="demos/isolation">isolation demo</a> shows the counters standing still.</li>
+        </ul>
+    </En>
+    <De>
+        <h2>Worauf du achten solltest</h2>
+        <ul>
+            <li><strong>Subscribers: 2</strong> im Cache-Inspector — beide Panels beobachten denselben
+                Eintrag.</li>
+            <li>Beim ersten Laden klinkt sich Panel B in den laufenden Fetch von Panel A ein: Der
+                Netzwerk-Tab zeigt einen Request für zwei Komponenten.</li>
+            <li>„Refetch from this panel“ aktualisiert <em>beide</em> Panels — über den Eintrag, nie von
+                Panel zu Panel. Die Query jedes Panels benachrichtigt nur die eigene Komponente; der
+                gemeinsame Eintrag ist der Multicast-Punkt.</li>
+            <li>Jeder Refetch erhöht beide Render-Zähler — das täte aber jedes Design mit geteilten
+                Daten; in der <a href="demos/isolation">Isolations-Demo</a> stehen die Zähler dagegen
+                still.</li>
+        </ul>
+    </De>
+</Localized>

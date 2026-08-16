@@ -1,75 +1,156 @@
 @page "/guides/error-handling"
+@inherits DocPage
 
-<PageTitle>Error handling — Deja</PageTitle>
+<PageTitle>@T("Error handling — Deja", "Fehlerbehandlung — Deja")</PageTitle>
 
-<h1>Error handling</h1>
-<p class="lead">
-    Failures publish bindable error state, run callbacks in a defined order, and are only thrown
-    when nobody observed them.
-</p>
+<Localized>
+    <En>
+        <h1>Error handling</h1>
+        <p class="lead">
+            Failures publish bindable error state, run callbacks in a defined order, and are only thrown
+            when nobody observed them.
+        </p>
 
-<h2>Bindable error state</h2>
-<p>
-    On failure, <code>IsError</code> turns on and <code>ErrorMessage</code> carries the message.
-    On the cached path, existing data <em>stays on screen</em> — the component decides how to
-    surface the error next to it. A successful refetch clears the error state, so error UI never
-    outlives the failure.
-</p>
+        <h2>Bindable error state</h2>
+        <p>
+            On failure, <code>IsError</code> turns on and <code>ErrorMessage</code> carries the message.
+            On the cached path, existing data <em>stays on screen</em> — the component decides how to
+            surface the error next to it. A successful refetch clears the error state, so error UI never
+            outlives the failure.
+        </p>
 
-<h2>DisplayUserException</h2>
-<p>
-    Most exception messages are written for developers. <code>DisplayUserException</code> is the
-    one whose <code>DisplayMessage</code> is safe — and intended — to show end users. Throw it in
-    your API layer where you know what went wrong:
-</p>
+        <h2>DisplayUserException</h2>
+        <p>
+            Most exception messages are written for developers. <code>DisplayUserException</code> is the
+            one whose <code>DisplayMessage</code> is safe — and intended — to show end users. Throw it in
+            your API layer where you know what went wrong:
+        </p>
+    </En>
+    <De>
+        <h1>Fehlerbehandlung</h1>
+        <p class="lead">
+            Fehlschläge veröffentlichen bindbaren Fehlerzustand, führen Callbacks in definierter
+            Reihenfolge aus und werden nur dann geworfen, wenn niemand sie beobachtet hat.
+        </p>
+
+        <h2>Bindbarer Fehlerzustand</h2>
+        <p>
+            Bei einem Fehlschlag geht <code>IsError</code> an, und <code>ErrorMessage</code> trägt die
+            Meldung. Auf dem gecachten Pfad <em>bleiben vorhandene Daten sichtbar</em> — die Komponente
+            entscheidet, wie sie den Fehler daneben anzeigt. Ein erfolgreicher Refetch löscht den
+            Fehlerzustand, Fehler-UI überlebt den Fehlschlag also nie.
+        </p>
+
+        <h2>DisplayUserException</h2>
+        <p>
+            Die meisten Exception-Meldungen sind für Entwickler geschrieben.
+            <code>DisplayUserException</code> ist die eine, deren <code>DisplayMessage</code> sich
+            gefahrlos — und absichtlich — Endnutzern zeigen lässt. Wirf sie in deiner API-Schicht, dort,
+            wo du weißt, was schiefgelaufen ist:
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock Code="@ThrowSample"/>
 
-<p>
-    Deja routes it to the dedicated <code>OnDisplayUserError</code> /
-    <code>OnDisplayUserErrorAsync</code> callbacks <em>in addition to</em> the general error
-    callbacks, so a component can render the friendly message and log the technical one without
-    type-checking exceptions itself.
-</p>
+<Localized>
+    <En>
+        <p>
+            Deja routes it to the dedicated <code>OnDisplayUserError</code> /
+            <code>OnDisplayUserErrorAsync</code> callbacks <em>in addition to</em> the general error
+            callbacks, so a component can render the friendly message and log the technical one without
+            type-checking exceptions itself.
+        </p>
 
-<h2>Callback order</h2>
-<ol>
-    <li><code>OnDisplayUserErrorAsync</code>, then <code>OnDisplayUserError</code> — only for a
-        <code>DisplayUserException</code>;</li>
-    <li><code>OnErrorAsync</code>, then <code>OnError</code> — for every failure;</li>
-    <li><code>OnSettledAsync</code>, then <code>OnSettled</code> — after success or a handled
-        failure, but <em>not</em> after cancellation.</li>
-</ol>
+        <h2>Callback order</h2>
+        <ol>
+            <li><code>OnDisplayUserErrorAsync</code>, then <code>OnDisplayUserError</code> — only for a
+                <code>DisplayUserException</code>;</li>
+            <li><code>OnErrorAsync</code>, then <code>OnError</code> — for every failure;</li>
+            <li><code>OnSettledAsync</code>, then <code>OnSettled</code> — after success or a handled
+                failure, but <em>not</em> after cancellation.</li>
+        </ol>
 
-<h2>The unhandled-failure contract</h2>
-<p>
-    If at least one error callback ran, the failure is considered handled and nothing propagates.
-    If <strong>none</strong> was supplied, <code>Execute</code> throws an
-    <code>InvalidOperationException</code> wrapping the original exception — a failure nobody
-    observes must not vanish. Since <code>Execute</code> is typically awaited from
-    <code>OnInitializedAsync</code> or an event handler, wire at least <code>OnError</code>
-    (or bind <code>IsError</code> and pass an empty handler) to keep a transient network error
-    from becoming an unhandled component exception.
-</p>
+        <h2>The unhandled-failure contract</h2>
+        <p>
+            If at least one error callback ran, the failure is considered handled and nothing propagates.
+            If <strong>none</strong> was supplied, <code>Execute</code> throws an
+            <code>InvalidOperationException</code> wrapping the original exception — a failure nobody
+            observes must not vanish. Since <code>Execute</code> is typically awaited from
+            <code>OnInitializedAsync</code> or an event handler, wire at least <code>OnError</code>
+            (or bind <code>IsError</code> and pass an empty handler) to keep a transient network error
+            from becoming an unhandled component exception.
+        </p>
 
-<h2>Cancellation is not an error</h2>
-<p>
-    A superseded or disposed execution sets no error state and runs no callbacks — not even
-    settled. The superseding load drives the next update.
-</p>
+        <h2>Cancellation is not an error</h2>
+        <p>
+            A superseded or disposed execution sets no error state and runs no callbacks — not even
+            settled. The superseding load drives the next update.
+        </p>
 
-<h2>The timeout retry</h2>
-<p>
-    One narrow, built-in retry: when a fetch fails with the <code>TaskCanceledException</code> that
-    carries an inner <code>TimeoutException</code> — the signature of <code>HttpClient.Timeout</code>
-    expiry, typically a browser freezing an inactive tab mid-request — and the caller's own token
-    is not cancelled, Deja retries the fetch once. Queries are idempotent reads; on resume the
-    retry completes in milliseconds. A second timeout falls through to the normal error path.
-</p>
+        <h2>The timeout retry</h2>
+        <p>
+            One narrow, built-in retry: when a fetch fails with the <code>TaskCanceledException</code> that
+            carries an inner <code>TimeoutException</code> — the signature of <code>HttpClient.Timeout</code>
+            expiry, typically a browser freezing an inactive tab mid-request — and the caller's own token
+            is not cancelled, Deja retries the fetch once. Queries are idempotent reads; on resume the
+            retry completes in milliseconds. A second timeout falls through to the normal error path.
+        </p>
 
-<h2>Live demo</h2>
+        <h2>Live demo</h2>
+    </En>
+    <De>
+        <p>
+            Deja leitet sie <em>zusätzlich zu</em> den allgemeinen Fehler-Callbacks an die dedizierten
+            <code>OnDisplayUserError</code>- / <code>OnDisplayUserErrorAsync</code>-Callbacks weiter —
+            eine Komponente kann so die freundliche Meldung rendern und die technische loggen, ohne
+            selbst Exception-Typen zu prüfen.
+        </p>
 
-<DemoCard Title="Friendly vs technical failures" SourceFiles="@(new[] { "ErrorHandlingDemo.razor" })">
+        <h2>Callback-Reihenfolge</h2>
+        <ol>
+            <li><code>OnDisplayUserErrorAsync</code>, dann <code>OnDisplayUserError</code> — nur bei
+                einer <code>DisplayUserException</code>;</li>
+            <li><code>OnErrorAsync</code>, dann <code>OnError</code> — bei jedem Fehlschlag;</li>
+            <li><code>OnSettledAsync</code>, dann <code>OnSettled</code> — nach Erfolg oder einem
+                behandelten Fehlschlag, aber <em>nicht</em> nach einem Abbruch.</li>
+        </ol>
+
+        <h2>Der Vertrag für unbehandelte Fehlschläge</h2>
+        <p>
+            Lief mindestens ein Fehler-Callback, gilt der Fehlschlag als behandelt und nichts propagiert
+            weiter. Wurde <strong>keiner</strong> übergeben, wirft <code>Execute</code> eine
+            <code>InvalidOperationException</code>, die die ursprüngliche Exception umschließt — ein
+            Fehlschlag, den niemand beobachtet, darf nicht verschwinden. Da <code>Execute</code>
+            typischerweise in <code>OnInitializedAsync</code> oder einem Event-Handler awaited wird,
+            verdrahte mindestens <code>OnError</code> (oder binde <code>IsError</code> und übergib einen
+            leeren Handler), damit ein vorübergehender Netzwerkfehler nicht zu einer unbehandelten
+            Komponenten-Exception wird.
+        </p>
+
+        <h2>Abbruch ist kein Fehler</h2>
+        <p>
+            Eine verdrängte oder beim Disposen abgebrochene Ausführung setzt keinen Fehlerzustand und
+            führt keine Callbacks aus — nicht einmal settled. Der verdrängende Ladevorgang treibt das
+            nächste Update.
+        </p>
+
+        <h2>Der Timeout-Retry</h2>
+        <p>
+            Ein einziger, eng begrenzter eingebauter Retry: Schlägt ein Fetch mit der
+            <code>TaskCanceledException</code> fehl, die eine innere <code>TimeoutException</code>
+            trägt — die Signatur eines abgelaufenen <code>HttpClient.Timeout</code>, typischerweise ein
+            Browser, der einen inaktiven Tab mitten im Request einfriert — und der eigene Token des
+            Aufrufers ist nicht abgebrochen, wiederholt Deja den Fetch genau einmal. Queries sind
+            idempotente Lesezugriffe; nach dem Aufwachen ist der Retry in Millisekunden fertig. Ein
+            zweiter Timeout fällt in den normalen Fehlerpfad durch.
+        </p>
+
+        <h2>Live-Demo</h2>
+    </De>
+</Localized>
+
+<DemoCard Title='@T("Friendly vs technical failures", "Freundliche vs. technische Fehlschläge")' SourceFiles="@(new[] { "ErrorHandlingDemo.razor" })">
     <ErrorHandlingDemo/>
 </DemoCard>
 

@@ -1,52 +1,120 @@
 @page "/getting-started/installation"
+@inherits DocPage
 
-<PageTitle>Installation — Deja</PageTitle>
+<PageTitle>@T("Installation — Deja", "Installation — Deja")</PageTitle>
 
-<h1>Installation</h1>
-<p class="lead">One package, one optional service registration.</p>
+<Localized>
+    <En>
+        <h1>Installation</h1>
+        <p class="lead">One package, one optional service registration.</p>
 
-<h2>Install the package</h2>
+        <h2>Install the package</h2>
+    </En>
+    <De>
+        <h1>Installation</h1>
+        <p class="lead">Ein Paket, eine optionale Service-Registrierung.</p>
+
+        <h2>Paket installieren</h2>
+    </De>
+</Localized>
 
 <CodeBlock Language="bash" Code="dotnet add package Deja"/>
 
-<p>
-    Deja multi-targets <code>net8.0</code>, <code>net9.0</code> and <code>net10.0</code> and works
-    on both Blazor WebAssembly and Blazor Server. It has no third-party dependencies.
-</p>
+<Localized>
+    <En>
+        <p>
+            Deja multi-targets <code>net8.0</code>, <code>net9.0</code> and <code>net10.0</code> and works
+            on both Blazor WebAssembly and Blazor Server. It has no third-party dependencies.
+        </p>
 
-<h2>Register the cache (recommended)</h2>
-<p>
-    <code>AddDeja()</code> registers the shared query cache. It's opt-in: without it, everything
-    still works, but keyed queries don't share results across components.
-</p>
+        <h2>Register the cache (recommended)</h2>
+        <p>
+            <code>AddDeja()</code> registers the shared query cache. It's opt-in: without it, everything
+            still works, but keyed queries don't share results across components.
+        </p>
+    </En>
+    <De>
+        <p>
+            Deja hat Multi-Targeting für <code>net8.0</code>, <code>net9.0</code> und <code>net10.0</code>
+            und funktioniert sowohl mit Blazor WebAssembly als auch mit Blazor Server. Es hat keine
+            Drittanbieter-Abhängigkeiten.
+        </p>
+
+        <h2>Cache registrieren (empfohlen)</h2>
+        <p>
+            <code>AddDeja()</code> registriert den gemeinsamen Query-Cache. Es ist Opt-in: Auch ohne
+            funktioniert alles, aber Queries mit Key teilen ihre Ergebnisse dann nicht über
+            Komponenten hinweg.
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock FileName="Program.cs" Code="@RegisterSample"/>
 
-<p>
-    The options shown are this site's own configuration. Every property has a sensible default —
-    see <a href="api/deja-options">DejaOptions</a> for the full list.
-</p>
+<Localized>
+    <En>
+        <p>
+            The options shown are this site's own configuration. Every property has a sensible default —
+            see <a href="api/deja-options">DejaOptions</a> for the full list.
+        </p>
 
-<Callout Type="Callout.CalloutType.Warning" Title="Blazor Server: keep it Scoped">
-    <p><code>AddDeja()</code> registers <code>DejaClient</code> as <em>Scoped</em> deliberately:
-        one cache per browser tab on WebAssembly, one per user circuit on Server. Re-registering it
-        as a singleton on Blazor Server would share one user's cached API responses with every
-        other connected user — a data leak, not a performance win.</p>
-</Callout>
+        <Callout Type="Callout.CalloutType.Warning" Title="Blazor Server: keep it Scoped">
+            <p><code>AddDeja()</code> registers <code>DejaClient</code> as <em>Scoped</em> deliberately:
+                one cache per browser tab on WebAssembly, one per user circuit on Server. Re-registering it
+                as a singleton on Blazor Server would share one user's cached API responses with every
+                other connected user — a data leak, not a performance win.</p>
+        </Callout>
 
-<h2>Add the using</h2>
+        <h2>Add the using</h2>
+    </En>
+    <De>
+        <p>
+            Die gezeigten Optionen sind die Konfiguration dieser Seite selbst. Jede Eigenschaft hat einen
+            sinnvollen Standardwert — siehe <a href="api/deja-options">DejaOptions</a> für die
+            vollständige Liste.
+        </p>
+
+        <Callout Type="Callout.CalloutType.Warning" Title="Blazor Server: bei Scoped bleiben">
+            <p><code>AddDeja()</code> registriert <code>DejaClient</code> bewusst als <em>Scoped</em>:
+                ein Cache pro Browser-Tab auf WebAssembly, einer pro User-Circuit auf dem Server. Es auf
+                Blazor Server als Singleton neu zu registrieren, würde die gecachten API-Antworten eines
+                Users mit allen anderen verbundenen Usern teilen — ein Datenleck, kein Performance-Gewinn.</p>
+        </Callout>
+
+        <h2>Using hinzufügen</h2>
+    </De>
+</Localized>
 
 <CodeBlock FileName="_Imports.razor" Language="cshtml" Code="@UsingSample"/>
 
-<h2>Inherit the component base</h2>
-<p>
-    Components that own queries or mutations inherit <code>DejaComponentBase</code>, which attaches
-    to declared state and re-renders the component when it changes:
-</p>
+<Localized>
+    <En>
+        <h2>Inherit the component base</h2>
+        <p>
+            Components that own queries or mutations inherit <code>DejaComponentBase</code>, which attaches
+            to declared state and re-renders the component when it changes:
+        </p>
+    </En>
+    <De>
+        <h2>Von der Komponenten-Basisklasse erben</h2>
+        <p>
+            Komponenten, die Queries oder Mutations besitzen, erben von <code>DejaComponentBase</code>,
+            das sich an den deklarierten Zustand anhängt und die Komponente neu rendert, wenn er sich
+            ändert:
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock Language="cshtml" Code="@InheritSample"/>
 
-<p>Continue with the <a href="getting-started/quick-start">quick start</a>.</p>
+<Localized>
+    <En>
+        <p>Continue with the <a href="getting-started/quick-start">quick start</a>.</p>
+    </En>
+    <De>
+        <p>Weiter geht's mit dem <a href="getting-started/quick-start">Schnellstart</a>.</p>
+    </De>
+</Localized>
 
 @code {
     private const string RegisterSample = """

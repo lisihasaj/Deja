@@ -1,60 +1,132 @@
 @page "/demos/todo-list"
+@inherits DocPage
 
-<PageTitle>Todo list demo — Deja</PageTitle>
+<PageTitle>@T("Todo list demo — Deja", "Demo: Todo-Liste — Deja")</PageTitle>
 
-<h1>Todo list</h1>
-<p class="lead">
-    Full CRUD against a live API: a keyed query for the list, three mutations for create, update
-    and delete, and <code>SetData</code> applying results to the shared cache.
-</p>
+<Localized>
+    <En>
+        <h1>Todo list</h1>
+        <p class="lead">
+            Full CRUD against a live API: a keyed query for the list, three mutations for create, update
+            and delete, and <code>SetData</code> applying results to the shared cache.
+        </p>
 
-<Callout Type="Callout.CalloutType.Info" Title="Make the state machine visible">
-    <p>Open the demo controls (bottom right) and raise the latency — loading and refetching states
-        become easy to watch. Arm a failure to see the error path.</p>
-</Callout>
+        <Callout Type="Callout.CalloutType.Info" Title="Make the state machine visible">
+            <p>Open the demo controls (bottom right) and raise the latency — loading and refetching states
+                become easy to watch. Arm a failure to see the error path.</p>
+        </Callout>
+    </En>
+    <De>
+        <h1>Todo-Liste</h1>
+        <p class="lead">
+            Vollständiges CRUD gegen eine echte API: eine Query mit Key für die Liste, drei Mutations
+            für Anlegen, Ändern und Löschen, und <code>SetData</code>, das die Ergebnisse in den
+            gemeinsamen Cache schreibt.
+        </p>
 
-<DemoCard Title="Todo list — live" SourceFiles="@(new[] { "TodoListDemo.razor" })">
+        <Callout Type="Callout.CalloutType.Info" Title="Mach die State-Machine sichtbar">
+            <p>Öffne die Demo-Steuerung (unten rechts) und erhöhe die Latenz — Lade- und
+                Refetch-Zustände lassen sich so bequem beobachten. Aktiviere einen Fehler, um den
+                Fehlerpfad zu sehen.</p>
+        </Callout>
+    </De>
+</Localized>
+
+<DemoCard Title='@T("Todo list — live", "Todo-Liste — live")' SourceFiles="@(new[] { "TodoListDemo.razor" })">
     <TodoListDemo/>
 </DemoCard>
 
-<h2>Try the cache yourself</h2>
-<p>
-    Staleness is checked when a component <em>mounts</em>, not on a timer. Sitting on this page
-    will never trigger a refetch on its own, no matter how long you wait — leaving and coming back
-    is what runs the check. Open your browser's network tab and walk through it:
-</p>
-<ol>
-    <li><strong>Load this page.</strong> Cold cache, so the query fetches: one request, skeleton
-        rows, <code>IsLoading</code> lit.</li>
-    <li><strong>Navigate to another demo and come back within 10 seconds.</strong> The list is
-        there immediately and the network tab stays empty — <em>no request at all</em>.
-        <code>IsCachedData</code> is lit, and <code>UpdatedAt</code> still shows the original fetch
-        time. Ten seconds is the site's stale time, set once in
-        <code>Program.cs</code>.</li>
-    <li><strong>Now wait past 10 seconds, navigate away and come back.</strong> The list still
-        renders instantly from cache — no spinner, no skeletons — but this time
-        <code>IsReFetching</code> lights up while a request revalidates in the background, and
-        <code>UpdatedAt</code> and <code>ReFetchCount</code> move when it lands.</li>
-</ol>
-<p>
-    That is the whole point of a stale time: the user never waits, and the network is only hit when
-    the data has aged past what you decided is acceptable. To refresh without leaving, use the
-    <strong>Refetch</strong> button — it bypasses staleness entirely — or invalidate the key from a
-    mutation.
-</p>
+<Localized>
+    <En>
+        <h2>Try the cache yourself</h2>
+        <p>
+            Staleness is checked when a component <em>mounts</em>, not on a timer. Sitting on this page
+            will never trigger a refetch on its own, no matter how long you wait — leaving and coming back
+            is what runs the check. Open your browser's network tab and walk through it:
+        </p>
+        <ol>
+            <li><strong>Load this page.</strong> Cold cache, so the query fetches: one request, skeleton
+                rows, <code>IsLoading</code> lit.</li>
+            <li><strong>Navigate to another demo and come back within 10 seconds.</strong> The list is
+                there immediately and the network tab stays empty — <em>no request at all</em>.
+                <code>IsCachedData</code> is lit, and <code>UpdatedAt</code> still shows the original fetch
+                time. Ten seconds is the site's stale time, set once in
+                <code>Program.cs</code>.</li>
+            <li><strong>Now wait past 10 seconds, navigate away and come back.</strong> The list still
+                renders instantly from cache — no spinner, no skeletons — but this time
+                <code>IsReFetching</code> lights up while a request revalidates in the background, and
+                <code>UpdatedAt</code> and <code>ReFetchCount</code> move when it lands.</li>
+        </ol>
+        <p>
+            That is the whole point of a stale time: the user never waits, and the network is only hit when
+            the data has aged past what you decided is acceptable. To refresh without leaving, use the
+            <strong>Refetch</strong> button — it bypasses staleness entirely — or invalidate the key from a
+            mutation.
+        </p>
 
-<h2>What else to look for</h2>
-<ul>
-    <li>Adds, toggles and deletes go through <code>Mutation&lt;T&gt;</code>; results are applied
-        with <code>DejaClient.SetData</code>'s updater form because JSONPlaceholder fakes writes —
-        a refetch would resurrect the server's canonical list.</li>
-    <li>Every loading flag is on screen at once: the query's badges, a badge row per mutation, an
-        activity line naming whatever is in flight, and spinners on the Add button, the Refetch
-        button and the row being written.</li>
-    <li>The disabled state of the Add button is just <code>_create.IsLoading</code>, and the row
-        spinners are <code>_delete.IsLoading</code> / <code>_update.IsLoading</code>. Because one
-        <code>Mutation&lt;T&gt;</code> serves every row, the demo also remembers which id is being
-        written — the flag says a write is running, the id says which row to mark.</li>
-    <li>Raise the latency in the demo controls to watch the optimistic-looking pending row for a
-        create, the <code>Deleting…</code> row tint, and the skeleton rows on a cold load.</li>
-</ul>
+        <h2>What else to look for</h2>
+        <ul>
+            <li>Adds, toggles and deletes go through <code>Mutation&lt;T&gt;</code>; results are applied
+                with <code>DejaClient.SetData</code>'s updater form because JSONPlaceholder fakes writes —
+                a refetch would resurrect the server's canonical list.</li>
+            <li>Every loading flag is on screen at once: the query's badges, a badge row per mutation, an
+                activity line naming whatever is in flight, and spinners on the Add button, the Refetch
+                button and the row being written.</li>
+            <li>The disabled state of the Add button is just <code>_create.IsLoading</code>, and the row
+                spinners are <code>_delete.IsLoading</code> / <code>_update.IsLoading</code>. Because one
+                <code>Mutation&lt;T&gt;</code> serves every row, the demo also remembers which id is being
+                written — the flag says a write is running, the id says which row to mark.</li>
+            <li>Raise the latency in the demo controls to watch the optimistic-looking pending row for a
+                create, the <code>Deleting…</code> row tint, and the skeleton rows on a cold load.</li>
+        </ul>
+    </En>
+    <De>
+        <h2>Probiere den Cache selbst aus</h2>
+        <p>
+            Ob Daten veraltet sind, wird geprüft, wenn eine Komponente <em>mountet</em> — nicht per
+            Timer. Auf dieser Seite sitzen zu bleiben löst nie von selbst einen Refetch aus, egal wie
+            lange du wartest — erst Weggehen und Zurückkommen führt die Prüfung aus. Öffne den
+            Netzwerk-Tab deines Browsers und geh es Schritt für Schritt durch:
+        </p>
+        <ol>
+            <li><strong>Lade diese Seite.</strong> Der Cache ist kalt, die Query lädt also: ein Request,
+                Skeleton-Zeilen, <code>IsLoading</code> leuchtet.</li>
+            <li><strong>Navigiere zu einer anderen Demo und komm innerhalb von 10 Sekunden zurück.</strong>
+                Die Liste ist sofort da und der Netzwerk-Tab bleibt leer — <em>gar kein Request</em>.
+                <code>IsCachedData</code> leuchtet, und <code>UpdatedAt</code> zeigt noch den Zeitpunkt
+                des ursprünglichen Ladens. Zehn Sekunden ist die Stale-Time dieser Site, einmal gesetzt
+                in <code>Program.cs</code>.</li>
+            <li><strong>Warte jetzt über die 10 Sekunden hinaus, navigiere weg und komm zurück.</strong>
+                Die Liste rendert weiterhin sofort aus dem Cache — kein Spinner, keine Skeletons — aber
+                diesmal leuchtet <code>IsReFetching</code>, während ein Request im Hintergrund
+                revalidiert, und <code>UpdatedAt</code> und <code>ReFetchCount</code> springen um,
+                sobald er landet.</li>
+        </ol>
+        <p>
+            Genau das ist der Sinn einer Stale-Time: Der Nutzer wartet nie, und das Netzwerk wird nur
+            dann belastet, wenn die Daten älter geworden sind, als du für akzeptabel erklärt hast. Um zu
+            aktualisieren, ohne die Seite zu verlassen, nutze den <strong>Refetch</strong>-Button — er
+            umgeht die Aktualitätsprüfung komplett — oder invalidiere den Key aus einer Mutation.
+        </p>
+
+        <h2>Worauf du sonst noch achten solltest</h2>
+        <ul>
+            <li>Anlegen, Umschalten und Löschen laufen über <code>Mutation&lt;T&gt;</code>; die
+                Ergebnisse werden mit der Updater-Form von <code>DejaClient.SetData</code> angewendet,
+                weil JSONPlaceholder Schreibvorgänge nur vortäuscht — ein Refetch würde die kanonische
+                Liste des Servers wiederherstellen.</li>
+            <li>Jedes Lade-Flag ist gleichzeitig auf dem Bildschirm: die Badges der Query, eine
+                Badge-Zeile pro Mutation, eine Aktivitätszeile, die benennt, was gerade läuft, und
+                Spinner auf dem Add-Button, dem Refetch-Button und der Zeile, die gerade geschrieben
+                wird.</li>
+            <li>Der Disabled-Zustand des Add-Buttons ist schlicht <code>_create.IsLoading</code>, und
+                die Zeilen-Spinner sind <code>_delete.IsLoading</code> / <code>_update.IsLoading</code>.
+                Weil eine einzige <code>Mutation&lt;T&gt;</code> alle Zeilen bedient, merkt sich die
+                Demo zusätzlich, welche Id gerade geschrieben wird — das Flag sagt, dass ein
+                Schreibvorgang läuft, die Id sagt, welche Zeile zu markieren ist.</li>
+            <li>Erhöhe die Latenz in der Demo-Steuerung, um die optimistisch wirkende Pending-Zeile beim
+                Anlegen, die <code>Deleting…</code>-Einfärbung der Zeile und die Skeleton-Zeilen bei
+                einem kalten Laden zu beobachten.</li>
+        </ul>
+    </De>
+</Localized>

@@ -1,30 +1,65 @@
 @page "/demos/isolation"
+@inherits DocPage
 
-<PageTitle>Isolation demo — Deja</PageTitle>
+<PageTitle>@T("Isolation demo — Deja", "Demo: Isolation — Deja")</PageTitle>
 
-<h1>Isolation</h1>
-<p class="lead">
-    Two unkeyed sibling components that provably cannot re-render each other: Deja state notifies
-    exactly one listener — its owning component.
-</p>
+<Localized>
+    <En>
+        <h1>Isolation</h1>
+        <p class="lead">
+            Two unkeyed sibling components that provably cannot re-render each other: Deja state notifies
+            exactly one listener — its owning component.
+        </p>
+    </En>
+    <De>
+        <h1>Isolation</h1>
+        <p class="lead">
+            Zwei Geschwister-Komponenten ohne Key, die einander nachweislich nicht neu rendern können:
+            Deja-Zustand benachrichtigt genau einen Listener — die besitzende Komponente.
+        </p>
+    </De>
+</Localized>
 
-<DemoCard Title="Sibling components cannot cross-render" SourceFiles="@(new[] { "IsolationDemo.razor", "IsolationPanel.razor" })">
+<DemoCard Title='@T("Sibling components cannot cross-render", "Geschwister-Komponenten können einander nicht neu rendern")' SourceFiles="@(new[] { "IsolationDemo.razor", "IsolationPanel.razor" })">
     <IsolationDemo/>
 </DemoCard>
 
-<h2>Why this matters</h2>
-<p>
-    Event- or store-based state managers broadcast: one component's refresh marches every
-    subscriber through a re-render. Deja's <code>IDejaObservable</code> holds a
-    <em>single listener slot</em> — attaching a second listener throws, and the one listener is
-    the owning component. The render counters make the guarantee observable: reload panel A as
-    fast as you like, panel B's counter never moves.
-</p>
+<Localized>
+    <En>
+        <h2>Why this matters</h2>
+        <p>
+            Event- or store-based state managers broadcast: one component's refresh marches every
+            subscriber through a re-render. Deja's <code>IDejaObservable</code> holds a
+            <em>single listener slot</em> — attaching a second listener throws, and the one listener is
+            the owning component. The render counters make the guarantee observable: reload panel A as
+            fast as you like, panel B's counter never moves.
+        </p>
 
-<h2>Sharing without coupling</h2>
-<p>
-    When two components should share data, don't share the query — share the <em>cache entry</em>
-    by using the same key (see the <a href="demos/shared-cache">shared cache demo</a>), or pass
-    <code>Data</code> down as a <code>[Parameter]</code>. Both paths keep ownership single and
-    renders scoped.
-</p>
+        <h2>Sharing without coupling</h2>
+        <p>
+            When two components should share data, don't share the query — share the <em>cache entry</em>
+            by using the same key (see the <a href="demos/shared-cache">shared cache demo</a>), or pass
+            <code>Data</code> down as a <code>[Parameter]</code>. Both paths keep ownership single and
+            renders scoped.
+        </p>
+    </En>
+    <De>
+        <h2>Warum das wichtig ist</h2>
+        <p>
+            Event- oder Store-basierte State-Manager senden per Broadcast: Der Refresh einer Komponente
+            zwingt jeden Subscriber durch ein Re-Render. Dejas <code>IDejaObservable</code> hat einen
+            <em>einzigen Listener-Slot</em> — ein zweiter Listener wirft eine Exception, und der eine
+            Listener ist die besitzende Komponente. Die Render-Zähler machen die Garantie beobachtbar:
+            Lade Panel A so schnell neu, wie du willst — der Zähler von Panel B bewegt sich nie.
+        </p>
+
+        <h2>Teilen ohne Kopplung</h2>
+        <p>
+            Wenn zwei Komponenten Daten teilen sollen, teile nicht die Query — teile den
+            <em>Cache-Eintrag</em>, indem du denselben Key verwendest (siehe die Demo
+            <a href="demos/shared-cache">Gemeinsamer Cache</a>), oder reiche <code>Data</code> als
+            <code>[Parameter]</code> nach unten weiter. Beide Wege halten die Besitzverhältnisse
+            eindeutig und Renders lokal begrenzt.
+        </p>
+    </De>
+</Localized>

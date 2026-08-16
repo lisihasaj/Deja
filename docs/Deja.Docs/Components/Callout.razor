@@ -9,15 +9,21 @@
 @code {
     public enum CalloutType { Info, Tip, Warning, Danger }
 
+    [CascadingParameter] public Language Lang { get; set; }
+
     [Parameter] public CalloutType Type { get; set; } = CalloutType.Info;
     [Parameter] public string? Title { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    private string DefaultTitle => Type switch
+    private string DefaultTitle => (Type, Lang) switch
     {
-        CalloutType.Tip => "Tip",
-        CalloutType.Warning => "Warning",
-        CalloutType.Danger => "Danger",
+        (CalloutType.Tip, Language.De) => "Tipp",
+        (CalloutType.Tip, _) => "Tip",
+        (CalloutType.Warning, Language.De) => "Warnung",
+        (CalloutType.Warning, _) => "Warning",
+        (CalloutType.Danger, Language.De) => "Gefahr",
+        (CalloutType.Danger, _) => "Danger",
+        (_, Language.De) => "Hinweis",
         _ => "Note",
     };
 

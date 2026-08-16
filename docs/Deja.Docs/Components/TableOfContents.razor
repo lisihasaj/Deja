@@ -1,4 +1,10 @@
-<aside class="docs-toc" aria-label="On this page">
-    <div class="toc-title">On this page</div>
+<aside class="docs-toc" aria-label="@Title">
+    <div class="toc-title">@Title</div>
     <ul id="toc-list"></ul>
 </aside>
+
+@code {
+    [CascadingParameter] public Language Lang { get; set; }
+
+    private string Title => Lang == Language.De ? "Auf dieser Seite" : "On this page";
+}

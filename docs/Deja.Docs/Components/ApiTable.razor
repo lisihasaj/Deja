@@ -3,12 +3,12 @@
         <thead>
         <tr>
             <th>@NameHeader</th>
-            <th>Type</th>
+            <th>@(Lang == Language.De ? "Typ" : "Type")</th>
             @if (_hasDefaults)
             {
-                <th>Default</th>
+                <th>@(Lang == Language.De ? "Standard" : "Default")</th>
             }
-            <th>Description</th>
+            <th>@(Lang == Language.De ? "Beschreibung" : "Description")</th>
         </tr>
         </thead>
         <tbody>
@@ -29,6 +29,8 @@
 </div>
 
 @code {
+    [CascadingParameter] public Language Lang { get; set; }
+
     [Parameter, EditorRequired] public IReadOnlyList<ApiRow> Rows { get; set; } = [];
     [Parameter] public string NameHeader { get; set; } = "Member";
 

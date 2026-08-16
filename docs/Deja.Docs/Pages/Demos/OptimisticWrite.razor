@@ -1,36 +1,77 @@
 @page "/demos/optimistic-write"
+@inherits DocPage
 
-<PageTitle>Optimistic write demo — Deja</PageTitle>
+<PageTitle>@T("Optimistic write demo — Deja", "Demo: Optimistisches Schreiben — Deja")</PageTitle>
 
-<h1>Optimistic write</h1>
-<p class="lead">
-    Flip the UI immediately with <code>SetData</code>'s updater form, run the request after, and
-    roll back to a snapshot if it fails.
-</p>
+<Localized>
+    <En>
+        <h1>Optimistic write</h1>
+        <p class="lead">
+            Flip the UI immediately with <code>SetData</code>'s updater form, run the request after, and
+            roll back to a snapshot if it fails.
+        </p>
+    </En>
+    <De>
+        <h1>Optimistisches Schreiben</h1>
+        <p class="lead">
+            Schalte die UI sofort um — mit der Updater-Form von <code>SetData</code> —, führe den
+            Request danach aus, und rolle bei einem Fehler auf einen Snapshot zurück.
+        </p>
+    </De>
+</Localized>
 
-<DemoCard Title="Optimistic toggle with rollback" SourceFiles="@(new[] { "OptimisticWriteDemo.razor" })">
+<DemoCard Title='@T("Optimistic toggle with rollback", "Optimistisches Umschalten mit Rollback")' SourceFiles="@(new[] { "OptimisticWriteDemo.razor" })">
     <OptimisticWriteDemo/>
 </DemoCard>
 
-<h2>The pattern</h2>
-<ol>
-    <li><strong>Snapshot</strong> — <code>Client.GetData&lt;T&gt;(key)</code> captures the current
-        value.</li>
-    <li><strong>Optimistic write</strong> — <code>Client.SetData(key, updater)</code> transforms
-        the cached value; every subscribed query re-renders instantly, before any network
-        traffic.</li>
-    <li><strong>The real request</strong> — a normal <code>Mutation&lt;T&gt;</code>.</li>
-    <li><strong>Rollback on error</strong> — the <code>OnError</code> callback writes the snapshot
-        back.</li>
-</ol>
+<Localized>
+    <En>
+        <h2>The pattern</h2>
+        <ol>
+            <li><strong>Snapshot</strong> — <code>Client.GetData&lt;T&gt;(key)</code> captures the current
+                value.</li>
+            <li><strong>Optimistic write</strong> — <code>Client.SetData(key, updater)</code> transforms
+                the cached value; every subscribed query re-renders instantly, before any network
+                traffic.</li>
+            <li><strong>The real request</strong> — a normal <code>Mutation&lt;T&gt;</code>.</li>
+            <li><strong>Rollback on error</strong> — the <code>OnError</code> callback writes the snapshot
+                back.</li>
+        </ol>
 
-<Callout Type="Callout.CalloutType.Tip" Title="Try the failure path">
-    <p>Click "Arm a failure, then toggle": the checkbox flips instantly, the request fails ~a
-        second later (raise the latency to stretch it out), and the rollback snaps it back.</p>
-</Callout>
+        <Callout Type="Callout.CalloutType.Tip" Title="Try the failure path">
+            <p>Click "Arm a failure, then toggle": the checkbox flips instantly, the request fails ~a
+                second later (raise the latency to stretch it out), and the rollback snaps it back.</p>
+        </Callout>
 
-<p>
-    For the non-optimistic alternative — wait for the server, then let it decide — use
-    <code>InvalidateKeys</code> on the mutation instead, as in the
-    <a href="guides/mutations">mutations guide</a>.
-</p>
+        <p>
+            For the non-optimistic alternative — wait for the server, then let it decide — use
+            <code>InvalidateKeys</code> on the mutation instead, as in the
+            <a href="guides/mutations">mutations guide</a>.
+        </p>
+    </En>
+    <De>
+        <h2>Das Muster</h2>
+        <ol>
+            <li><strong>Snapshot</strong> — <code>Client.GetData&lt;T&gt;(key)</code> hält den aktuellen
+                Wert fest.</li>
+            <li><strong>Optimistischer Schreibvorgang</strong> — <code>Client.SetData(key, updater)</code>
+                transformiert den gecachten Wert; jede abonnierte Query rendert sofort neu, noch vor
+                jeglichem Netzwerkverkehr.</li>
+            <li><strong>Der echte Request</strong> — eine ganz normale <code>Mutation&lt;T&gt;</code>.</li>
+            <li><strong>Rollback bei Fehler</strong> — der <code>OnError</code>-Callback schreibt den
+                Snapshot zurück.</li>
+        </ol>
+
+        <Callout Type="Callout.CalloutType.Tip" Title="Probiere den Fehlerpfad aus">
+            <p>Klicke auf „Arm a failure, then toggle“: Die Checkbox schaltet sofort um, der Request
+                schlägt etwa eine Sekunde später fehl (erhöhe die Latenz, um das zu strecken), und der
+                Rollback schnappt sie zurück.</p>
+        </Callout>
+
+        <p>
+            Für die nicht-optimistische Alternative — auf den Server warten und ihn entscheiden lassen —
+            nutze stattdessen <code>InvalidateKeys</code> auf der Mutation, wie im
+            <a href="guides/mutations">Mutations-Guide</a>.
+        </p>
+    </De>
+</Localized>

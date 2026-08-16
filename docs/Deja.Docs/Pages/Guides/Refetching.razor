@@ -1,77 +1,161 @@
 @page "/guides/refetching"
+@inherits DocPage
 
-<PageTitle>Refetching & staleness — Deja</PageTitle>
+<PageTitle>@T("Refetching & staleness — Deja", "Refetching & Aktualität — Deja")</PageTitle>
 
-<h1>Refetching &amp; staleness</h1>
-<p class="lead">
-    Stale time decides when cached data needs revalidating; <code>Refetch()</code> is the explicit
-    override that always fetches.
-</p>
+<Localized>
+    <En>
+        <h1>Refetching &amp; staleness</h1>
+        <p class="lead">
+            Stale time decides when cached data needs revalidating; <code>Refetch()</code> is the explicit
+            override that always fetches.
+        </p>
 
-<h2>Stale time</h2>
-<p>
-    Data is <em>fresh</em> for <code>StaleTime</code> after a successful fetch. A keyed
-    <code>Execute</code> that finds fresh data serves the cache and does <strong>not</strong>
-    fetch. The library default is <code>TimeSpan.Zero</code> — cached data renders instantly but
-    is always revalidated in the background on the next mount. "Cached" does not mean "no
-    request" unless you raise the stale time (this site uses 10 seconds).
-</p>
+        <h2>Stale time</h2>
+        <p>
+            Data is <em>fresh</em> for <code>StaleTime</code> after a successful fetch. A keyed
+            <code>Execute</code> that finds fresh data serves the cache and does <strong>not</strong>
+            fetch. The library default is <code>TimeSpan.Zero</code> — cached data renders instantly but
+            is always revalidated in the background on the next mount. "Cached" does not mean "no
+            request" unless you raise the stale time (this site uses 10 seconds).
+        </p>
 
-<h2>RefetchOnMount</h2>
-<p>Controls whether a keyed <code>Execute</code> that finds cached data also refetches:</p>
+        <h2>RefetchOnMount</h2>
+        <p>Controls whether a keyed <code>Execute</code> that finds cached data also refetches:</p>
+    </En>
+    <De>
+        <h1>Refetching &amp; Aktualität</h1>
+        <p class="lead">
+            Die Stale-Time entscheidet, wann gecachte Daten revalidiert werden müssen;
+            <code>Refetch()</code> ist der explizite Override, der immer lädt.
+        </p>
 
-<ApiTable NameHeader="Value" Rows="@_refetchOnMount"/>
+        <h2>Stale-Time</h2>
+        <p>
+            Nach einem erfolgreichen Fetch sind Daten für die Dauer von <code>StaleTime</code>
+            <em>frisch</em>. Ein <code>Execute</code> mit Key, das frische Daten findet, liefert den
+            Cache und lädt <strong>nicht</strong>. Der Bibliotheks-Default ist
+            <code>TimeSpan.Zero</code> — gecachte Daten rendern sofort, werden beim nächsten Mount aber
+            immer im Hintergrund revalidiert. „Gecacht“ heißt erst dann „kein Request“, wenn du die
+            Stale-Time erhöhst (diese Seite verwendet 10 Sekunden).
+        </p>
 
-<p>
-    A key with no cached data always fetches, regardless of this setting — and an
-    <em>invalidated</em> entry refetches even under <code>Never</code>: invalidation is an
-    explicit request, not a mount policy.
-</p>
+        <h2>RefetchOnMount</h2>
+        <p>Steuert, ob ein <code>Execute</code> mit Key, das gecachte Daten findet, zusätzlich neu lädt:</p>
+    </De>
+</Localized>
 
-<h2>Manual Refetch()</h2>
-<p>
-    <code>Refetch()</code> re-runs the last <code>Execute</code> with a forced fresh fetch —
-    staleness, <code>RefetchOnMount</code> and <code>Enabled</code> are all bypassed. On the
-    cached path the result updates the shared entry, so every component on the key re-renders; a
-    concurrent same-key fetch is joined rather than duplicated. Before the first
-    <code>Execute</code> (or after disposal) it does nothing.
-</p>
+<ApiTable NameHeader='@T("Value", "Wert")' Rows="@Rows"/>
+
+<Localized>
+    <En>
+        <p>
+            A key with no cached data always fetches, regardless of this setting — and an
+            <em>invalidated</em> entry refetches even under <code>Never</code>: invalidation is an
+            explicit request, not a mount policy.
+        </p>
+
+        <h2>Manual Refetch()</h2>
+        <p>
+            <code>Refetch()</code> re-runs the last <code>Execute</code> with a forced fresh fetch —
+            staleness, <code>RefetchOnMount</code> and <code>Enabled</code> are all bypassed. On the
+            cached path the result updates the shared entry, so every component on the key re-renders; a
+            concurrent same-key fetch is joined rather than duplicated. Before the first
+            <code>Execute</code> (or after disposal) it does nothing.
+        </p>
+    </En>
+    <De>
+        <p>
+            Ein Key ohne gecachte Daten lädt immer, unabhängig von dieser Einstellung — und ein
+            <em>invalidierter</em> Eintrag lädt selbst unter <code>Never</code> neu: Invalidierung ist
+            eine explizite Anforderung, keine Mount-Policy.
+        </p>
+
+        <h2>Manuelles Refetch()</h2>
+        <p>
+            <code>Refetch()</code> führt das letzte <code>Execute</code> mit erzwungenem frischem Fetch
+            erneut aus — die Stale-Prüfung, <code>RefetchOnMount</code> und <code>Enabled</code> werden
+            allesamt umgangen. Auf dem gecachten Pfad aktualisiert das Ergebnis den gemeinsamen Eintrag,
+            jede Komponente auf dem Key rendert also neu; einem parallelen Fetch auf demselben Key wird
+            beigetreten, statt ihn zu duplizieren. Vor dem ersten <code>Execute</code> (oder nach dem
+            Disposen) tut es nichts.
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock Code="@RefetchSample"/>
 
-<h2>One-shot overrides</h2>
-<p>
-    <code>RefetchParameters&lt;T&gt;</code> can override callbacks, the token, and the stale/cache
-    times — for that call only. The key and fetch function always come from the last
-    <code>Execute</code>: changing those is a new query, not a refetch. A later bare
-    <code>Refetch()</code> is unaffected by earlier overrides.
-</p>
+<Localized>
+    <En>
+        <h2>One-shot overrides</h2>
+        <p>
+            <code>RefetchParameters&lt;T&gt;</code> can override callbacks, the token, and the stale/cache
+            times — for that call only. The key and fetch function always come from the last
+            <code>Execute</code>: changing those is a new query, not a refetch. A later bare
+            <code>Refetch()</code> is unaffected by earlier overrides.
+        </p>
 
-<h2>Precedence of defaults</h2>
-<p>Wherever stale time, cache time or <code>RefetchOnMount</code> can be set, the chain is:</p>
+        <h2>Precedence of defaults</h2>
+        <p>Wherever stale time, cache time or <code>RefetchOnMount</code> can be set, the chain is:</p>
 
-<ol>
-    <li>the per-execution value on <code>QueryParameters&lt;T&gt;</code>,</li>
-    <li>else the longest matching prefix registered via
-        <code>DejaClient.SetDefaults</code>,</li>
-    <li>else the global <code>DejaOptions</code> default.</li>
-</ol>
+        <ol>
+            <li>the per-execution value on <code>QueryParameters&lt;T&gt;</code>,</li>
+            <li>else the longest matching prefix registered via
+                <code>DejaClient.SetDefaults</code>,</li>
+            <li>else the global <code>DejaOptions</code> default.</li>
+        </ol>
+    </En>
+    <De>
+        <h2>Einmalige Overrides</h2>
+        <p>
+            <code>RefetchParameters&lt;T&gt;</code> kann Callbacks, den Token und die Stale-/Cache-Zeiten
+            überschreiben — nur für diesen einen Aufruf. Key und Fetch-Funktion kommen immer vom letzten
+            <code>Execute</code>: Sie zu ändern ist eine neue Query, kein Refetch. Ein späteres
+            <code>Refetch()</code> ohne Parameter bleibt von früheren Overrides unberührt.
+        </p>
+
+        <h2>Vorrang der Defaults</h2>
+        <p>Überall, wo Stale-Time, Cache-Time oder <code>RefetchOnMount</code> gesetzt werden können,
+            gilt die Kette:</p>
+
+        <ol>
+            <li>der Wert pro Ausführung auf <code>QueryParameters&lt;T&gt;</code>,</li>
+            <li>sonst das längste passende Präfix, registriert über
+                <code>DejaClient.SetDefaults</code>,</li>
+            <li>sonst der globale <code>DejaOptions</code>-Default.</li>
+        </ol>
+    </De>
+</Localized>
 
 <CodeBlock Code="@DefaultsSample"/>
 
-<h2>Live demo</h2>
+<Localized>
+    <En>
+        <h2>Live demo</h2>
+    </En>
+    <De>
+        <h2>Live-Demo</h2>
+    </De>
+</Localized>
 
-<DemoCard Title="Refetch and IsReFetching" SourceFiles="@(new[] { "RefetchDemo.razor" })">
+<DemoCard Title='@T("Refetch and IsReFetching", "Refetch und IsReFetching")' SourceFiles="@(new[] { "RefetchDemo.razor" })">
     <RefetchDemo/>
 </DemoCard>
 
 @code {
-    private static readonly ApiRow[] _refetchOnMount =
-    [
-        new("IfStale", "default", null, "Refetch in the background only when the data is older than the stale time."),
-        new("Always", "", null, "Always refetch in the background, even while fresh."),
-        new("Never", "", null, "Serve the cache and never refetch on mount. Invalidation still refetches."),
-    ];
+    private ApiRow[] Rows => De
+        ?
+        [
+            new("IfStale", "default", null, "Lädt nur dann im Hintergrund neu, wenn die Daten älter als die Stale-Time sind."),
+            new("Always", "", null, "Lädt immer im Hintergrund neu, auch solange die Daten frisch sind."),
+            new("Never", "", null, "Liefert den Cache und lädt beim Mount nie neu. Invalidierung lädt weiterhin neu."),
+        ]
+        :
+        [
+            new("IfStale", "default", null, "Refetch in the background only when the data is older than the stale time."),
+            new("Always", "", null, "Always refetch in the background, even while fresh."),
+            new("Never", "", null, "Serve the cache and never refetch on mount. Invalidation still refetches."),
+        ];
 
     private const string RefetchSample = """
 <button @onclick="() => _todos.Refetch()">Refresh</button>

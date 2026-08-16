@@ -3,7 +3,7 @@
 @inject NavigationManager Nav
 @inject IJSRuntime Js
 
-<a class="skip-link" href="#docs-content">Skip to content</a>
+<a class="skip-link" href="#docs-content">@(Lang == Language.De ? "Zum Inhalt springen" : "Skip to content")</a>
 
 <SiteHeader ShowSidebarToggle="true" OnToggleSidebar="ToggleSidebar"/>
 
@@ -23,12 +23,25 @@
 <DemoControls/>
 
 @code {
+    [CascadingParameter] public Language Lang { get; set; }
+
     private bool _sidebarOpen;
     private bool _rebuildToc = true;
+    private Language _tocLang;
 
     protected override void OnInitialized()
     {
         Nav.LocationChanged += OnLocationChanged;
+    }
+
+    // Headings change with the language, so the ToC is rebuilt after a switch.
+    protected override void OnParametersSet()
+    {
+        if (_tocLang != Lang)
+        {
+            _tocLang = Lang;
+            _rebuildToc = true;
+        }
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)

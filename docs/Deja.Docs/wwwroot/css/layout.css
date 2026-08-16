@@ -177,6 +177,12 @@ h1 {
   fill: currentColor;
 }
 
+.lang-toggle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
 /* ---- Docs grid ---- */
 
 .docs-shell {

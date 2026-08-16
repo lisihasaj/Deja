@@ -1,162 +1,334 @@
 @page "/guides/rendering"
+@inherits DocPage
 
-<PageTitle>Rendering &amp; re-renders — Deja</PageTitle>
+<PageTitle>@T("Rendering & re-renders — Deja", "Rendering & Re-Renders — Deja")</PageTitle>
 
-<h1>Rendering &amp; re-renders</h1>
-<p class="lead">
-    A component should re-render when what it displays changes — and not otherwise. Deja enforces
-    that on three levels: a query notifies once per state transition, a notification that would
-    repeat the previous one is dropped, and a render already queued absorbs the ones behind it.
-</p>
+<Localized>
+    <En>
+        <h1>Rendering &amp; re-renders</h1>
+        <p class="lead">
+            A component should re-render when what it displays changes — and not otherwise. Deja enforces
+            that on three levels: a query notifies once per state transition, a notification that would
+            repeat the previous one is dropped, and a render already queued absorbs the ones behind it.
+        </p>
 
-<h2>The contract</h2>
-<p>
-    One request costs a component <strong>two renders</strong>: one when the request starts, one
-    when it finishes. That holds whether it is the first fetch or the hundredth refetch, and
-    whether it succeeds or fails.
-</p>
+        <h2>The contract</h2>
+        <p>
+            One request costs a component <strong>two renders</strong>: one when the request starts, one
+            when it finishes. That holds whether it is the first fetch or the hundredth refetch, and
+            whether it succeeds or fails.
+        </p>
 
-<div class="table-wrap">
-    <table class="api-table">
-        <thead>
-        <tr>
-            <th>Transition</th>
-            <th>Renders</th>
-            <th>What the component sees</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr>
-            <td>Request starts</td>
-            <td><code>1</code></td>
-            <td><code>IsLoading</code> on — plus <code>IsReFetching</code> from the second run onward</td>
-        </tr>
-        <tr>
-            <td>Request succeeds</td>
-            <td><code>1</code></td>
-            <td><code>Data</code> published with the loading flags already cleared</td>
-        </tr>
-        <tr>
-            <td>Request fails</td>
-            <td><code>1</code></td>
-            <td><code>IsError</code> and <code>ErrorMessage</code> set, flags cleared</td>
-        </tr>
-        <tr>
-            <td>Request cancelled or superseded</td>
-            <td><code>0</code></td>
-            <td>Nothing — the superseding request drives the next render</td>
-        </tr>
-        </tbody>
-    </table>
-</div>
+        <div class="table-wrap">
+            <table class="api-table">
+                <thead>
+                <tr>
+                    <th>Transition</th>
+                    <th>Renders</th>
+                    <th>What the component sees</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>Request starts</td>
+                    <td><code>1</code></td>
+                    <td><code>IsLoading</code> on — plus <code>IsReFetching</code> from the second run onward</td>
+                </tr>
+                <tr>
+                    <td>Request succeeds</td>
+                    <td><code>1</code></td>
+                    <td><code>Data</code> published with the loading flags already cleared</td>
+                </tr>
+                <tr>
+                    <td>Request fails</td>
+                    <td><code>1</code></td>
+                    <td><code>IsError</code> and <code>ErrorMessage</code> set, flags cleared</td>
+                </tr>
+                <tr>
+                    <td>Request cancelled or superseded</td>
+                    <td><code>0</code></td>
+                    <td>Nothing — the superseding request drives the next render</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
 
-<Callout Type="Callout.CalloutType.Info" Title="The one case that costs a third render">
-    <p>A success callback (<code>OnSuccess</code> / <code>OnSuccessAsync</code>) makes the data
-        publish a separate render, on purpose: the callback often touches other component state,
-        and it must not run behind a screen still showing the previous data. Without a callback
-        there is nothing to sequence, so the publish and the flag clear are one render. The same
-        applies to a mutation's <code>InvalidateKeys</code>.</p>
-</Callout>
+        <Callout Type="Callout.CalloutType.Info" Title="The one case that costs a third render">
+            <p>A success callback (<code>OnSuccess</code> / <code>OnSuccessAsync</code>) makes the data
+                publish a separate render, on purpose: the callback often touches other component state,
+                and it must not run behind a screen still showing the previous data. Without a callback
+                there is nothing to sequence, so the publish and the flag clear are one render. The same
+                applies to a mutation's <code>InvalidateKeys</code>.</p>
+        </Callout>
 
-<h2>A transition that changes nothing renders nothing</h2>
-<p>
-    Every notification is checked against the last one the owner received. If nothing bindable has
-    moved — <code>IsLoading</code>, <code>IsReFetching</code>, <code>IsError</code>,
-    <code>ErrorMessage</code>, <code>Data</code>, <code>UpdatedAt</code>,
-    <code>IsCachedData</code>, <code>IsStale</code> — the notification is dropped and the component
-    is not touched.
-</p>
-<p>
-    This is what keeps the cached path honest, because there a single event is legitimately
-    announced from two directions: your <code>Execute</code> sets <code>IsLoading</code>, and the
-    shared cache entry then reports the same fetch starting to every subscriber. Both describe one
-    transition, so the component renders once — and a component merely <em>subscribed</em> to a key
-    someone else is refetching renders once per change to the entry, not once per notification the
-    entry emits.
-</p>
+        <h2>A transition that changes nothing renders nothing</h2>
+        <p>
+            Every notification is checked against the last one the owner received. If nothing bindable has
+            moved — <code>IsLoading</code>, <code>IsReFetching</code>, <code>IsError</code>,
+            <code>ErrorMessage</code>, <code>Data</code>, <code>UpdatedAt</code>,
+            <code>IsCachedData</code>, <code>IsStale</code> — the notification is dropped and the component
+            is not touched.
+        </p>
+        <p>
+            This is what keeps the cached path honest, because there a single event is legitimately
+            announced from two directions: your <code>Execute</code> sets <code>IsLoading</code>, and the
+            shared cache entry then reports the same fetch starting to every subscriber. Both describe one
+            transition, so the component renders once — and a component merely <em>subscribed</em> to a key
+            someone else is refetching renders once per change to the entry, not once per notification the
+            entry emits.
+        </p>
 
-<Callout Type="Callout.CalloutType.Info" Title="This is deduplication, not a render budget">
-    <p>A refetch still renders twice even when the response is identical: <code>IsLoading</code>
-        and <code>IsReFetching</code> genuinely go on and then off, and a spinner bound to them has
-        to follow. What the check removes is the render that would have published data the
-        component was already displaying — not the honest ones on either side of it.</p>
-</Callout>
+        <Callout Type="Callout.CalloutType.Info" Title="This is deduplication, not a render budget">
+            <p>A refetch still renders twice even when the response is identical: <code>IsLoading</code>
+                and <code>IsReFetching</code> genuinely go on and then off, and a spinner bound to them has
+                to follow. What the check removes is the render that would have published data the
+                component was already displaying — not the honest ones on either side of it.</p>
+        </Callout>
 
-<Callout Type="Callout.CalloutType.Warning" Title="Data is compared by reference">
-    <p>A refetch returning a new list instance renders even when the contents are equal — Deja will
-        not deep-compare your DTOs on every notification. If your API returns fresh instances of
-        equal data and you want that suppressed, enable
-        <code>DejaOptions.StructuralComparison</code>, which compares at the cache entry with
-        <code>EqualityComparer&lt;T&gt;.Default</code> and keeps the existing reference when they
-        match. Records get this for free; classes need <code>Equals</code>.</p>
-</Callout>
+        <Callout Type="Callout.CalloutType.Warning" Title="Data is compared by reference">
+            <p>A refetch returning a new list instance renders even when the contents are equal — Deja will
+                not deep-compare your DTOs on every notification. If your API returns fresh instances of
+                equal data and you want that suppressed, enable
+                <code>DejaOptions.StructuralComparison</code>, which compares at the cache entry with
+                <code>EqualityComparer&lt;T&gt;.Default</code> and keeps the existing reference when they
+                match. Records get this for free; classes need <code>Equals</code>.</p>
+        </Callout>
 
-<h2>Concurrent requests share renders</h2>
-<p>
-    A component that starts several queries at once — a dashboard, a detail page pulling from three
-    endpoints — does not pay a render per query per transition. While a render is queued, further
-    notifications ride on it instead of queueing their own, so completions landing together are
-    absorbed into one pass.
-</p>
-<p>
-    The effect scales with how much a component loads. Three queries started together cost six
-    renders instead of nine; the surplus was one wasted pass per query, every time it ran.
-</p>
+        <h2>Concurrent requests share renders</h2>
+        <p>
+            A component that starts several queries at once — a dashboard, a detail page pulling from three
+            endpoints — does not pay a render per query per transition. While a render is queued, further
+            notifications ride on it instead of queueing their own, so completions landing together are
+            absorbed into one pass.
+        </p>
+        <p>
+            The effect scales with how much a component loads. Three queries started together cost six
+            renders instead of nine; the surplus was one wasted pass per query, every time it ran.
+        </p>
 
-<div class="table-wrap">
-    <table class="api-table">
-        <thead>
-        <tr>
-            <th>Scenario</th>
-            <th>Renders</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr>
-            <td>One request, no callbacks</td>
-            <td><code>2</code></td>
-        </tr>
-        <tr>
-            <td>One request, with <code>OnSuccess</code></td>
-            <td><code>3</code></td>
-        </tr>
-        <tr>
-            <td>Three queries loading together</td>
-            <td><code>6</code> — at most two each, fewer when completions overlap</td>
-        </tr>
-        <tr>
-            <td>A component watching a key another component refetches</td>
-            <td><code>3</code> — fetch starts, data arrives, fetch ends; driven by the entry, never
-                by the other component</td>
-        </tr>
-        </tbody>
-    </table>
-</div>
-<p>
-    Coalescing never <em>defers</em> a render past the notification that caused it. Once you have
-    awaited an <code>Execute</code>, the component has rendered — so tests that assert on markup
-    straight after an await keep working, and nothing is batched behind a timer.
-</p>
+        <div class="table-wrap">
+            <table class="api-table">
+                <thead>
+                <tr>
+                    <th>Scenario</th>
+                    <th>Renders</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>One request, no callbacks</td>
+                    <td><code>2</code></td>
+                </tr>
+                <tr>
+                    <td>One request, with <code>OnSuccess</code></td>
+                    <td><code>3</code></td>
+                </tr>
+                <tr>
+                    <td>Three queries loading together</td>
+                    <td><code>6</code> — at most two each, fewer when completions overlap</td>
+                </tr>
+                <tr>
+                    <td>A component watching a key another component refetches</td>
+                    <td><code>3</code> — fetch starts, data arrives, fetch ends; driven by the entry, never
+                        by the other component</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p>
+            Coalescing never <em>defers</em> a render past the notification that caused it. Once you have
+            awaited an <code>Execute</code>, the component has rendered — so tests that assert on markup
+            straight after an await keep working, and nothing is batched behind a timer.
+        </p>
 
-<h2>Renders stay inside the owning component</h2>
-<p>
-    None of this crosses a component boundary. Deja state notifies exactly one listener — the
-    component that owns it — so a sibling's fetch can never render you. Components sharing a
-    <a href="guides/query-keys">key</a> are updated by the cache entry they both subscribe to, each
-    still rendering only itself. The <a href="demos/isolation">isolation demo</a> makes that
-    observable.
-</p>
+        <h2>Renders stay inside the owning component</h2>
+        <p>
+            None of this crosses a component boundary. Deja state notifies exactly one listener — the
+            component that owns it — so a sibling's fetch can never render you. Components sharing a
+            <a href="guides/query-keys">key</a> are updated by the cache entry they both subscribe to, each
+            still rendering only itself. The <a href="demos/isolation">isolation demo</a> makes that
+            observable.
+        </p>
 
-<h2>Live demo</h2>
+        <h2>Live demo</h2>
+    </En>
+    <De>
+        <h1>Rendering &amp; Re-Renders</h1>
+        <p class="lead">
+            Eine Komponente sollte neu rendern, wenn sich ändert, was sie anzeigt — und sonst nicht.
+            Deja setzt das auf drei Ebenen durch: Eine Query benachrichtigt einmal pro Zustandsübergang,
+            eine Benachrichtigung, die die vorherige nur wiederholen würde, wird verworfen, und ein
+            bereits eingereihter Render absorbiert die dahinter.
+        </p>
 
-<DemoCard Title="Render counts across three concurrent queries" SourceFiles="@(new[] { "RenderCountDemo.razor" })">
+        <h2>Der Vertrag</h2>
+        <p>
+            Ein Request kostet eine Komponente <strong>zwei Renders</strong>: einen beim Start des
+            Requests, einen bei dessen Abschluss. Das gilt beim ersten Fetch genauso wie beim hundertsten
+            Refetch — und bei Erfolg genauso wie bei Fehlschlag.
+        </p>
+
+        <div class="table-wrap">
+            <table class="api-table">
+                <thead>
+                <tr>
+                    <th>Übergang</th>
+                    <th>Renders</th>
+                    <th>Was die Komponente sieht</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>Request startet</td>
+                    <td><code>1</code></td>
+                    <td><code>IsLoading</code> an — ab dem zweiten Lauf zusätzlich <code>IsReFetching</code></td>
+                </tr>
+                <tr>
+                    <td>Request gelingt</td>
+                    <td><code>1</code></td>
+                    <td><code>Data</code> wird veröffentlicht, die Lade-Flags sind bereits zurückgesetzt</td>
+                </tr>
+                <tr>
+                    <td>Request schlägt fehl</td>
+                    <td><code>1</code></td>
+                    <td><code>IsError</code> und <code>ErrorMessage</code> gesetzt, Flags zurückgesetzt</td>
+                </tr>
+                <tr>
+                    <td>Request abgebrochen oder verdrängt</td>
+                    <td><code>0</code></td>
+                    <td>Nichts — der verdrängende Request treibt den nächsten Render an</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <Callout Type="Callout.CalloutType.Info" Title="Der eine Fall, der einen dritten Render kostet">
+            <p>Ein Success-Callback (<code>OnSuccess</code> / <code>OnSuccessAsync</code>) macht das
+                Veröffentlichen der Daten absichtlich zu einem eigenen Render: Der Callback verändert oft
+                weiteren Zustand der Komponente und darf nicht hinter einem Bildschirm laufen, der noch
+                die alten Daten zeigt. Ohne Callback gibt es nichts zu sequenzieren, also sind das
+                Veröffentlichen und das Zurücksetzen der Flags ein Render. Dasselbe gilt für die
+                <code>InvalidateKeys</code> einer Mutation.</p>
+        </Callout>
+
+        <h2>Ein Übergang, der nichts ändert, rendert nichts</h2>
+        <p>
+            Jede Benachrichtigung wird mit der letzten verglichen, die der Besitzer erhalten hat. Hat sich
+            nichts Bindbares bewegt — <code>IsLoading</code>, <code>IsReFetching</code>, <code>IsError</code>,
+            <code>ErrorMessage</code>, <code>Data</code>, <code>UpdatedAt</code>,
+            <code>IsCachedData</code>, <code>IsStale</code> — wird die Benachrichtigung verworfen und die
+            Komponente nicht angefasst.
+        </p>
+        <p>
+            Genau das hält den Cache-Pfad ehrlich, denn dort wird ein einzelnes Ereignis legitim aus zwei
+            Richtungen gemeldet: Dein <code>Execute</code> setzt <code>IsLoading</code>, und der gemeinsame
+            Cache-Eintrag meldet anschließend denselben startenden Fetch an jeden Subscriber. Beide
+            beschreiben einen Übergang, also rendert die Komponente einmal — und eine Komponente, die
+            einen Key, den jemand anderes gerade neu lädt, nur <em>abonniert</em> hat, rendert einmal pro
+            Änderung am Eintrag, nicht einmal pro Benachrichtigung, die der Eintrag aussendet.
+        </p>
+
+        <Callout Type="Callout.CalloutType.Info" Title="Das ist Deduplizierung, kein Render-Budget">
+            <p>Ein Refetch rendert weiterhin zweimal, selbst wenn die Antwort identisch ist:
+                <code>IsLoading</code> und <code>IsReFetching</code> gehen tatsächlich an und wieder aus,
+                und ein daran gebundener Spinner muss folgen. Was die Prüfung entfernt, ist der Render,
+                der Daten veröffentlicht hätte, die die Komponente bereits anzeigt — nicht die ehrlichen
+                davor und danach.</p>
+        </Callout>
+
+        <Callout Type="Callout.CalloutType.Warning" Title="Data wird per Referenz verglichen">
+            <p>Ein Refetch, der eine neue Listeninstanz zurückgibt, rendert auch bei gleichem Inhalt —
+                Deja vergleicht deine DTOs nicht bei jeder Benachrichtigung in der Tiefe. Liefert deine
+                API frische Instanzen gleicher Daten und du willst das unterdrücken, aktiviere
+                <code>DejaOptions.StructuralComparison</code>: Das vergleicht am Cache-Eintrag mit
+                <code>EqualityComparer&lt;T&gt;.Default</code> und behält bei Übereinstimmung die
+                bestehende Referenz. Records bekommen das gratis; Klassen brauchen <code>Equals</code>.</p>
+        </Callout>
+
+        <h2>Parallele Requests teilen sich Renders</h2>
+        <p>
+            Eine Komponente, die mehrere Queries auf einmal startet — ein Dashboard, eine Detailseite, die
+            von drei Endpunkten lädt — zahlt nicht einen Render pro Query und Übergang. Solange ein Render
+            eingereiht ist, reiten weitere Benachrichtigungen auf ihm mit, statt eigene einzureihen;
+            Abschlüsse, die zusammen eintreffen, werden also in einem Durchlauf absorbiert.
+        </p>
+        <p>
+            Der Effekt skaliert damit, wie viel eine Komponente lädt. Drei gemeinsam gestartete Queries
+            kosten sechs Renders statt neun; der Überschuss war ein verschwendeter Durchlauf pro Query —
+            bei jedem Lauf.
+        </p>
+
+        <div class="table-wrap">
+            <table class="api-table">
+                <thead>
+                <tr>
+                    <th>Szenario</th>
+                    <th>Renders</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>Ein Request, keine Callbacks</td>
+                    <td><code>2</code></td>
+                </tr>
+                <tr>
+                    <td>Ein Request, mit <code>OnSuccess</code></td>
+                    <td><code>3</code></td>
+                </tr>
+                <tr>
+                    <td>Drei Queries, die gemeinsam laden</td>
+                    <td><code>6</code> — höchstens zwei pro Query, weniger, wenn sich Abschlüsse überlappen</td>
+                </tr>
+                <tr>
+                    <td>Eine Komponente, die einen Key beobachtet, den eine andere neu lädt</td>
+                    <td><code>3</code> — Fetch startet, Daten treffen ein, Fetch endet; angetrieben vom
+                        Eintrag, nie von der anderen Komponente</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p>
+            Das Zusammenfassen <em>verzögert</em> einen Render nie über die auslösende Benachrichtigung
+            hinaus. Sobald du ein <code>Execute</code> awaited hast, hat die Komponente gerendert — Tests,
+            die direkt nach einem await auf Markup prüfen, funktionieren also weiter, und nichts wird
+            hinter einem Timer gesammelt.
+        </p>
+
+        <h2>Renders bleiben in der besitzenden Komponente</h2>
+        <p>
+            Nichts davon überschreitet eine Komponentengrenze. Deja-Zustand benachrichtigt genau einen
+            Zuhörer — die besitzende Komponente — der Fetch eines Geschwisters kann dich also nie rendern.
+            Komponenten, die sich einen <a href="guides/query-keys">Key</a> teilen, werden vom
+            Cache-Eintrag aktualisiert, den beide abonnieren, und jede rendert weiterhin nur sich selbst.
+            Die <a href="demos/isolation">Isolations-Demo</a> macht das beobachtbar.
+        </p>
+
+        <h2>Live-Demo</h2>
+    </De>
+</Localized>
+
+<DemoCard Title='@T("Render counts across three concurrent queries", "Render-Zähler über drei parallele Queries")' SourceFiles="@(new[] { "RenderCountDemo.razor" })">
     <RenderCountDemo/>
 </DemoCard>
 
-<h2>What this replaces</h2>
-<p>
-    The usual Blazor data-fetching pattern is a <code>StateHasChanged()</code> after every await,
-    which is both easy to forget and easy to overdo — the forgotten one leaves a stale screen, the
-    extra one renders for nothing. Deja components call it never: state transitions drive rendering,
-    and the deduplication above decides which of them are worth a pass.
-</p>
+<Localized>
+    <En>
+        <h2>What this replaces</h2>
+        <p>
+            The usual Blazor data-fetching pattern is a <code>StateHasChanged()</code> after every await,
+            which is both easy to forget and easy to overdo — the forgotten one leaves a stale screen, the
+            extra one renders for nothing. Deja components call it never: state transitions drive rendering,
+            and the deduplication above decides which of them are worth a pass.
+        </p>
+    </En>
+    <De>
+        <h2>Was das ersetzt</h2>
+        <p>
+            Das übliche Blazor-Muster beim Datenladen ist ein <code>StateHasChanged()</code> nach jedem
+            await — leicht zu vergessen und leicht zu übertreiben: Das vergessene hinterlässt einen
+            veralteten Bildschirm, das überflüssige rendert umsonst. Deja-Komponenten rufen es nie auf:
+            Zustandsübergänge treiben das Rendering an, und die Deduplizierung oben entscheidet, welche
+            davon einen Durchlauf wert sind.
+        </p>
+    </De>
+</Localized>

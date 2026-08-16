@@ -1,0 +1,15 @@
+@if (Lang == Language.De && De is not null)
+{
+    @De
+}
+else
+{
+    @En
+}
+
+@code {
+    [CascadingParameter] public Language Lang { get; set; }
+
+    [Parameter, EditorRequired] public RenderFragment? En { get; set; }
+    [Parameter] public RenderFragment? De { get; set; }
+}

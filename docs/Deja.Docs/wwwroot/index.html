@@ -14,6 +14,9 @@
             if (theme === 'dark' || theme === 'light') {
                 document.documentElement.setAttribute('data-theme', theme);
             }
+            if (localStorage.getItem('deja-docs-lang') === 'de') {
+                document.documentElement.lang = 'de';
+            }
         })();
     </script>
     <link rel="stylesheet" href="css/tokens.css"/>

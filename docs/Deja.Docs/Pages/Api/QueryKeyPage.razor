@@ -1,45 +1,103 @@
 @page "/api/query-key"
+@inherits DocPage
 
-<PageTitle>QueryKey — Deja API</PageTitle>
+<PageTitle>@T("QueryKey — Deja API", "QueryKey — Deja API")</PageTitle>
 
-<h1>QueryKey</h1>
-<p class="lead">
-    A structured, ordered cache key with value equality on a canonical form. Segment order
-    matters; dictionary segments are normalised by sorting their keys.
-</p>
+<Localized>
+    <En>
+        <h1>QueryKey</h1>
+        <p class="lead">
+            A structured, ordered cache key with value equality on a canonical form. Segment order
+            matters; dictionary segments are normalised by sorting their keys.
+        </p>
+    </En>
+    <De>
+        <h1>QueryKey</h1>
+        <p class="lead">
+            Ein strukturierter, geordneter Cache-Key mit Wertgleichheit auf einer kanonischen Form.
+            Die Reihenfolge der Segmente zählt; Dictionary-Segmente werden durch Sortieren ihrer
+            Keys normalisiert.
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock Code="public sealed class QueryKey : IEquatable<QueryKey>"/>
 
-<h2>Members</h2>
+<Localized>
+    <En><h2>Members</h2></En>
+    <De><h2>Member</h2></De>
+</Localized>
 
 <ApiMember Id="of" Name="Of" Signature="public static QueryKey Of(params object?[] segments)">
-    <p>Creates a key from ordered segments: <code>QueryKey.Of("todos", "detail", 5)</code>.
-        Supported segment types: strings, numeric primitives, <code>bool</code>, <code>char</code>,
-        <code>Guid</code>, <code>DateTime</code>, <code>DateTimeOffset</code>, <code>DateOnly</code>,
-        <code>TimeOnly</code>, <code>TimeSpan</code>, enums, <code>null</code>, collections of
-        these, string-keyed dictionaries, and any type implementing <code>IQueryKeySegment</code>.
-        Throws <code>ArgumentException</code> for no segments or an unsupported segment type —
-        failing loudly at the call site beats a silently colliding cache entry.</p>
+    <Localized>
+        <En>
+            <p>Creates a key from ordered segments: <code>QueryKey.Of("todos", "detail", 5)</code>.
+                Supported segment types: strings, numeric primitives, <code>bool</code>, <code>char</code>,
+                <code>Guid</code>, <code>DateTime</code>, <code>DateTimeOffset</code>, <code>DateOnly</code>,
+                <code>TimeOnly</code>, <code>TimeSpan</code>, enums, <code>null</code>, collections of
+                these, string-keyed dictionaries, and any type implementing <code>IQueryKeySegment</code>.
+                Throws <code>ArgumentException</code> for no segments or an unsupported segment type —
+                failing loudly at the call site beats a silently colliding cache entry.</p>
+        </En>
+        <De>
+            <p>Erstellt einen Key aus geordneten Segmenten:
+                <code>QueryKey.Of("todos", "detail", 5)</code>. Unterstützte Segmenttypen: Strings,
+                numerische Primitive, <code>bool</code>, <code>char</code>, <code>Guid</code>,
+                <code>DateTime</code>, <code>DateTimeOffset</code>, <code>DateOnly</code>,
+                <code>TimeOnly</code>, <code>TimeSpan</code>, Enums, <code>null</code>, Collections
+                daraus, Dictionaries mit String-Keys sowie jeder Typ, der
+                <code>IQueryKeySegment</code> implementiert. Wirft <code>ArgumentException</code> bei
+                fehlenden Segmenten oder einem nicht unterstützten Segmenttyp — lautes Scheitern an
+                der Aufrufstelle ist besser als ein stillschweigend kollidierender Cache-Eintrag.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="fromstring" Name="FromString"
            Signature="public static QueryKey? FromString(string? key)">
-    <p>The named equivalent of the implicit string conversion. Null and whitespace-only input
-        yields null — no key.</p>
+    <Localized>
+        <En>
+            <p>The named equivalent of the implicit string conversion. Null and whitespace-only input
+                yields null — no key.</p>
+        </En>
+        <De>
+            <p>Das benannte Gegenstück zur impliziten String-Konvertierung. Null oder reiner
+                Whitespace ergibt null — kein Key.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="implicit" Name="implicit operator"
            Signature="public static implicit operator QueryKey?(string? key)">
-    <p>Keeps <code>QueryKey = "todos"</code> call sites compiling and meaning
-        <code>QueryKey.Of("todos")</code>. Null or whitespace converts to null — no key.</p>
+    <Localized>
+        <En>
+            <p>Keeps <code>QueryKey = "todos"</code> call sites compiling and meaning
+                <code>QueryKey.Of("todos")</code>. Null or whitespace converts to null — no key.</p>
+        </En>
+        <De>
+            <p>Hält <code>QueryKey = "todos"</code>-Aufrufstellen kompilierbar — mit der Bedeutung
+                <code>QueryKey.Of("todos")</code>. Null oder Whitespace konvertiert zu null — kein
+                Key.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="startswith" Name="StartsWith"
            Signature="public bool StartsWith(QueryKey prefix)">
-    <p>True when this key's leading segments equal every segment of <code>prefix</code> —
-        <code>["todos", 1]</code> starts with <code>["todos"]</code>. Compared segment-by-segment
-        on canonical forms, never as a string prefix of the whole hash, so <code>["todo"]</code>
-        does not match <code>["todos"]</code>.</p>
+    <Localized>
+        <En>
+            <p>True when this key's leading segments equal every segment of <code>prefix</code> —
+                <code>["todos", 1]</code> starts with <code>["todos"]</code>. Compared segment-by-segment
+                on canonical forms, never as a string prefix of the whole hash, so <code>["todo"]</code>
+                does not match <code>["todos"]</code>.</p>
+        </En>
+        <De>
+            <p>True, wenn die führenden Segmente dieses Keys jedem Segment von <code>prefix</code>
+                entsprechen — <code>["todos", 1]</code> beginnt mit <code>["todos"]</code>. Verglichen
+                wird Segment für Segment auf kanonischen Formen, nie als String-Präfix des gesamten
+                Hashes; <code>["todo"]</code> passt daher nicht auf <code>["todos"]</code>.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="equality" Name="Equality"
@@ -47,26 +105,61 @@
 public static bool operator ==(QueryKey? left, QueryKey? right)
 public static bool operator !=(QueryKey? left, QueryKey? right)
 public override int GetHashCode()">
-    <p>Value equality on the canonical form.</p>
+    <Localized>
+        <En>
+            <p>Value equality on the canonical form.</p>
+        </En>
+        <De>
+            <p>Wertgleichheit auf der kanonischen Form.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="tostring" Name="ToString" Signature="public override string ToString()">
-    <p>The canonical form, e.g. <code>["todos",{"page":2}]</code>.</p>
+    <Localized>
+        <En>
+            <p>The canonical form, e.g. <code>["todos",{"page":2}]</code>.</p>
+        </En>
+        <De>
+            <p>Die kanonische Form, z. B. <code>["todos",{"page":2}]</code>.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
-<h2>Canonicalisation rules</h2>
-<ul>
-    <li>Strings are quoted and escaped, so <code>["a,b"]</code> and <code>["a","b"]</code> cannot
-        collide.</li>
-    <li>Numbers, dates and times use the invariant culture.</li>
-    <li>Enums use their numeric value — a member can be renamed without silently changing cached
-        identity.</li>
-    <li>Dictionaries must be string-keyed and are written with keys in ordinal order, so property
-        order in an ad-hoc filter object doesn't change identity.</li>
-    <li>Collections nest, to a maximum depth of 32 (guards against cyclic graphs).</li>
-    <li>Computed by hand rather than with a JSON serializer, keeping the package dependency-free
-        and trimming/AOT-safe.</li>
-</ul>
+<Localized>
+    <En>
+        <h2>Canonicalisation rules</h2>
+        <ul>
+            <li>Strings are quoted and escaped, so <code>["a,b"]</code> and <code>["a","b"]</code> cannot
+                collide.</li>
+            <li>Numbers, dates and times use the invariant culture.</li>
+            <li>Enums use their numeric value — a member can be renamed without silently changing cached
+                identity.</li>
+            <li>Dictionaries must be string-keyed and are written with keys in ordinal order, so property
+                order in an ad-hoc filter object doesn't change identity.</li>
+            <li>Collections nest, to a maximum depth of 32 (guards against cyclic graphs).</li>
+            <li>Computed by hand rather than with a JSON serializer, keeping the package dependency-free
+                and trimming/AOT-safe.</li>
+        </ul>
+    </En>
+    <De>
+        <h2>Kanonisierungsregeln</h2>
+        <ul>
+            <li>Strings werden in Anführungszeichen gesetzt und escapet, sodass <code>["a,b"]</code>
+                und <code>["a","b"]</code> nicht kollidieren können.</li>
+            <li>Zahlen, Datums- und Zeitwerte verwenden die invariante Culture.</li>
+            <li>Enums verwenden ihren numerischen Wert — ein Member kann umbenannt werden, ohne die
+                gecachte Identität stillschweigend zu ändern.</li>
+            <li>Dictionaries müssen String-Keys haben und werden mit Keys in ordinaler Reihenfolge
+                geschrieben; die Reihenfolge der Properties in einem Ad-hoc-Filterobjekt ändert die
+                Identität also nicht.</li>
+            <li>Collections verschachteln sich, bis zu einer maximalen Tiefe von 32 (schützt vor
+                zyklischen Graphen).</li>
+            <li>Von Hand berechnet statt mit einem JSON-Serializer — das hält das Paket frei von
+                Abhängigkeiten sowie trimming- und AOT-sicher.</li>
+        </ul>
+    </De>
+</Localized>
 
 <h2>IQueryKeySegment</h2>
 
@@ -75,11 +168,25 @@ public override int GetHashCode()">
 {
     string ToKeySegment();
 }">
-    <p>Lets a custom type participate as a key segment. <code>ToKeySegment()</code> must return a
-        stable, deterministic string: equal values equal strings, distinct values distinct
-        strings, across sessions — it participates directly in the key's identity. Deliberately an
-        interface rather than reflection over arbitrary objects: key hashing runs on every cache
-        lookup and must stay trimming- and AOT-safe. Anonymous types therefore cannot be segments —
-        use a <code>Dictionary&lt;string, object?&gt;</code> or a named type implementing this
-        interface.</p>
+    <Localized>
+        <En>
+            <p>Lets a custom type participate as a key segment. <code>ToKeySegment()</code> must return a
+                stable, deterministic string: equal values equal strings, distinct values distinct
+                strings, across sessions — it participates directly in the key's identity. Deliberately an
+                interface rather than reflection over arbitrary objects: key hashing runs on every cache
+                lookup and must stay trimming- and AOT-safe. Anonymous types therefore cannot be segments —
+                use a <code>Dictionary&lt;string, object?&gt;</code> or a named type implementing this
+                interface.</p>
+        </En>
+        <De>
+            <p>Erlaubt einem eigenen Typ, als Key-Segment teilzunehmen. <code>ToKeySegment()</code>
+                muss einen stabilen, deterministischen String zurückgeben: gleiche Werte gleiche
+                Strings, unterschiedliche Werte unterschiedliche Strings, über Sessions hinweg — er
+                geht direkt in die Identität des Keys ein. Bewusst ein Interface statt Reflection
+                über beliebige Objekte: Das Key-Hashing läuft bei jedem Cache-Lookup und muss
+                trimming- und AOT-sicher bleiben. Anonyme Typen können deshalb keine Segmente sein —
+                verwende ein <code>Dictionary&lt;string, object?&gt;</code> oder einen benannten Typ,
+                der dieses Interface implementiert.</p>
+        </De>
+    </Localized>
 </ApiMember>

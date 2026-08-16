@@ -1,71 +1,176 @@
 @page "/api/mutation"
+@inherits DocPage
 
-<PageTitle>Mutation&lt;T&gt; — Deja API</PageTitle>
+<PageTitle>@T("Mutation<T> — Deja API", "Mutation<T> — Deja-API")</PageTitle>
 
-<h1>Mutation&lt;T&gt;</h1>
-<p class="lead">
-    Tracks a single asynchronous write and exposes its lifecycle as bindable state, notifying its
-    attached listener as it advances so the owning component can re-render.
-</p>
+<Localized>
+    <En>
+        <h1>Mutation&lt;T&gt;</h1>
+        <p class="lead">
+            Tracks a single asynchronous write and exposes its lifecycle as bindable state, notifying its
+            attached listener as it advances so the owning component can re-render.
+        </p>
+    </En>
+    <De>
+        <h1>Mutation&lt;T&gt;</h1>
+        <p class="lead">
+            Verfolgt einen einzelnen asynchronen Schreibvorgang und stellt seinen Lebenszyklus als
+            bindbaren Zustand bereit; bei jedem Fortschritt benachrichtigt sie den angehängten Listener,
+            damit die besitzende Komponente neu rendern kann.
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock Code="public class Mutation<T> : DejaObservable"/>
 
-<h2>Constructors</h2>
+<Localized>
+    <En>
+        <h2>Constructors</h2>
+    </En>
+    <De>
+        <h2>Konstruktoren</h2>
+    </De>
+</Localized>
 
 <ApiMember Id="ctor" Name="Mutation()" Signature="public Mutation()">
-    <p>Creates a mutation that resolves its cache client from the owning component (if any).</p>
+    <Localized>
+        <En>
+            <p>Creates a mutation that resolves its cache client from the owning component (if any).</p>
+        </En>
+        <De>
+            <p>Erstellt eine Mutation, die ihren Cache-Client von der besitzenden Komponente auflöst
+                (falls vorhanden).</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="ctor-client" Name="Mutation(DejaClient)" Signature="public Mutation(DejaClient client)">
-    <p>Creates a mutation bound to <code>client</code>, for use outside a component. Throws
-        <code>ArgumentNullException</code> when <code>client</code> is null.</p>
+    <Localized>
+        <En>
+            <p>Creates a mutation bound to <code>client</code>, for use outside a component. Throws
+                <code>ArgumentNullException</code> when <code>client</code> is null.</p>
+        </En>
+        <De>
+            <p>Erstellt eine Mutation, die an <code>client</code> gebunden ist — für den Einsatz
+                außerhalb einer Komponente. Wirft eine <code>ArgumentNullException</code>, wenn
+                <code>client</code> null ist.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
-<h2>State</h2>
+<Localized>
+    <En>
+        <h2>State</h2>
+    </En>
+    <De>
+        <h2>Zustand</h2>
+    </De>
+</Localized>
 
-<ApiTable Rows="@_state"/>
+<ApiTable Rows="@State"/>
 
-<h2>Methods</h2>
+<Localized>
+    <En>
+        <h2>Methods</h2>
+    </En>
+    <De>
+        <h2>Methoden</h2>
+    </De>
+</Localized>
 
 <ApiMember Id="execute-simple" Name="Execute (shorthand)"
            Signature="public Task Execute(Func<Task<T>> mutationFunction, Action<MutationParameters<T>>? configure = null)">
-    <p>Runs a mutation — the shorthand for the common case, with anything else (typically
-        <code>InvalidateKeys</code>) set by the configure hook. Throws
-        <code>ArgumentNullException</code> when <code>mutationFunction</code> is null.</p>
+    <Localized>
+        <En>
+            <p>Runs a mutation — the shorthand for the common case, with anything else (typically
+                <code>InvalidateKeys</code>) set by the configure hook. Throws
+                <code>ArgumentNullException</code> when <code>mutationFunction</code> is null.</p>
+        </En>
+        <De>
+            <p>Führt eine Mutation aus — die Kurzform für den häufigen Fall; alles Weitere
+                (typischerweise <code>InvalidateKeys</code>) setzt der Configure-Hook. Wirft eine
+                <code>ArgumentNullException</code>, wenn <code>mutationFunction</code> null ist.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="execute-cancellable" Name="Execute (cancellation-aware shorthand)"
            Signature="public Task Execute(Func<CancellationToken, Task<T>> mutationFunction, Action<MutationParameters<T>>? configure = null)">
-    <p>Runs a cancellation-aware mutation. The token is the owning component's lifetime token, so
-        an in-flight write is abandoned when the component is disposed:</p>
+    <Localized>
+        <En>
+            <p>Runs a cancellation-aware mutation. The token is the owning component's lifetime token, so
+                an in-flight write is abandoned when the component is disposed:</p>
+        </En>
+        <De>
+            <p>Führt eine abbruchfähige Mutation aus. Der Token ist der Lifetime-Token der besitzenden
+                Komponente; ein laufender Schreibvorgang wird also aufgegeben, wenn die Komponente
+                disposed wird:</p>
+        </De>
+    </Localized>
     <CodeBlock Code="@("_addTodo.Execute(token => Api.AddTodoAsync(title, token));")"/>
 </ApiMember>
 
 <ApiMember Id="execute-full" Name="Execute (full form)"
            Signature="public Task Execute(MutationParameters<T> parameters)">
-    <p>Runs the mutation described by <code>parameters</code>. If the effective token is already
-        cancelled (the component is gone), returns without starting the write. On success, runs the
-        success callbacks and then invalidates <code>InvalidateKeys</code> — after
-        <code>OnSuccess</code>, so a callback observing the result runs before dependent queries
-        start refetching.</p>
+    <Localized>
+        <En>
+            <p>Runs the mutation described by <code>parameters</code>. If the effective token is already
+                cancelled (the component is gone), returns without starting the write. On success, runs the
+                success callbacks and then invalidates <code>InvalidateKeys</code> — after
+                <code>OnSuccess</code>, so a callback observing the result runs before dependent queries
+                start refetching.</p>
+        </En>
+        <De>
+            <p>Führt die durch <code>parameters</code> beschriebene Mutation aus. Ist der effektive Token
+                bereits abgebrochen (die Komponente ist weg), kehrt der Aufruf zurück, ohne den
+                Schreibvorgang zu starten. Bei Erfolg laufen die Erfolgs-Callbacks, danach werden die
+                <code>InvalidateKeys</code> invalidiert — nach <code>OnSuccess</code>, sodass ein
+                Callback, der das Ergebnis beobachtet, läuft, bevor abhängige Queries mit dem Refetch
+                beginnen.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
-<h2>Failure contract</h2>
-<p>
-    On failure, <code>Data</code> resets to default, the error state is published and the error
-    callbacks run. An <code>InvalidOperationException</code> wrapping the original exception is
-    thrown <strong>only when no error callback was supplied</strong> — wire
-    <code>OnError</code> (or any other error callback) and the failure stays handled instead of
-    escaping into the component lifecycle. Cancellation is not a failure: no error state, no
-    callbacks (settled included).
-</p>
+<Localized>
+    <En>
+        <h2>Failure contract</h2>
+        <p>
+            On failure, <code>Data</code> resets to default, the error state is published and the error
+            callbacks run. An <code>InvalidOperationException</code> wrapping the original exception is
+            thrown <strong>only when no error callback was supplied</strong> — wire
+            <code>OnError</code> (or any other error callback) and the failure stays handled instead of
+            escaping into the component lifecycle. Cancellation is not a failure: no error state, no
+            callbacks (settled included).
+        </p>
+    </En>
+    <De>
+        <h2>Fehlerkontrakt</h2>
+        <p>
+            Bei einem Fehler wird <code>Data</code> auf den Default zurückgesetzt, der Fehlerzustand
+            veröffentlicht, und die Fehler-Callbacks laufen. Eine <code>InvalidOperationException</code>,
+            die die ursprüngliche Exception umschließt, wird <strong>nur geworfen, wenn kein
+            Fehler-Callback übergeben wurde</strong> — verdrahte <code>OnError</code> (oder einen
+            beliebigen anderen Fehler-Callback), und der Fehler bleibt behandelt, statt in den
+            Komponenten-Lifecycle zu entweichen. Abbruch ist kein Fehler: kein Fehlerzustand, keine
+            Callbacks (Settled eingeschlossen).
+        </p>
+    </De>
+</Localized>
 
 @code {
-    private static readonly ApiRow[] _state =
-    [
-        new("IsLoading", "bool", null, "True while the mutation is running."),
-        new("IsError", "bool", null, "True when the most recent execution failed."),
-        new("ErrorMessage", "string?", null, "The failure message of the most recent execution, when <code>IsError</code> is true."),
-        new("Data", "T?", null, "The result of the most recent successful execution. Void mutation shapes leave it untouched; a failure resets it to default."),
-    ];
+    private ApiRow[] State => De
+        ?
+        [
+            new("IsLoading", "bool", null, "True, während die Mutation läuft."),
+            new("IsError", "bool", null, "True, wenn die jüngste Ausführung fehlgeschlagen ist."),
+            new("ErrorMessage", "string?", null, "Die Fehlermeldung der jüngsten Ausführung, wenn <code>IsError</code> true ist."),
+            new("Data", "T?", null, "Das Ergebnis der jüngsten erfolgreichen Ausführung. Void-Mutationsformen lassen es unberührt; ein Fehler setzt es auf den Default zurück."),
+        ]
+        :
+        [
+            new("IsLoading", "bool", null, "True while the mutation is running."),
+            new("IsError", "bool", null, "True when the most recent execution failed."),
+            new("ErrorMessage", "string?", null, "The failure message of the most recent execution, when <code>IsError</code> is true."),
+            new("Data", "T?", null, "The result of the most recent successful execution. Void mutation shapes leave it untouched; a failure resets it to default."),
+        ];
 }

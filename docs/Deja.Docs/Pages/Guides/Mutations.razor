@@ -1,95 +1,204 @@
 @page "/guides/mutations"
+@inherits DocPage
 
 <PageTitle>Mutations — Deja</PageTitle>
 
-<h1>Mutations</h1>
-<p class="lead">
-    A <code>Mutation&lt;T&gt;</code> gives writes the same bindable treatment as reads —
-    <code>IsLoading</code>, <code>IsError</code>, <code>ErrorMessage</code>, <code>Data</code> —
-    plus cache invalidation on success.
-</p>
+<Localized>
+    <En>
+        <h1>Mutations</h1>
+        <p class="lead">
+            A <code>Mutation&lt;T&gt;</code> gives writes the same bindable treatment as reads —
+            <code>IsLoading</code>, <code>IsError</code>, <code>ErrorMessage</code>, <code>Data</code> —
+            plus cache invalidation on success.
+        </p>
 
-<h2>Running a mutation</h2>
+        <h2>Running a mutation</h2>
+    </En>
+    <De>
+        <h1>Mutations</h1>
+        <p class="lead">
+            Eine <code>Mutation&lt;T&gt;</code> gibt Schreibvorgängen dieselbe bindbare Behandlung wie
+            Lesevorgängen — <code>IsLoading</code>, <code>IsError</code>, <code>ErrorMessage</code>,
+            <code>Data</code> — plus Cache-Invalidierung bei Erfolg.
+        </p>
+
+        <h2>Eine Mutation ausführen</h2>
+    </De>
+</Localized>
 
 <CodeBlock Code="@BasicSample"/>
 
-<h2>Four function shapes</h2>
-<p><code>MutationParameters&lt;T&gt;</code> accepts exactly one of four functions:</p>
+<Localized>
+    <En>
+        <h2>Four function shapes</h2>
+        <p><code>MutationParameters&lt;T&gt;</code> accepts exactly one of four functions:</p>
+    </En>
+    <De>
+        <h2>Vier Funktionsformen</h2>
+        <p><code>MutationParameters&lt;T&gt;</code> akzeptiert genau eine von vier Funktionen:</p>
+    </De>
+</Localized>
 
-<ApiTable NameHeader="Function" Rows="@_shapes"/>
+<ApiTable NameHeader='@T("Function", "Funktion")' Rows="@Rows"/>
 
-<p>
-    Precedence when several are set: <code>CancellableMutationFunction</code> wins over
-    <code>MutationFunction</code>, which wins over the void shapes. Only the value-returning shapes
-    write <code>Data</code> — a void mutation leaves any previous result standing. Supplying none
-    of them throws an <code>ArgumentException</code>.
-</p>
+<Localized>
+    <En>
+        <p>
+            Precedence when several are set: <code>CancellableMutationFunction</code> wins over
+            <code>MutationFunction</code>, which wins over the void shapes. Only the value-returning shapes
+            write <code>Data</code> — a void mutation leaves any previous result standing. Supplying none
+            of them throws an <code>ArgumentException</code>.
+        </p>
 
-<h2>InvalidateKeys</h2>
-<p>
-    Keys listed in <code>InvalidateKeys</code> are invalidated — prefix-matched — after the
-    mutation succeeds <em>and</em> <code>OnSuccess</code> has run, so a callback observing the
-    fresh result runs before dependent queries start refetching. Every mounted query under those
-    keys refetches in the background, in every component showing that data. It replaces manual
-    <code>OnSuccessAsync = _ =&gt; Reload()</code> wiring.
-</p>
+        <h2>InvalidateKeys</h2>
+        <p>
+            Keys listed in <code>InvalidateKeys</code> are invalidated — prefix-matched — after the
+            mutation succeeds <em>and</em> <code>OnSuccess</code> has run, so a callback observing the
+            fresh result runs before dependent queries start refetching. Every mounted query under those
+            keys refetches in the background, in every component showing that data. It replaces manual
+            <code>OnSuccessAsync = _ =&gt; Reload()</code> wiring.
+        </p>
+    </En>
+    <De>
+        <p>
+            Rangfolge, wenn mehrere gesetzt sind: <code>CancellableMutationFunction</code> gewinnt gegen
+            <code>MutationFunction</code>, die wiederum gegen die void-Formen gewinnt. Nur die
+            wertliefernden Formen schreiben <code>Data</code> — eine void-Mutation lässt ein früheres
+            Ergebnis stehen. Wird keine von ihnen angegeben, wirft das eine
+            <code>ArgumentException</code>.
+        </p>
+
+        <h2>InvalidateKeys</h2>
+        <p>
+            Die in <code>InvalidateKeys</code> aufgeführten Keys werden — per Präfix-Abgleich —
+            invalidiert, nachdem die Mutation erfolgreich war <em>und</em> <code>OnSuccess</code>
+            gelaufen ist; ein Callback, der das frische Ergebnis beobachtet, läuft also, bevor abhängige
+            Queries mit dem Refetchen beginnen. Jede gemountete Query unter diesen Keys lädt im
+            Hintergrund neu, in jeder Komponente, die diese Daten anzeigt. Das ersetzt manuelle
+            <code>OnSuccessAsync = _ =&gt; Reload()</code>-Verdrahtung.
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock Code="@InvalidateSample"/>
 
-<Callout Type="Callout.CalloutType.Info" Title="Needs the cache">
-    <p><code>InvalidateKeys</code> works through the registered <code>DejaClient</code>. Without
-        <code>AddDeja()</code> the keys are silently ignored.</p>
-</Callout>
+<Localized>
+    <En>
+        <Callout Type="Callout.CalloutType.Info" Title="Needs the cache">
+            <p><code>InvalidateKeys</code> works through the registered <code>DejaClient</code>. Without
+                <code>AddDeja()</code> the keys are silently ignored.</p>
+        </Callout>
 
-<h2>Chaining follow-up requests</h2>
-<p>
-    <code>InvalidateKeys</code> covers "refresh these keys afterwards". When the follow-up's key or
-    arguments come from the mutation result — or when one request depends on another's outcome —
-    chain from <code>OnSuccessAsync</code> instead. It is awaited, so each step waits for the
-    previous one and the mutation's own <code>Execute</code> completes only once the chain has.
-</p>
+        <h2>Chaining follow-up requests</h2>
+        <p>
+            <code>InvalidateKeys</code> covers "refresh these keys afterwards". When the follow-up's key or
+            arguments come from the mutation result — or when one request depends on another's outcome —
+            chain from <code>OnSuccessAsync</code> instead. It is awaited, so each step waits for the
+            previous one and the mutation's own <code>Execute</code> completes only once the chain has.
+        </p>
+    </En>
+    <De>
+        <Callout Type="Callout.CalloutType.Info" Title="Braucht den Cache">
+            <p><code>InvalidateKeys</code> funktioniert über den registrierten <code>DejaClient</code>.
+                Ohne <code>AddDeja()</code> werden die Keys stillschweigend ignoriert.</p>
+        </Callout>
+
+        <h2>Folge-Requests verketten</h2>
+        <p>
+            <code>InvalidateKeys</code> deckt „aktualisiere danach diese Keys“ ab. Wenn Key oder
+            Argumente des Folge-Requests aus dem Mutationsergebnis stammen — oder wenn ein Request vom
+            Ausgang eines anderen abhängt — verkette stattdessen über <code>OnSuccessAsync</code>. Es
+            wird awaited, jeder Schritt wartet also auf den vorherigen, und das eigene
+            <code>Execute</code> der Mutation ist erst abgeschlossen, wenn die Kette durch ist.
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock Code="@ChainingSample"/>
 
-<p>
-    Ordering across the two is fixed: <code>OnSuccess</code> runs first, then
-    <code>InvalidateKeys</code> (whose refetches are awaited), then <code>OnSettled</code> — so a
-    settled callback sees the invalidated queries already refetched. Queries chained this way follow
-    the same rules as in <a href="/guides/queries">Queries</a>: give each step its own error
-    callback so a failure is attributed to the request that caused it.
-</p>
+<Localized>
+    <En>
+        <p>
+            Ordering across the two is fixed: <code>OnSuccess</code> runs first, then
+            <code>InvalidateKeys</code> (whose refetches are awaited), then <code>OnSettled</code> — so a
+            settled callback sees the invalidated queries already refetched. Queries chained this way follow
+            the same rules as in <a href="/guides/queries">Queries</a>: give each step its own error
+            callback so a failure is attributed to the request that caused it.
+        </p>
 
-<h2>The unhandled-failure contract</h2>
-<p>
-    On failure the mutation publishes its error state and runs the error callbacks. Then comes the
-    part worth memorising: <strong>an <code>InvalidOperationException</code> wrapping the original
-    exception is thrown only when no error callback was supplied.</strong> A failure nobody
-    observes is never lost silently — but wire any error callback (<code>OnError</code> is enough)
-    and the failure stays handled instead of escaping into the component lifecycle, where a rethrow
-    from an event handler would tear down the component over an ordinary failed write.
-</p>
+        <h2>The unhandled-failure contract</h2>
+        <p>
+            On failure the mutation publishes its error state and runs the error callbacks. Then comes the
+            part worth memorising: <strong>an <code>InvalidOperationException</code> wrapping the original
+            exception is thrown only when no error callback was supplied.</strong> A failure nobody
+            observes is never lost silently — but wire any error callback (<code>OnError</code> is enough)
+            and the failure stays handled instead of escaping into the component lifecycle, where a rethrow
+            from an event handler would tear down the component over an ordinary failed write.
+        </p>
 
-<p>
-    Cancellation is not a failure: if the component is disposed mid-write, there's no error state,
-    no callbacks, and nothing thrown at a caller that is already gone. A mutation started
-    <em>after</em> disposal (a queued handler racing teardown) returns without issuing the request.
-</p>
+        <p>
+            Cancellation is not a failure: if the component is disposed mid-write, there's no error state,
+            no callbacks, and nothing thrown at a caller that is already gone. A mutation started
+            <em>after</em> disposal (a queued handler racing teardown) returns without issuing the request.
+        </p>
 
-<h2>Live demo</h2>
+        <h2>Live demo</h2>
+    </En>
+    <De>
+        <p>
+            Die Reihenfolge zwischen beiden ist fest: Zuerst läuft <code>OnSuccess</code>, dann
+            <code>InvalidateKeys</code> (dessen Refetches awaited werden), dann <code>OnSettled</code> —
+            ein Settled-Callback sieht die invalidierten Queries also bereits neu geladen. So verkettete
+            Queries folgen denselben Regeln wie in <a href="/guides/queries">Queries</a>: Gib jedem
+            Schritt seinen eigenen Error-Callback, damit ein Fehlschlag dem Request zugeordnet wird, der
+            ihn verursacht hat.
+        </p>
 
-<DemoCard Title="Create + invalidate" SourceFiles="@(new[] { "MutationsDemo.razor" })">
+        <h2>Der Vertrag für unbehandelte Fehlschläge</h2>
+        <p>
+            Bei einem Fehlschlag veröffentlicht die Mutation ihren Fehlerzustand und führt die
+            Error-Callbacks aus. Dann kommt der Teil, den man sich merken sollte: <strong>eine
+            <code>InvalidOperationException</code>, die die ursprüngliche Exception umhüllt, wird nur
+            geworfen, wenn kein Error-Callback angegeben war.</strong> Ein Fehlschlag, den niemand
+            beobachtet, geht nie stillschweigend verloren — verdrahte aber irgendeinen Error-Callback
+            (<code>OnError</code> genügt), und der Fehlschlag bleibt behandelt, statt in den
+            Komponenten-Lebenszyklus zu entkommen, wo ein Rethrow aus einem Event-Handler die Komponente
+            wegen eines gewöhnlichen fehlgeschlagenen Schreibvorgangs abreißen würde.
+        </p>
+
+        <p>
+            Abbruch ist kein Fehlschlag: Wird die Komponente mitten im Schreibvorgang disposed, gibt es
+            keinen Fehlerzustand, keine Callbacks und nichts, das einem Aufrufer entgegengeworfen wird,
+            der längst weg ist. Eine Mutation, die <em>nach</em> dem Dispose gestartet wird (ein
+            eingereihter Handler im Race mit dem Teardown), kehrt zurück, ohne den Request abzusetzen.
+        </p>
+
+        <h2>Live-Demo</h2>
+    </De>
+</Localized>
+
+<DemoCard Title='@T("Create + invalidate", "Erstellen + invalidieren")' SourceFiles="@(new[] { "MutationsDemo.razor" })">
     <MutationsDemo/>
 </DemoCard>
 
 @code {
-    private static readonly ApiRow[] _shapes =
-    [
-        new("MutationFunction", "Func<Task<T>>", null, "Returns a value; the simplest shape."),
-        new("VoidMutationFunction", "Func<Task>", null, "No return value; <code>Data</code> is left untouched."),
-        new("CancellableMutationFunction", "Func<CancellationToken, Task<T>>", null,
-            "Returns a value and honours the component's lifetime token — an in-flight write is abandoned when the component is disposed."),
-        new("CancellableVoidMutationFunction", "Func<CancellationToken, Task>", null, "Cancellation-aware, no return value."),
-    ];
+    private ApiRow[] Rows => De
+        ?
+        [
+            new("MutationFunction", "Func<Task<T>>", null, "Gibt einen Wert zurück; die einfachste Form."),
+            new("VoidMutationFunction", "Func<Task>", null, "Kein Rückgabewert; <code>Data</code> bleibt unberührt."),
+            new("CancellableMutationFunction", "Func<CancellationToken, Task<T>>", null,
+                "Gibt einen Wert zurück und beachtet das Lifetime-Token der Komponente — ein laufender Schreibvorgang wird aufgegeben, wenn die Komponente disposed wird."),
+            new("CancellableVoidMutationFunction", "Func<CancellationToken, Task>", null, "Abbruchfähig, kein Rückgabewert."),
+        ]
+        :
+        [
+            new("MutationFunction", "Func<Task<T>>", null, "Returns a value; the simplest shape."),
+            new("VoidMutationFunction", "Func<Task>", null, "No return value; <code>Data</code> is left untouched."),
+            new("CancellableMutationFunction", "Func<CancellationToken, Task<T>>", null,
+                "Returns a value and honours the component's lifetime token — an in-flight write is abandoned when the component is disposed."),
+            new("CancellableVoidMutationFunction", "Func<CancellationToken, Task>", null, "Cancellation-aware, no return value."),
+        ];
 
     private const string BasicSample = """
 private readonly Mutation<Todo> _addTodo = new();

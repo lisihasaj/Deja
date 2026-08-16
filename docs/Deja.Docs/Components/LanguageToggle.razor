@@ -1,0 +1,15 @@
+@inject LanguageService Languages
+
+<button type="button" class="icon-button lang-toggle" @onclick="Toggle"
+        aria-label="@Label" title="@Label">
+    @(Lang == Language.De ? "EN" : "DE")
+</button>
+
+@code {
+    [CascadingParameter] public Language Lang { get; set; }
+
+    // The label names the language you switch TO, in that language, so it is findable either way.
+    private string Label => Lang == Language.De ? "Switch to English" : "Auf Deutsch wechseln";
+
+    private Task Toggle() => Languages.SetAsync(Lang == Language.De ? Language.En : Language.De);
+}

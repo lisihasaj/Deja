@@ -13,6 +13,7 @@ builder.Services.AddSingleton(new HttpClient
     BaseAddress = new Uri("https://jsonplaceholder.typicode.com/"),
 });
 
+builder.Services.AddSingleton<LanguageService>();
 builder.Services.AddSingleton<LatencySimulator>();
 builder.Services.AddSingleton<FailureSwitch>();
 builder.Services.AddSingleton<JsonPlaceholderApi>();
@@ -26,4 +27,9 @@ builder.Services.AddDeja(options =>
     options.DefaultCacheTime = TimeSpan.FromMinutes(5);
 });
 
-await builder.Build().RunAsync();
+var host = builder.Build();
+
+// Restore the stored language before the first render so there is no English flash.
+await host.Services.GetRequiredService<LanguageService>().InitializeAsync();
+
+await host.RunAsync();

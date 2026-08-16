@@ -1,40 +1,84 @@
 @page "/api/refetch-parameters"
+@inherits DocPage
 
-<PageTitle>RefetchParameters&lt;T&gt; — Deja API</PageTitle>
+<PageTitle>@T("RefetchParameters<T> — Deja API", "RefetchParameters<T> — Deja-API")</PageTitle>
 
-<h1>RefetchParameters&lt;T&gt;</h1>
-<p class="lead">
-    The parameters a <code>Query&lt;T&gt;.Refetch</code> may override, for that call only.
-</p>
+<Localized>
+    <En>
+        <h1>RefetchParameters&lt;T&gt;</h1>
+        <p class="lead">
+            The parameters a <code>Query&lt;T&gt;.Refetch</code> may override, for that call only.
+        </p>
+    </En>
+    <De>
+        <h1>RefetchParameters&lt;T&gt;</h1>
+        <p class="lead">
+            Die Parameter, die ein <code>Query&lt;T&gt;.Refetch</code> überschreiben kann — nur für
+            diesen Aufruf.
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock Code="public class RefetchParameters<T>"/>
 
-<p>
-    The identity of the query — key, fetch function, client — always comes from the last
-    <code>Execute</code>: changing those is a new query, not a refetch. A property left null keeps
-    the value the last <code>Execute</code> used, and a later bare <code>Refetch()</code> is
-    unaffected by earlier overrides.
-</p>
+<Localized>
+    <En>
+        <p>
+            The identity of the query — key, fetch function, client — always comes from the last
+            <code>Execute</code>: changing those is a new query, not a refetch. A property left null keeps
+            the value the last <code>Execute</code> used, and a later bare <code>Refetch()</code> is
+            unaffected by earlier overrides.
+        </p>
 
-<h2>Properties</h2>
+        <h2>Properties</h2>
+    </En>
+    <De>
+        <p>
+            Die Identität der Query — Key, Fetch-Funktion, Client — kommt immer vom letzten
+            <code>Execute</code>: Sie zu ändern wäre eine neue Query, kein Refetch. Eine Eigenschaft, die
+            null bleibt, behält den Wert des letzten <code>Execute</code>, und ein späteres bloßes
+            <code>Refetch()</code> bleibt von früheren Überschreibungen unberührt.
+        </p>
 
-<ApiTable NameHeader="Property" Rows="@_rows"/>
+        <h2>Eigenschaften</h2>
+    </De>
+</Localized>
 
-<h2>Example</h2>
+<ApiTable NameHeader='@T("Property", "Eigenschaft")' Rows="@Rows"/>
+
+<Localized>
+    <En>
+        <h2>Example</h2>
+    </En>
+    <De>
+        <h2>Beispiel</h2>
+    </De>
+</Localized>
 
 <CodeBlock Code="@Sample"/>
 
 @code {
-    private static readonly ApiRow[] _rows =
-    [
-        new("CancellationToken", "CancellationToken?", null, "Replaces the token for this refetch."),
-        new("OnSuccessAsync / OnSuccess", "Func<T?, Task>? / Action<T?>?", null, "Replace the success callbacks for this refetch."),
-        new("OnErrorAsync / OnError", "Func<Exception, Task>? / Action<Exception>?", null, "Replace the error callbacks for this refetch."),
-        new("OnDisplayUserErrorAsync / OnDisplayUserError", "Func<DisplayUserException, Task>? / Action<DisplayUserException>?", null, "Replace the display-user error callbacks for this refetch."),
-        new("OnSettledAsync / OnSettled", "Func<T?, Task>? / Action<T?>?", null, "Replace the settled callbacks for this refetch."),
-        new("StaleTime", "TimeSpan?", null, "Replaces the stale time for this refetch. The refetch itself always fetches; this only changes how soon the fresh result counts as stale again."),
-        new("CacheTime", "TimeSpan?", null, "Replaces the cache time for this refetch."),
-    ];
+    private ApiRow[] Rows => De
+        ?
+        [
+            new("CancellationToken", "CancellationToken?", null, "Ersetzt den Token für diesen Refetch."),
+            new("OnSuccessAsync / OnSuccess", "Func<T?, Task>? / Action<T?>?", null, "Ersetzen die Erfolgs-Callbacks für diesen Refetch."),
+            new("OnErrorAsync / OnError", "Func<Exception, Task>? / Action<Exception>?", null, "Ersetzen die Fehler-Callbacks für diesen Refetch."),
+            new("OnDisplayUserErrorAsync / OnDisplayUserError", "Func<DisplayUserException, Task>? / Action<DisplayUserException>?", null, "Ersetzen die Display-User-Error-Callbacks für diesen Refetch."),
+            new("OnSettledAsync / OnSettled", "Func<T?, Task>? / Action<T?>?", null, "Ersetzen die Settled-Callbacks für diesen Refetch."),
+            new("StaleTime", "TimeSpan?", null, "Ersetzt die Stale-Time für diesen Refetch. Der Refetch selbst fetcht immer; das ändert nur, wie bald das frische Ergebnis wieder als stale gilt."),
+            new("CacheTime", "TimeSpan?", null, "Ersetzt die Cache-Zeit für diesen Refetch."),
+        ]
+        :
+        [
+            new("CancellationToken", "CancellationToken?", null, "Replaces the token for this refetch."),
+            new("OnSuccessAsync / OnSuccess", "Func<T?, Task>? / Action<T?>?", null, "Replace the success callbacks for this refetch."),
+            new("OnErrorAsync / OnError", "Func<Exception, Task>? / Action<Exception>?", null, "Replace the error callbacks for this refetch."),
+            new("OnDisplayUserErrorAsync / OnDisplayUserError", "Func<DisplayUserException, Task>? / Action<DisplayUserException>?", null, "Replace the display-user error callbacks for this refetch."),
+            new("OnSettledAsync / OnSettled", "Func<T?, Task>? / Action<T?>?", null, "Replace the settled callbacks for this refetch."),
+            new("StaleTime", "TimeSpan?", null, "Replaces the stale time for this refetch. The refetch itself always fetches; this only changes how soon the fresh result counts as stale again."),
+            new("CacheTime", "TimeSpan?", null, "Replaces the cache time for this refetch."),
+        ];
 
     private const string Sample = """
 await _todos.Refetch(new RefetchParameters<List<Todo>>

@@ -1,66 +1,142 @@
 @page "/guides/cancellation"
+@inherits DocPage
 
-<PageTitle>Cancellation — Deja</PageTitle>
+<PageTitle>@T("Cancellation — Deja", "Abbruch — Deja")</PageTitle>
 
-<h1>Cancellation</h1>
-<p class="lead">
-    Deja scopes every execution to the owning component's lifetime and cancels superseded loads
-    automatically — usually with nothing to wire.
-</p>
+<Localized>
+    <En>
+        <h1>Cancellation</h1>
+        <p class="lead">
+            Deja scopes every execution to the owning component's lifetime and cancels superseded loads
+            automatically — usually with nothing to wire.
+        </p>
 
-<h2>The ambient token</h2>
-<p>
-    Inside a <code>DejaComponentBase</code> component, every query and mutation execution uses the
-    component's lifetime token by default. Navigating away disposes the component, which cancels
-    the token, which aborts the request — down to the server. Your fetch function just has to pass
-    the token through:
-</p>
+        <h2>The ambient token</h2>
+        <p>
+            Inside a <code>DejaComponentBase</code> component, every query and mutation execution uses the
+            component's lifetime token by default. Navigating away disposes the component, which cancels
+            the token, which aborts the request — down to the server. Your fetch function just has to pass
+            the token through:
+        </p>
+    </En>
+    <De>
+        <h1>Abbruch</h1>
+        <p class="lead">
+            Deja bindet jede Ausführung an die Lebensdauer der besitzenden Komponente und bricht
+            verdrängte Ladevorgänge automatisch ab — meist ganz ohne Verdrahtung.
+        </p>
+
+        <h2>Der implizite Token</h2>
+        <p>
+            Innerhalb einer <code>DejaComponentBase</code>-Komponente verwendet jede Query- und
+            Mutation-Ausführung standardmäßig den Lebensdauer-Token der Komponente. Beim Wegnavigieren
+            wird die Komponente disposed, das bricht den Token ab, und das bricht den Request ab — bis
+            hinunter zum Server. Deine Fetch-Funktion muss den Token nur durchreichen:
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock Code="@AmbientSample"/>
 
-<p>
-    A fetch that can't observe cancellation ignores the token with a discard:
-    <code>QueryFunction = _ =&gt; LegacyFetchAsync()</code>. Deja still discards its stale result
-    if a newer load has taken over — it just can't abort the wire request.
-</p>
+<Localized>
+    <En>
+        <p>
+            A fetch that can't observe cancellation ignores the token with a discard:
+            <code>QueryFunction = _ =&gt; LegacyFetchAsync()</code>. Deja still discards its stale result
+            if a newer load has taken over — it just can't abort the wire request.
+        </p>
 
-<h2>A per-call token replaces the ambient one</h2>
-<p>
-    Setting <code>CancellationToken</code> on the parameters scopes an execution to something
-    narrower than the component — a search box's own source, say. It <strong>replaces</strong> the
-    component token; it does not combine with it:
-</p>
+        <h2>A per-call token replaces the ambient one</h2>
+        <p>
+            Setting <code>CancellationToken</code> on the parameters scopes an execution to something
+            narrower than the component — a search box's own source, say. It <strong>replaces</strong> the
+            component token; it does not combine with it:
+        </p>
+    </En>
+    <De>
+        <p>
+            Ein Fetch, der Abbruch nicht beobachten kann, ignoriert den Token per Discard:
+            <code>QueryFunction = _ =&gt; LegacyFetchAsync()</code>. Deja verwirft sein veraltetes
+            Ergebnis trotzdem, wenn ein neuerer Ladevorgang übernommen hat — nur den Request auf der
+            Leitung kann es dann nicht abbrechen.
+        </p>
+
+        <h2>Ein Token pro Aufruf ersetzt den impliziten</h2>
+        <p>
+            Wer <code>CancellationToken</code> auf den Parametern setzt, bindet eine Ausführung an etwas
+            Engeres als die Komponente — etwa die eigene Source eines Suchfelds. Der Token
+            <strong>ersetzt</strong> den Komponenten-Token; er wird nicht mit ihm kombiniert:
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock Code="@ReplaceSample"/>
 
-<h2>Supersede-and-cancel (uncached path)</h2>
-<p>
-    An unkeyed <code>Execute</code> cancels the previous in-flight execution before starting. The
-    older request is aborted, its callbacks are skipped, and its late result — even from a fetch
-    that ignored the token — can never overwrite the newer load's data. Cancellation is not an
-    error: no error state, no callbacks; the superseding load drives the next update.
-</p>
+<Localized>
+    <En>
+        <h2>Supersede-and-cancel (uncached path)</h2>
+        <p>
+            An unkeyed <code>Execute</code> cancels the previous in-flight execution before starting. The
+            older request is aborted, its callbacks are skipped, and its late result — even from a fetch
+            that ignored the token — can never overwrite the newer load's data. Cancellation is not an
+            error: no error state, no callbacks; the superseding load drives the next update.
+        </p>
 
-<h2>The subtle case: cancelling on the cached path</h2>
-<p>
-    A keyed fetch belongs to the <em>cache entry</em>, and other components may be waiting on it.
-    So a caller's token is deliberately not linked into the shared fetch: cancelling it
-    <strong>detaches that caller without cancelling the request</strong>. One component unmounting
-    must not abort another component's data. The shared fetch itself is only cancelled when the
-    last subscriber leaves the entry.
-</p>
+        <h2>The subtle case: cancelling on the cached path</h2>
+        <p>
+            A keyed fetch belongs to the <em>cache entry</em>, and other components may be waiting on it.
+            So a caller's token is deliberately not linked into the shared fetch: cancelling it
+            <strong>detaches that caller without cancelling the request</strong>. One component unmounting
+            must not abort another component's data. The shared fetch itself is only cancelled when the
+            last subscriber leaves the entry.
+        </p>
 
-<h2>ComponentToken for your own calls</h2>
-<p>
-    Work Deja doesn't run for you — a direct API ping from an event handler — can still share the
-    component's lifetime:
-</p>
+        <h2>ComponentToken for your own calls</h2>
+        <p>
+            Work Deja doesn't run for you — a direct API ping from an event handler — can still share the
+            component's lifetime:
+        </p>
+    </En>
+    <De>
+        <h2>Verdrängen und Abbrechen (ungecachter Pfad)</h2>
+        <p>
+            Ein <code>Execute</code> ohne Key bricht die vorige laufende Ausführung ab, bevor es startet.
+            Der ältere Request wird abgebrochen, seine Callbacks werden übersprungen, und sein
+            verspätetes Ergebnis — selbst aus einem Fetch, der den Token ignoriert hat — kann die Daten
+            des neueren Ladevorgangs nie überschreiben. Abbruch ist kein Fehler: kein Fehlerzustand,
+            keine Callbacks; der verdrängende Ladevorgang treibt das nächste Update.
+        </p>
+
+        <h2>Der subtile Fall: Abbruch auf dem gecachten Pfad</h2>
+        <p>
+            Ein Fetch mit Key gehört zum <em>Cache-Eintrag</em>, und andere Komponenten warten womöglich
+            darauf. Der Token eines Aufrufers wird deshalb bewusst nicht in den gemeinsamen Fetch
+            verknüpft: Ihn abzubrechen <strong>löst diesen Aufrufer ab, ohne den Request
+            abzubrechen</strong>. Das Unmounten einer Komponente darf nicht die Daten einer anderen
+            abbrechen. Der gemeinsame Fetch selbst wird erst abgebrochen, wenn der letzte Subscriber den
+            Eintrag verlässt.
+        </p>
+
+        <h2>ComponentToken für eigene Aufrufe</h2>
+        <p>
+            Arbeit, die Deja nicht für dich ausführt — ein direkter API-Ping aus einem Event-Handler —
+            kann trotzdem die Lebensdauer der Komponente teilen:
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock Code="@PingSample"/>
 
-<h2>Live demo</h2>
+<Localized>
+    <En>
+        <h2>Live demo</h2>
+    </En>
+    <De>
+        <h2>Live-Demo</h2>
+    </De>
+</Localized>
 
-<DemoCard Title="Supersede and cancel" SourceFiles="@(new[] { "CancellationDemo.razor" })">
+<DemoCard Title='@T("Supersede and cancel", "Verdrängen und Abbrechen")' SourceFiles="@(new[] { "CancellationDemo.razor" })">
     <CancellationDemo/>
 </DemoCard>
 

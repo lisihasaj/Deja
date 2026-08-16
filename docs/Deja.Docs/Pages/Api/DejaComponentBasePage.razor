@@ -1,107 +1,248 @@
 @page "/api/deja-component-base"
+@inherits DocPage
 
-<PageTitle>DejaComponentBase — Deja API</PageTitle>
+<PageTitle>@T("DejaComponentBase — Deja API", "DejaComponentBase — Deja API")</PageTitle>
 
-<h1>DejaComponentBase</h1>
-<p class="lead">
-    Base component that re-renders automatically when the <code>Query&lt;T&gt;</code> and
-    <code>Mutation&lt;T&gt;</code> instances it owns change state. Declare them as fields or
-    properties; the base attaches to each one at initialisation and detaches on dispose.
-</p>
+<Localized>
+    <En>
+        <h1>DejaComponentBase</h1>
+        <p class="lead">
+            Base component that re-renders automatically when the <code>Query&lt;T&gt;</code> and
+            <code>Mutation&lt;T&gt;</code> instances it owns change state. Declare them as fields or
+            properties; the base attaches to each one at initialisation and detaches on dispose.
+        </p>
+    </En>
+    <De>
+        <h1>DejaComponentBase</h1>
+        <p class="lead">
+            Basiskomponente, die automatisch neu rendert, wenn die
+            <code>Query&lt;T&gt;</code>- und <code>Mutation&lt;T&gt;</code>-Instanzen in ihrem Besitz
+            den Zustand wechseln. Deklariere sie als Felder oder Properties; die Basis heftet sich
+            bei der Initialisierung an jede an und löst sich beim Dispose.
+        </p>
+    </De>
+</Localized>
 
 <CodeBlock Code="public abstract class DejaComponentBase : ComponentBase, IAsyncDisposable"/>
 
-<h2>Members</h2>
+<Localized>
+    <En><h2>Members</h2></En>
+    <De><h2>Member</h2></De>
+</Localized>
 
 <ApiMember Id="componenttoken" Name="ComponentToken"
            Signature="protected CancellationToken ComponentToken { get; }">
-    <p>A token cancelled when this component is disposed. The component's queries and mutations
-        already use it — pass it explicitly only to work Deja doesn't run for you, such as a direct
-        API call from an event handler. There is nothing to dispose, and reading it after disposal
-        returns an already-cancelled token rather than throwing, so a late continuation observes
-        cancellation instead of an <code>ObjectDisposedException</code>.</p>
+    <Localized>
+        <En>
+            <p>A token cancelled when this component is disposed. The component's queries and mutations
+                already use it — pass it explicitly only to work Deja doesn't run for you, such as a direct
+                API call from an event handler. There is nothing to dispose, and reading it after disposal
+                returns an already-cancelled token rather than throwing, so a late continuation observes
+                cancellation instead of an <code>ObjectDisposedException</code>.</p>
+        </En>
+        <De>
+            <p>Ein Token, das abgebrochen wird, wenn diese Komponente disposed wird. Die Queries und
+                Mutations der Komponente verwenden es bereits — reiche es nur an Arbeit weiter, die
+                Deja nicht für dich ausführt, etwa einen direkten API-Aufruf aus einem Event-Handler.
+                Es gibt nichts zu disposen, und ein Zugriff nach dem Dispose liefert ein bereits
+                abgebrochenes Token, statt zu werfen — eine späte Continuation sieht also einen
+                Abbruch statt einer <code>ObjectDisposedException</code>.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="observe" Name="Observe&lt;TState&gt;"
            Signature="protected TState Observe<TState>(TState state) where TState : IDejaObservable">
-    <p>Attaches <code>state</code> to this component: re-renders on every change, hands it the
-        registered <code>DejaClient</code> and this component's <code>ComponentToken</code>, and
-        detaches on dispose.</p>
-    <p><strong>Rarely called directly.</strong> Discovery runs this for every
-        <code>Query&lt;T&gt;</code> / <code>Mutation&lt;T&gt;</code> held in a field or property at
-        initialisation, which covers the ordinary component. Call it by hand only for state
-        discovery can't see — created after initialisation (an event handler, a per-row list), or
-        in a component whose <code>OnInitialized</code> override skips
-        <code>base.OnInitialized()</code>. Unattached state still fetches; it just never re-renders
-        the component, never reaches the shared cache, and is never cancelled on dispose.</p>
-    <p>Returns <code>state</code> so it can be used inline; attaching the same instance twice is a
-        no-op. Throws <code>InvalidOperationException</code> when another component already owns
-        the state — give this component its own instance, or pass the data down as a
-        <code>[Parameter]</code>. See
-        <a href="guides/component-base#observe">Component base</a> for worked examples.</p>
+    <Localized>
+        <En>
+            <p>Attaches <code>state</code> to this component: re-renders on every change, hands it the
+                registered <code>DejaClient</code> and this component's <code>ComponentToken</code>, and
+                detaches on dispose.</p>
+            <p><strong>Rarely called directly.</strong> Discovery runs this for every
+                <code>Query&lt;T&gt;</code> / <code>Mutation&lt;T&gt;</code> held in a field or property at
+                initialisation, which covers the ordinary component. Call it by hand only for state
+                discovery can't see — created after initialisation (an event handler, a per-row list), or
+                in a component whose <code>OnInitialized</code> override skips
+                <code>base.OnInitialized()</code>. Unattached state still fetches; it just never re-renders
+                the component, never reaches the shared cache, and is never cancelled on dispose.</p>
+            <p>Returns <code>state</code> so it can be used inline; attaching the same instance twice is a
+                no-op. Throws <code>InvalidOperationException</code> when another component already owns
+                the state — give this component its own instance, or pass the data down as a
+                <code>[Parameter]</code>. See
+                <a href="guides/component-base#observe">Component base</a> for worked examples.</p>
+        </En>
+        <De>
+            <p>Heftet <code>state</code> an diese Komponente: rendert bei jeder Änderung neu, reicht
+                ihm den registrierten <code>DejaClient</code> und das <code>ComponentToken</code>
+                dieser Komponente und löst sich beim Dispose.</p>
+            <p><strong>Wird selten direkt aufgerufen.</strong> Die Discovery führt das bei der
+                Initialisierung für jede <code>Query&lt;T&gt;</code> /
+                <code>Mutation&lt;T&gt;</code> in einem Feld oder einer Property aus, was die
+                gewöhnliche Komponente abdeckt. Rufe es nur von Hand auf — für Zustand, den die
+                Discovery nicht sehen kann: nach der Initialisierung erstellt (ein Event-Handler,
+                eine Liste pro Zeile) oder in einer Komponente, deren
+                <code>OnInitialized</code>-Override <code>base.OnInitialized()</code> auslässt. Nicht
+                angehefteter Zustand fetcht trotzdem; er rendert die Komponente nur nie neu, erreicht
+                nie den gemeinsamen Cache und wird beim Dispose nie abgebrochen.</p>
+            <p>Gibt <code>state</code> zurück, damit es inline verwendet werden kann; dieselbe
+                Instanz zweimal anzuheften ist ein No-op. Wirft
+                <code>InvalidOperationException</code>, wenn eine andere Komponente den Zustand
+                bereits besitzt — gib dieser Komponente ihre eigene Instanz oder reiche die Daten als
+                <code>[Parameter]</code> nach unten. Ausgearbeitete Beispiele findest du in
+                <a href="guides/component-base#observe">Komponenten-Basisklasse</a>.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="oninitialized" Name="OnInitialized"
            Signature="protected override void OnInitialized()">
-    <p>Attaches the declared state. An override in a derived component must call
-        <code>base.OnInitialized()</code> — before its own state is used, conventionally on the
-        first line — or nothing is attached and the component never re-renders on state changes.</p>
+    <Localized>
+        <En>
+            <p>Attaches the declared state. An override in a derived component must call
+                <code>base.OnInitialized()</code> — before its own state is used, conventionally on the
+                first line — or nothing is attached and the component never re-renders on state changes.</p>
+        </En>
+        <De>
+            <p>Heftet den deklarierten Zustand an. Ein Override in einer abgeleiteten Komponente muss
+                <code>base.OnInitialized()</code> aufrufen — bevor der eigene Zustand verwendet wird,
+                üblicherweise in der ersten Zeile — sonst wird nichts angeheftet, und die Komponente
+                rendert bei Zustandsänderungen nie neu.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="dispose" Name="Dispose (hook)" Signature="protected virtual void Dispose()">
-    <p>Override to add synchronous cleanup; runs during disposal, before the
-        <code>DisposeAsync</code> override and before the base detaches from observed state. Call
-        <code>base.Dispose()</code> from an override.</p>
+    <Localized>
+        <En>
+            <p>Override to add synchronous cleanup; runs during disposal, before the
+                <code>DisposeAsync</code> override and before the base detaches from observed state. Call
+                <code>base.Dispose()</code> from an override.</p>
+        </En>
+        <De>
+            <p>Überschreibe dies für synchrones Aufräumen; läuft während des Disposals, vor dem
+                <code>DisposeAsync</code>-Override und bevor die Basis sich vom beobachteten Zustand
+                löst. Rufe <code>base.Dispose()</code> aus einem Override auf.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
 <ApiMember Id="disposeasync" Name="DisposeAsync (hook)"
            Signature="protected virtual ValueTask DisposeAsync()">
-    <p>Override to add asynchronous cleanup; runs after the <code>Dispose</code> override, before
-        the base detaches. Call <code>base.DisposeAsync()</code> from an override. Do not declare
-        <code>@("@implements IAsyncDisposable")</code> — the base already implements it, and this
-        override is its extension point.</p>
+    <Localized>
+        <En>
+            <p>Override to add asynchronous cleanup; runs after the <code>Dispose</code> override, before
+                the base detaches. Call <code>base.DisposeAsync()</code> from an override. Do not declare
+                <code>@("@implements IAsyncDisposable")</code> — the base already implements it, and this
+                override is its extension point.</p>
+        </En>
+        <De>
+            <p>Überschreibe dies für asynchrones Aufräumen; läuft nach dem
+                <code>Dispose</code>-Override, bevor die Basis sich löst. Rufe
+                <code>base.DisposeAsync()</code> aus einem Override auf. Deklariere kein
+                <code>@("@implements IAsyncDisposable")</code> — die Basis implementiert es bereits,
+                und dieses Override ist ihr Erweiterungspunkt.</p>
+        </De>
+    </Localized>
 </ApiMember>
 
-<h2>Disposal order</h2>
-<p>When Blazor removes the component, the base:</p>
-<ol>
-    <li>cancels <code>ComponentToken</code>, so in-flight executions observe cancellation while
-        they still can;</li>
-    <li>runs the derived <code>Dispose()</code> hook, then the <code>DisposeAsync()</code> hook —
-        overrides still see their state attached;</li>
-    <li>detaches from all observed state and disposes the queries the component created —
-        cancelling their fetches — even when derived cleanup throws.</li>
-</ol>
+<Localized>
+    <En>
+        <h2>Disposal order</h2>
+        <p>When Blazor removes the component, the base:</p>
+        <ol>
+            <li>cancels <code>ComponentToken</code>, so in-flight executions observe cancellation while
+                they still can;</li>
+            <li>runs the derived <code>Dispose()</code> hook, then the <code>DisposeAsync()</code> hook —
+                overrides still see their state attached;</li>
+            <li>detaches from all observed state and disposes the queries the component created —
+                cancelling their fetches — even when derived cleanup throws.</li>
+        </ol>
 
-<h2>Guard rail: redeclared disposal throws</h2>
-<p>
-    A derived component declaring its own <code>Dispose</code> or <code>DisposeAsync</code>
-    (typically via <code>@("@implements IDisposable")</code> /
-    <code>@("@implements IAsyncDisposable")</code>) is rejected in the constructor with an
-    <code>InvalidOperationException</code>. A redeclared <code>DisposeAsync</code> would replace
-    Deja's disposal entirely — the component would silently leak its attachments and never dispose
-    its queries; a redeclared <code>Dispose</code> would never be called by anything, because
-    Blazor disposes only through <code>IAsyncDisposable</code> once it is present. Explicit
-    interface re-implementations are also caught; <code>Dispose(bool)</code>-style helpers are
-    allowed. The exception message names the fix: <code>protected override</code> the hooks.
-</p>
+        <h2>Guard rail: redeclared disposal throws</h2>
+        <p>
+            A derived component declaring its own <code>Dispose</code> or <code>DisposeAsync</code>
+            (typically via <code>@("@implements IDisposable")</code> /
+            <code>@("@implements IAsyncDisposable")</code>) is rejected in the constructor with an
+            <code>InvalidOperationException</code>. A redeclared <code>DisposeAsync</code> would replace
+            Deja's disposal entirely — the component would silently leak its attachments and never dispose
+            its queries; a redeclared <code>Dispose</code> would never be called by anything, because
+            Blazor disposes only through <code>IAsyncDisposable</code> once it is present. Explicit
+            interface re-implementations are also caught; <code>Dispose(bool)</code>-style helpers are
+            allowed. The exception message names the fix: <code>protected override</code> the hooks.
+        </p>
 
-<h2>Guard rail: skipped base.OnInitialized()</h2>
-<p>
-    Skipping <code>base.OnInitialized()</code> compiles and renders once — then the component
-    silently stops reacting, because nothing was attached. Deja detects this on first render and
-    reports it once as a console error (via stderr, surfaced as <code>console.error</code> on
-    WebAssembly), naming the component and the fix.
-</p>
+        <h2>Guard rail: skipped base.OnInitialized()</h2>
+        <p>
+            Skipping <code>base.OnInitialized()</code> compiles and renders once — then the component
+            silently stops reacting, because nothing was attached. Deja detects this on first render and
+            reports it once as a console error (via stderr, surfaced as <code>console.error</code> on
+            WebAssembly), naming the component and the fix.
+        </p>
 
-<h2>Discovery details</h2>
-<ul>
-    <li>Fields and properties are scanned once at initialisation, walking the type hierarchy.</li>
-    <li><code>[Parameter]</code>, <code>[CascadingParameter]</code> and <code>[Inject]</code>
-        members are skipped — parameters are owned by the parent that passed them; attaching would
-        both steal the parent's listener slot (throwing) and dispose state the component doesn't
-        own.</li>
-    <li>State assigned after initialisation is never picked up by the scan — nothing rescans on
-        later renders — so it must be passed to <code>Observe()</code>.</li>
-    <li>The scan is trimming-annotated, so it survives published, trimmed WebAssembly builds.</li>
-</ul>
+        <h2>Discovery details</h2>
+        <ul>
+            <li>Fields and properties are scanned once at initialisation, walking the type hierarchy.</li>
+            <li><code>[Parameter]</code>, <code>[CascadingParameter]</code> and <code>[Inject]</code>
+                members are skipped — parameters are owned by the parent that passed them; attaching would
+                both steal the parent's listener slot (throwing) and dispose state the component doesn't
+                own.</li>
+            <li>State assigned after initialisation is never picked up by the scan — nothing rescans on
+                later renders — so it must be passed to <code>Observe()</code>.</li>
+            <li>The scan is trimming-annotated, so it survives published, trimmed WebAssembly builds.</li>
+        </ul>
+    </En>
+    <De>
+        <h2>Reihenfolge beim Disposal</h2>
+        <p>Wenn Blazor die Komponente entfernt, geht die Basis so vor:</p>
+        <ol>
+            <li>Sie bricht <code>ComponentToken</code> ab, sodass laufende Ausführungen den Abbruch
+                beobachten, solange sie es noch können;</li>
+            <li>sie führt den abgeleiteten <code>Dispose()</code>-Hook aus, dann den
+                <code>DisposeAsync()</code>-Hook — Overrides sehen ihren Zustand dabei noch
+                angeheftet;</li>
+            <li>sie löst sich von allem beobachteten Zustand und disposed die Queries, die die
+                Komponente erstellt hat — samt Abbruch ihrer Fetches — selbst wenn abgeleitetes
+                Aufräumen wirft.</li>
+        </ol>
+
+        <h2>Leitplanke: neu deklariertes Disposal wirft</h2>
+        <p>
+            Eine abgeleitete Komponente, die ihr eigenes <code>Dispose</code> oder
+            <code>DisposeAsync</code> deklariert (typischerweise über
+            <code>@("@implements IDisposable")</code> /
+            <code>@("@implements IAsyncDisposable")</code>), wird im Konstruktor mit einer
+            <code>InvalidOperationException</code> abgewiesen. Ein neu deklariertes
+            <code>DisposeAsync</code> würde Dejas Disposal vollständig ersetzen — die Komponente
+            würde ihre Anheftungen stillschweigend leaken und ihre Queries nie disposen; ein neu
+            deklariertes <code>Dispose</code> würde von nichts mehr aufgerufen, weil Blazor nur über
+            <code>IAsyncDisposable</code> disposed, sobald es vorhanden ist. Explizite
+            Interface-Reimplementierungen werden ebenfalls erkannt; Helfer im Stil von
+            <code>Dispose(bool)</code> sind erlaubt. Die Fehlermeldung nennt die Lösung: die Hooks
+            per <code>protected override</code> überschreiben.
+        </p>
+
+        <h2>Leitplanke: ausgelassenes base.OnInitialized()</h2>
+        <p>
+            Wer <code>base.OnInitialized()</code> auslässt, bekommt Code, der kompiliert und einmal
+            rendert — dann hört die Komponente stillschweigend auf zu reagieren, weil nichts
+            angeheftet wurde. Deja erkennt das beim ersten Render und meldet es einmalig als
+            Konsolenfehler (über stderr, auf WebAssembly als <code>console.error</code> sichtbar),
+            unter Nennung der Komponente und der Lösung.
+        </p>
+
+        <h2>Discovery-Details</h2>
+        <ul>
+            <li>Felder und Properties werden einmal bei der Initialisierung gescannt, entlang der
+                Typhierarchie.</li>
+            <li><code>[Parameter]</code>-, <code>[CascadingParameter]</code>- und
+                <code>[Inject]</code>-Member werden übersprungen — Parameter gehören dem Parent, der
+                sie übergeben hat; ein Anheften würde sowohl den Listener-Slot des Parents stehlen
+                (und werfen) als auch Zustand disposen, der der Komponente nicht gehört.</li>
+            <li>Zustand, der nach der Initialisierung zugewiesen wird, wird vom Scan nie erfasst —
+                bei späteren Renders wird nichts erneut gescannt — er muss also an
+                <code>Observe()</code> übergeben werden.</li>
+            <li>Der Scan ist trimming-annotiert und übersteht daher veröffentlichte, getrimmte
+                WebAssembly-Builds.</li>
+        </ul>
+    </De>
+</Localized>

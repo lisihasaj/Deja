@@ -1,12 +1,12 @@
 @inject NavigationManager Nav
 
-<nav class="docs-sidebar @(Open ? "open" : null)" aria-label="Documentation">
+<nav class="docs-sidebar @(Open ? "open" : null)" aria-label="@(Lang == Language.De ? "Dokumentation" : "Documentation")">
     @foreach (var navSection in DocsNav.Sections)
     {
         <div class="@NavSectionClass(navSection.Title)">
             <button type="button" class="nav-section-title" @onclick="() => Toggle(navSection.Title)"
                     aria-expanded="@(!_collapsed.Contains(navSection.Title))">
-                @navSection.Title
+                @navSection.TitleFor(Lang)
                 <span class="chevron" aria-hidden="true">▼</span>
             </button>
             <ul>
@@ -14,7 +14,7 @@
                 {
                     <li>
                         <NavLink href="@item.Href" ActiveClass="active" Match="NavLinkMatch.All">
-                            @item.Title
+                            @item.TitleFor(Lang)
                             @if (item.Badge is { } badge)
                             {
                                 <span class="nav-badge">@badge</span>
@@ -30,6 +30,9 @@
 @code {
     [Parameter] public bool Open { get; set; }
 
+    [CascadingParameter] public Language Lang { get; set; }
+
+    // Collapse state is keyed by the invariant English title so it survives a language switch.
     private readonly HashSet<string> _collapsed = [];
 
     private string NavSectionClass(string title)

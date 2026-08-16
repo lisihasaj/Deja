@@ -2,8 +2,8 @@
 
 <div class="search-box" role="search">
     <input type="search"
-           placeholder="Search docs…"
-           aria-label="Search documentation"
+           placeholder="@(Lang == Language.De ? "Doku durchsuchen…" : "Search docs…")"
+           aria-label="@(Lang == Language.De ? "Dokumentation durchsuchen" : "Search documentation")"
            value="@_query"
            @oninput="OnInput"
            @onfocus="() => _open = true"
@@ -15,7 +15,9 @@
         <div class="search-results" role="listbox">
             @if (_results.Count == 0)
             {
-                <div class="search-empty">No pages match “@_query”.</div>
+                <div class="search-empty">
+                    @(Lang == Language.De ? $"Keine Seiten passen zu „{_query}“." : $"No pages match “{_query}”.")
+                </div>
             }
             @for (var i = 0; i < _results.Count; i++)
             {
@@ -23,8 +25,8 @@
                 var selected = i == _selected;
                 <a href="@item.Href" class="@(selected ? "selected" : null)"
                    @onmousedown="() => Go(item)" @onmousedown:preventDefault>
-                    <span class="result-section">@item.Section</span>
-                    @item.Title
+                    <span class="result-section">@item.SectionFor(Lang)</span>
+                    @item.TitleFor(Lang)
                 </a>
             }
         </div>
@@ -32,6 +34,8 @@
 </div>
 
 @code {
+    [CascadingParameter] public Language Lang { get; set; }
+
     private string _query = string.Empty;
     private bool _open;
     private int _selected;

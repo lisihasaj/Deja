@@ -1,71 +1,148 @@
 @page "/guides/cache"
+@inherits DocPage
 
-<PageTitle>The cache — Deja</PageTitle>
+<PageTitle>@T("The cache — Deja", "Der Cache — Deja")</PageTitle>
 
-<h1>The cache</h1>
-<p class="lead">
-    Register <code>AddDeja()</code> and every keyed query taps a shared, app-wide cache: instant
-    renders from cached data, one fetch per key no matter how many components ask, and background
-    revalidation when data goes stale.
-</p>
+<Localized>
+    <En>
+        <h1>The cache</h1>
+        <p class="lead">
+            Register <code>AddDeja()</code> and every keyed query taps a shared, app-wide cache: instant
+            renders from cached data, one fetch per key no matter how many components ask, and background
+            revalidation when data goes stale.
+        </p>
 
-<h2>Opting in</h2>
+        <h2>Opting in</h2>
+    </En>
+    <De>
+        <h1>Der Cache</h1>
+        <p class="lead">
+            Registriere <code>AddDeja()</code> und jede Query mit Key nutzt einen gemeinsamen, app-weiten
+            Cache: sofortiges Rendern aus gecachten Daten, ein Fetch pro Key — egal wie viele Komponenten
+            anfragen — und Revalidierung im Hintergrund, wenn Daten stale werden.
+        </p>
+
+        <h2>Aktivieren</h2>
+    </De>
+</Localized>
 
 <CodeBlock FileName="Program.cs" Code="@RegisterSample"/>
 
-<p>
-    Queries opt in per execution by setting a <a href="guides/query-keys">key</a>; a query without
-    a key never touches the cache. Components inheriting <code>DejaComponentBase</code> get the
-    client handed to their queries automatically — outside a component, pass it via the
-    <code>Query&lt;T&gt;(DejaClient)</code> constructor or <code>QueryParameters&lt;T&gt;.Client</code>.
-</p>
+<Localized>
+    <En>
+        <p>
+            Queries opt in per execution by setting a <a href="guides/query-keys">key</a>; a query without
+            a key never touches the cache. Components inheriting <code>DejaComponentBase</code> get the
+            client handed to their queries automatically — outside a component, pass it via the
+            <code>Query&lt;T&gt;(DejaClient)</code> constructor or <code>QueryParameters&lt;T&gt;.Client</code>.
+        </p>
 
-<h2>What a keyed Execute does</h2>
-<ol>
-    <li>If the entry has data, it renders <strong>instantly</strong> (<code>IsCachedData</code> is
-        true) — no loading flash.</li>
-    <li>Staleness decides whether to refetch in the background: with the site's
-        <code>DefaultStaleTime</code> of 10 seconds, data younger than that is served with no
-        request at all.</li>
-    <li>Concurrent same-key executions — from any component — join one in-flight fetch.</li>
-    <li>When the result lands, the entry notifies every subscribed query, and each notifies its
-        own component. One code path for all subscribers, so two components sharing a key cannot
-        drift.</li>
-</ol>
+        <h2>What a keyed Execute does</h2>
+        <ol>
+            <li>If the entry has data, it renders <strong>instantly</strong> (<code>IsCachedData</code> is
+                true) — no loading flash.</li>
+            <li>Staleness decides whether to refetch in the background: with the site's
+                <code>DefaultStaleTime</code> of 10 seconds, data younger than that is served with no
+                request at all.</li>
+            <li>Concurrent same-key executions — from any component — join one in-flight fetch.</li>
+            <li>When the result lands, the entry notifies every subscribed query, and each notifies its
+                own component. One code path for all subscribers, so two components sharing a key cannot
+                drift.</li>
+        </ol>
 
-<h2>Entry lifecycle and eviction</h2>
-<p>
-    An entry with live subscribers is never evicted. When the last subscriber unmounts, the
-    eviction clock starts: the entry survives for the effective <em>cache time</em> (default
-    5 minutes), so a component remounting within the window gets its data instantly. An optional
-    <code>MaxEntries</code> cap evicts least-recently-used subscriber-less entries early.
-</p>
+        <h2>Entry lifecycle and eviction</h2>
+        <p>
+            An entry with live subscribers is never evicted. When the last subscriber unmounts, the
+            eviction clock starts: the entry survives for the effective <em>cache time</em> (default
+            5 minutes), so a component remounting within the window gets its data instantly. An optional
+            <code>MaxEntries</code> cap evicts least-recently-used subscriber-less entries early.
+        </p>
 
-<h2>Reading and writing directly</h2>
-<p>
-    <code>DejaClient</code> is also a manual surface: <code>GetData</code> /
-    <code>TryGetData</code> to peek, <code>SetData</code> to write (see the
-    <a href="demos/optimistic-write">optimistic write demo</a>), <code>InvalidateAsync</code> to
-    mark stale and refetch, <code>Remove</code> / <code>Clear</code> to drop entries. The full
-    surface is in the <a href="api/deja-client">API reference</a>.
-</p>
+        <h2>Reading and writing directly</h2>
+        <p>
+            <code>DejaClient</code> is also a manual surface: <code>GetData</code> /
+            <code>TryGetData</code> to peek, <code>SetData</code> to write (see the
+            <a href="demos/optimistic-write">optimistic write demo</a>), <code>InvalidateAsync</code> to
+            mark stale and refetch, <code>Remove</code> / <code>Clear</code> to drop entries. The full
+            surface is in the <a href="api/deja-client">API reference</a>.
+        </p>
 
-<Callout Type="Callout.CalloutType.Warning" Title="One key, one type">
-    <p>A key stores one data type. Reading with the wrong type (<code>TryGetData</code>) returns
-        false and logs a debug warning; executing a query against a key that already holds a
-        different type throws — two call sites disagreeing about a key's shape is a bug that
-        silent replacement would mask.</p>
-</Callout>
+        <Callout Type="Callout.CalloutType.Warning" Title="One key, one type">
+            <p>A key stores one data type. Reading with the wrong type (<code>TryGetData</code>) returns
+                false and logs a debug warning; executing a query against a key that already holds a
+                different type throws — two call sites disagreeing about a key's shape is a bug that
+                silent replacement would mask.</p>
+        </Callout>
 
-<Callout Type="Callout.CalloutType.Danger" Title="Blazor Server: Scoped is not negotiable">
-    <p>The client is registered Scoped: per browser tab on WebAssembly, per user circuit on
-        Server. "Optimising" it to a singleton on Blazor Server would share one user's cached API
-        responses with every other user.</p>
-</Callout>
+        <Callout Type="Callout.CalloutType.Danger" Title="Blazor Server: Scoped is not negotiable">
+            <p>The client is registered Scoped: per browser tab on WebAssembly, per user circuit on
+                Server. "Optimising" it to a singleton on Blazor Server would share one user's cached API
+                responses with every other user.</p>
+        </Callout>
 
-<h2>Live demo</h2>
+        <h2>Live demo</h2>
+    </En>
+    <De>
+        <p>
+            Queries nehmen pro Ausführung teil, indem sie einen <a href="guides/query-keys">Key</a>
+            setzen; eine Query ohne Key berührt den Cache nie. Komponenten, die von
+            <code>DejaComponentBase</code> erben, bekommen den Client automatisch an ihre Queries
+            gereicht — außerhalb einer Komponente übergibst du ihn über den
+            <code>Query&lt;T&gt;(DejaClient)</code>-Konstruktor oder <code>QueryParameters&lt;T&gt;.Client</code>.
+        </p>
 
-<DemoCard Title="Instant render on remount" SourceFiles="@(new[] { "CacheDemo.razor", "SharedCachePanel.razor" })">
+        <h2>Was ein Execute mit Key tut</h2>
+        <ol>
+            <li>Hat der Eintrag Daten, rendert er <strong>sofort</strong> (<code>IsCachedData</code> ist
+                true) — kein Lade-Flackern.</li>
+            <li>Die Aktualität entscheidet, ob im Hintergrund neu geladen wird: Mit der
+                <code>DefaultStaleTime</code> dieser Seite von 10 Sekunden werden jüngere Daten ganz ohne
+                Request ausgeliefert.</li>
+            <li>Parallele Ausführungen mit demselben Key — aus beliebigen Komponenten — schließen sich
+                einem laufenden Fetch an.</li>
+            <li>Trifft das Ergebnis ein, benachrichtigt der Eintrag jede abonnierte Query, und jede
+                benachrichtigt ihre eigene Komponente. Ein Codepfad für alle Subscriber — zwei
+                Komponenten mit demselben Key können also nicht auseinanderlaufen.</li>
+        </ol>
+
+        <h2>Lebenszyklus und Verdrängung von Einträgen</h2>
+        <p>
+            Ein Eintrag mit aktiven Subscribern wird nie verdrängt. Wenn der letzte Subscriber unmountet,
+            beginnt die Verdrängungsuhr zu laufen: Der Eintrag überlebt die effektive <em>Cache-Zeit</em>
+            (Standard 5 Minuten), sodass eine Komponente, die innerhalb dieses Fensters erneut mountet,
+            ihre Daten sofort bekommt. Eine optionale <code>MaxEntries</code>-Obergrenze verdrängt am
+            längsten unbenutzte Einträge ohne Subscriber vorzeitig.
+        </p>
+
+        <h2>Direkt lesen und schreiben</h2>
+        <p>
+            <code>DejaClient</code> ist auch eine manuelle Schnittstelle: <code>GetData</code> /
+            <code>TryGetData</code> zum Nachsehen, <code>SetData</code> zum Schreiben (siehe die
+            <a href="demos/optimistic-write">Demo zum optimistischen Schreiben</a>),
+            <code>InvalidateAsync</code>, um als stale zu markieren und neu zu laden,
+            <code>Remove</code> / <code>Clear</code>, um Einträge zu entfernen. Die vollständige
+            Schnittstelle steht in der <a href="api/deja-client">API-Referenz</a>.
+        </p>
+
+        <Callout Type="Callout.CalloutType.Warning" Title="Ein Key, ein Typ">
+            <p>Ein Key speichert einen Datentyp. Lesen mit dem falschen Typ (<code>TryGetData</code>)
+                gibt false zurück und loggt eine Debug-Warnung; eine Query gegen einen Key auszuführen,
+                der bereits einen anderen Typ hält, wirft eine Exception — wenn zwei Aufrufstellen sich
+                über die Form eines Keys uneinig sind, ist das ein Bug, den stilles Ersetzen verschleiern
+                würde.</p>
+        </Callout>
+
+        <Callout Type="Callout.CalloutType.Danger" Title="Blazor Server: Scoped ist nicht verhandelbar">
+            <p>Der Client ist Scoped registriert: pro Browser-Tab auf WebAssembly, pro User-Circuit auf
+                dem Server. Ihn auf Blazor Server zu einem Singleton zu „optimieren“ würde die gecachten
+                API-Antworten eines Users mit jedem anderen User teilen.</p>
+        </Callout>
+
+        <h2>Live-Demo</h2>
+    </De>
+</Localized>
+
+<DemoCard Title='@T("Instant render on remount", "Sofortiges Rendern beim erneuten Mounten")' SourceFiles="@(new[] { "CacheDemo.razor", "SharedCachePanel.razor" })">
     <CacheDemo/>
 </DemoCard>
 
