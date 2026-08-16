@@ -79,6 +79,39 @@ code {
     top: 2.4rem;
 }
 
+.code-compare > .code-block {
+    margin: 1.25rem 0 0;
+}
+
+@media (min-width: 1000px) {
+    /* Wider than the prose column — two panes at --deja-content-max wrap the C# badly */
+    .code-compare {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.85rem;
+        width: auto;
+        margin-inline: calc(-1 * var(--deja-compare-bleed, 0rem));
+    }
+
+    .code-compare > .code-block {
+        margin: 1.25rem 0 0;
+        min-width: 0;
+    }
+
+    /* Panes are half-width — shrink so the long lines aren't cut mid-statement */
+    .code-compare pre {
+        font-size: 0.75rem;
+        padding: 0.9rem 0.75rem;
+    }
+}
+
+/* Bleed into the .docs-main padding only — never past it */
+@media (min-width: 1360px) {
+    .code-compare {
+        --deja-compare-bleed: 2.75rem;
+    }
+}
+
 /* ---- Prism token colors ---- */
 
 :root {

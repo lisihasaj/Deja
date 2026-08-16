@@ -35,7 +35,7 @@
             <code>bool _loading</code> flag, a <code>try</code>/<code>catch</code> for the error message,
             an <code>IDisposable</code> with a <code>CancellationTokenSource</code> so navigating away
             doesn't leave requests running, and <code>StateHasChanged()</code> calls sprinkled wherever a
-            continuation might land. Multiply by every page in the app:
+            continuation might land. Multiply by every page in the app.
         </p>
     </En>
     <De>
@@ -70,12 +70,10 @@
             <code>bool _loading</code>-Flag, ein <code>try</code>/<code>catch</code> für die
             Fehlermeldung, ein <code>IDisposable</code> mit einer <code>CancellationTokenSource</code>,
             damit beim Wegnavigieren keine Requests weiterlaufen, und <code>StateHasChanged()</code>-Aufrufe
-            überall dort, wo eine Continuation landen könnte. Multipliziert mit jeder Seite der App:
+            überall dort, wo eine Continuation landen könnte. Multipliziert mit jeder Seite der App.
         </p>
     </De>
 </Localized>
-
-<CodeBlock FileName='@T("Before — the boilerplate", "Vorher — der Boilerplate-Code")' Language="cshtml" Code="@Before"/>
 
 <Localized>
     <En>
@@ -86,7 +84,10 @@
     </De>
 </Localized>
 
-<CodeBlock FileName='@T("After — with Deja", "Nachher — mit Deja")' Language="cshtml" Code="@After"/>
+<div class="code-compare">
+    <CodeBlock FileName='@T("Before — the boilerplate", "Vorher — der Boilerplate-Code")' Language="cshtml" Code="@Before"/>
+    <CodeBlock FileName='@T("After — with Deja", "Nachher — mit Deja")' Language="cshtml" Code="@After"/>
+</div>
 
 <Localized>
     <En>
@@ -96,6 +97,75 @@
             when its state advances, and disposes it — cancelling the in-flight request — when the
             component is removed. There is no flag, no catch block, no token plumbing and no
             <code>StateHasChanged</code> anywhere.
+        </p>
+    </En>
+    <De>
+        <p>
+            Die Komponente deklariert eine <code>Query&lt;T&gt;</code> und bindet deren Eigenschaften.
+            <code>DejaComponentBase</code> entdeckt die Query bei der Initialisierung, rendert die
+            Komponente neu, wenn ihr Zustand voranschreitet, und disposed sie — samt Abbruch des laufenden
+            Requests — wenn die Komponente entfernt wird. Es gibt kein Flag, keinen Catch-Block, kein
+            Token-Geflecht und nirgendwo ein <code>StateHasChanged</code>.
+        </p>
+    </De>
+</Localized>
+
+<Localized>
+    <En>
+        <h2>The second problem: prop drilling</h2>
+        <p>
+            The boilerplate above is per component, so the usual reaction is to stop repeating it: fetch
+            once in the page, pass the data down as parameters, and pass an
+            <code>EventCallback</code> back up so a child that changes something can ask the page to
+            reload. The request lives at the root purely to keep two children from firing it twice.
+        </p>
+        <p>
+            That decision spreads. Every component between the page and the one that actually needs the
+            data grows a <code>[Parameter]</code> it does not use and a callback it only forwards. Move
+            the child, and the whole chain has to be re-threaded. Add a third consumer on another branch
+            of the tree, and either it re-fetches on its own — now there are two copies of the same
+            record, free to drift — or the fetch is hoisted even higher and the chain gets longer.
+        </p>
+    </En>
+    <De>
+        <h2>Das zweite Problem: Prop Drilling</h2>
+        <p>
+            Der Boilerplate oben fällt pro Komponente an — die übliche Reaktion ist deshalb, ihn nicht zu
+            wiederholen: einmal auf der Seite laden, die Daten als Parameter nach unten reichen und einen
+            <code>EventCallback</code> nach oben, damit ein Kind, das etwas ändert, die Seite um ein
+            Neuladen bitten kann. Der Request sitzt nur deshalb an der Wurzel, damit ihn nicht zwei Kinder
+            doppelt auslösen.
+        </p>
+        <p>
+            Diese Entscheidung breitet sich aus. Jede Komponente zwischen der Seite und derjenigen, die
+            die Daten wirklich braucht, bekommt einen <code>[Parameter]</code>, den sie nicht nutzt, und
+            einen Callback, den sie nur weiterreicht. Verschiebt man das Kind, muss die ganze Kette neu
+            verdrahtet werden. Kommt ein dritter Konsument in einem anderen Ast des Baums dazu, lädt er
+            entweder selbst — dann gibt es zwei Kopien desselben Datensatzes, die auseinanderlaufen
+            können — oder der Fetch wandert noch weiter nach oben und die Kette wird länger.
+        </p>
+    </De>
+</Localized>
+
+<div class="code-compare">
+    <CodeBlock FileName='@T("Before — drilled down and called back up", "Vorher — nach unten gereicht, nach oben zurückgerufen")' Language="cshtml" Code="@DrillingBefore"/>
+    <CodeBlock FileName='@T("After — each component asks for the key", "Nachher — jede Komponente fragt den Key an")' Language="cshtml" Code="@DrillingAfter"/>
+</div>
+
+<Localized>
+    <En>
+        <p>
+            On the right nothing is passed and nothing is called back. The page, the toolbar and the
+            table each declare the key they care about; the cache deduplicates them into a single
+            request, so asking three times costs the same as asking once. The mutation names the key it
+            invalidates and every component holding it refetches — including ones several levels away
+            that the mutation has never heard of. <code>TodoLayout</code> in the middle stays a layout:
+            no parameter it does not use, no callback it only forwards.
+        </p>
+        <p>
+            The consequence is that data placement stops being an architectural decision. A component
+            can move anywhere in the tree, or be dropped into a second page entirely, and it keeps
+            working — it depends on a key, not on an ancestor.
         </p>
 
         <h2>More than boilerplate removal</h2>
@@ -151,11 +221,18 @@
     </En>
     <De>
         <p>
-            Die Komponente deklariert eine <code>Query&lt;T&gt;</code> und bindet deren Eigenschaften.
-            <code>DejaComponentBase</code> entdeckt die Query bei der Initialisierung, rendert die
-            Komponente neu, wenn ihr Zustand voranschreitet, und disposed sie — samt Abbruch des laufenden
-            Requests — wenn die Komponente entfernt wird. Es gibt kein Flag, keinen Catch-Block, kein
-            Token-Geflecht und nirgendwo ein <code>StateHasChanged</code>.
+            Rechts wird nichts durchgereicht und nichts zurückgerufen. Seite, Toolbar und Tabelle
+            deklarieren jeweils den Key, der sie interessiert; der Cache dedupliziert sie zu einem
+            einzigen Request — dreimal fragen kostet also so viel wie einmal fragen. Die Mutation nennt
+            den Key, den sie invalidiert, und jede Komponente, die ihn hält, lädt neu — auch solche
+            mehrere Ebenen entfernt, von denen die Mutation nie gehört hat. <code>TodoLayout</code> in
+            der Mitte bleibt ein Layout: kein Parameter, den es nicht nutzt, kein Callback, den es nur
+            weiterreicht.
+        </p>
+        <p>
+            Damit ist die Platzierung der Daten keine Architekturentscheidung mehr. Eine Komponente kann
+            an jede Stelle im Baum wandern oder in einer ganz anderen Seite landen und funktioniert
+            weiter — sie hängt an einem Key, nicht an einem Vorfahren.
         </p>
 
         <h2>Mehr als nur weniger Boilerplate</h2>
@@ -220,9 +297,15 @@
 @inject TodoApi Api
 
 @if (_loading) { <Spinner/> }
-@if (_error is not null) { <Alert>@_error</Alert> }
+@if (_error is not null)
+{
+    <Alert>@_error</Alert>
+}
 <ul>
-    @foreach (var todo in _todos ?? []) { <li>@todo.Title</li> }
+    @foreach (var todo in _todos ?? [])
+    {
+        <li>@todo.Title</li>
+    }
 </ul>
 
 @code {
@@ -267,9 +350,15 @@
 @inject TodoApi Api
 
 @if (_todos.IsLoading) { <Spinner/> }
-@if (_todos.IsError) { <Alert>@_todos.ErrorMessage</Alert> }
+@if (_todos.IsError)
+{
+    <Alert>@_todos.ErrorMessage</Alert>
+}
 <ul>
-    @foreach (var todo in _todos.Data ?? []) { <li>@todo.Title</li> }
+    @foreach (var todo in _todos.Data ?? [])
+    {
+        <li>@todo.Title</li>
+    }
 </ul>
 
 @code {
@@ -277,6 +366,71 @@
 
     protected override Task OnInitializedAsync()
         => _todos.Execute("todos", Api.GetTodosAsync);
+}
+""";
+
+    private const string DrillingBefore = """
+@* Todos.razor — owns the request so the children don't duplicate it *@
+<TodoLayout Todos="_todos" OnChanged="Reload"/>
+
+@code {
+    private List<Todo>? _todos;
+    // …loading flag, error, CTS, try/catch — as above
+
+    private async Task Reload()
+        => _todos = await Api.GetTodosAsync(_cts.Token);
+}
+
+@* TodoLayout.razor — wants neither, forwards both *@
+<TodoToolbar Todos="Todos" OnChanged="OnChanged"/>
+<TodoTable Todos="Todos" OnChanged="OnChanged"/>
+
+@code {
+    [Parameter] public List<Todo>? Todos { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+}
+
+@* TodoTable.razor — three levels down, still on parameters *@
+@foreach (var todo in Todos ?? []) { <TodoRow Todo="todo" OnChanged="OnChanged"/> }
+
+@code {
+    [Parameter] public List<Todo>? Todos { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private async Task Delete(int id)
+    {
+        await Api.DeleteTodoAsync(id);
+        await OnChanged.InvokeAsync();   // ask the page to refetch
+    }
+}
+""";
+
+    private const string DrillingAfter = """
+@* Todos.razor — no parameters, no callbacks *@
+<TodoLayout/>
+
+@* TodoLayout.razor — just a layout again *@
+<TodoToolbar/>
+<TodoTable/>
+
+@* TodoTable.razor — asks for the data it needs, wherever it lives *@
+@inherits DejaComponentBase
+@inject TodoApi Api
+
+@foreach (var todo in _todos.Data ?? []) { <TodoRow Todo="todo"/> }
+
+@code {
+    private readonly Query<List<Todo>> _todos = new();
+    private readonly Mutation<bool> _delete = new();
+
+    protected override Task OnInitializedAsync()
+        => _todos.Execute("todos", Api.GetTodosAsync);
+
+    private Task Delete(int id) => _delete.Execute(new MutationParameters<bool>
+    {
+        CancellableVoidMutationFunction = t => Api.DeleteTodoAsync(id, t),
+        InvalidateKeys = [QueryKey.Of("todos")],
+    });
 }
 """;
 }
