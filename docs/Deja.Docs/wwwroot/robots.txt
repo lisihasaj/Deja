@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://lisihasaj.github.io/Deja/sitemap.xml

@@ -2,6 +2,8 @@
 
 **Data fetching, mutation and caching primitives for Blazor — WebAssembly and Server.**
 
+📖 **[Documentation & live demos](https://lisihasaj.github.io/Deja/)**
+
 Déjà vu: you have seen this data before, and Deja remembers it for you.
 
 > **Status: early preview.** Deja is being extracted from a production Blazor application. The

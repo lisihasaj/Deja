@@ -1,0 +1,21 @@
+{
+  "name": "Deja — data fetching and caching for Blazor",
+  "short_name": "Deja",
+  "start_url": "./",
+  "display": "minimal-ui",
+  "background_color": "#141018",
+  "theme_color": "#5C00B3",
+  "icons": [
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

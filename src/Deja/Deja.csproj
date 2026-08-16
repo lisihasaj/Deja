@@ -14,7 +14,7 @@
     <Description>Data fetching, mutation and caching primitives for Blazor (WebAssembly and Server): bindable loading/error/refetch state, in-flight request deduplication, supersede-and-cancel of stale executions, and cancellation-aware fetches. Dependency-free.</Description>
     <PackageTags>blazor;query;data-fetching;fetch;cache;caching;mutation;async;state;webassembly;wasm;blazor-server</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/lisihasaj/Deja</PackageProjectUrl>
+    <PackageProjectUrl>https://lisihasaj.github.io/Deja/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/lisihasaj/Deja</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>

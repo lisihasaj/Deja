@@ -1,0 +1,101 @@
+@implements IDisposable
+@inject NavigationManager Nav
+
+@* Crawlers that skip JS never see these — the build-time generator bakes the same tags into each
+   route's static HTML. This keeps the head correct during client-side navigation. *@
+<HeadContent>
+    @if (_state == PageState.NotFound)
+    {
+        <meta name="robots" content="noindex, follow"/>
+    }
+    else if (_state == PageState.Landing)
+    {
+        <meta name="description" content="@T(SeoMeta.LandingDescription, SeoMeta.LandingDescriptionDe)"/>
+        <link rel="canonical" href="@Nav.BaseUri"/>
+        <meta property="og:type" content="website"/>
+        <meta property="og:site_name" content="@SeoMeta.SiteName"/>
+        <meta property="og:locale" content="@Locale"/>
+        <meta property="og:title" content="@T(SeoMeta.LandingTitle, SeoMeta.LandingTitleDe)"/>
+        <meta property="og:description" content="@T(SeoMeta.LandingOgDescription, SeoMeta.LandingOgDescriptionDe)"/>
+        <meta property="og:url" content="@Nav.BaseUri"/>
+        <meta property="og:image" content="@SeoMeta.OgImageUrl(Nav.BaseUri)"/>
+        <meta property="og:image:width" content="1200"/>
+        <meta property="og:image:height" content="630"/>
+        <meta property="og:image:alt" content="@SeoMeta.LandingTitle"/>
+        <meta name="twitter:card" content="summary_large_image"/>
+        <meta name="twitter:title" content="@T(SeoMeta.LandingTitle, SeoMeta.LandingTitleDe)"/>
+        <meta name="twitter:description" content="@T(SeoMeta.LandingOgDescription, SeoMeta.LandingOgDescriptionDe)"/>
+        <meta name="twitter:image" content="@SeoMeta.OgImageUrl(Nav.BaseUri)"/>
+        <meta name="twitter:image:alt" content="@SeoMeta.LandingTitle"/>
+        @((MarkupString)$"<script type=\"application/ld+json\">{SeoMeta.SoftwareJsonLd(Nav.BaseUri)}</script>")
+        @((MarkupString)$"<script type=\"application/ld+json\">{SeoMeta.WebSiteJsonLd(Nav.BaseUri)}</script>")
+    }
+    else if (_item is not null)
+    {
+        <meta name="description" content="@_item.DescriptionFor(Lang)"/>
+        <link rel="canonical" href="@SeoMeta.CanonicalFor(Nav.BaseUri, _item)"/>
+        <meta property="og:type" content="article"/>
+        <meta property="og:site_name" content="@SeoMeta.SiteName"/>
+        <meta property="og:locale" content="@Locale"/>
+        <meta property="og:title" content="@SeoMeta.TitleFor(_item, Lang)"/>
+        <meta property="og:description" content="@_item.DescriptionFor(Lang)"/>
+        <meta property="og:url" content="@SeoMeta.CanonicalFor(Nav.BaseUri, _item)"/>
+        <meta property="og:image" content="@SeoMeta.OgImageUrl(Nav.BaseUri)"/>
+        <meta property="og:image:width" content="1200"/>
+        <meta property="og:image:height" content="630"/>
+        <meta property="og:image:alt" content="@SeoMeta.LandingTitle"/>
+        <meta name="twitter:card" content="summary_large_image"/>
+        <meta name="twitter:title" content="@SeoMeta.TitleFor(_item, Lang)"/>
+        <meta name="twitter:description" content="@_item.DescriptionFor(Lang)"/>
+        <meta name="twitter:image" content="@SeoMeta.OgImageUrl(Nav.BaseUri)"/>
+        <meta name="twitter:image:alt" content="@SeoMeta.LandingTitle"/>
+        @((MarkupString)$"<script type=\"application/ld+json\">{SeoMeta.BreadcrumbJsonLd(Nav.BaseUri, _item)}</script>")
+    }
+</HeadContent>
+
+@code {
+    private enum PageState { Landing, Page, NotFound }
+
+    [CascadingParameter] public Language Lang { get; set; }
+
+    private PageState _state;
+    private NavItem? _item;
+
+    private string Locale => Lang == Language.De ? "de_DE" : "en_US";
+
+    private string T(string en, string de) => Lang == Language.De ? de : en;
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+        Resolve();
+    }
+
+    protected override void OnParametersSet() => Resolve();
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        Resolve();
+        StateHasChanged();
+    }
+
+    private void Resolve()
+    {
+        var route = Nav.ToBaseRelativePath(Nav.Uri);
+        var cut = route.IndexOfAny(['?', '#']);
+        if (cut >= 0) route = route[..cut];
+        route = route.Trim('/');
+
+        if (route.Length == 0)
+        {
+            _state = PageState.Landing;
+            _item = null;
+            return;
+        }
+
+        _item = DocsNav.All.FirstOrDefault(l => string.Equals(l.Href, route, StringComparison.OrdinalIgnoreCase));
+        _state = _item is null ? PageState.NotFound : PageState.Page;
+    }
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+}
