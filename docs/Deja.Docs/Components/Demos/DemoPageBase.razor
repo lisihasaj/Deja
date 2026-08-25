@@ -1,0 +1,33 @@
+@inherits DejaComponentBase
+@inject JsonPlaceholderApi Api
+
+@code {
+    // Declared on the middle base, not the leaf. The discovery scan walks up the hierarchy, so
+    // this is attached for every component that inherits this base.
+    protected readonly Query<TodoDto> Shared = new();
+
+    protected JsonPlaceholderApi Client => Api;
+
+    protected int Renders;
+
+    // Sealed so a leaf cannot break the base.OnInitialized() chain by forgetting to call through.
+    protected sealed override void OnInitialized()
+    {
+        base.OnInitialized();
+        Shared.Execute(DocsKeys.TodoDetail(1), t => Client.GetTodoAsync(1, t), p => p.OnError = _ => { });
+        OnPageInitialized();
+    }
+
+    protected virtual void OnPageInitialized()
+    {
+    }
+
+    // The middle base gets cleanup too — the leaf's override chains into this one.
+    protected override void Dispose()
+    {
+        BaseDisposeRan = true;
+        base.Dispose();
+    }
+
+    protected bool BaseDisposeRan;
+}

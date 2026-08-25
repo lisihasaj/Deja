@@ -1,0 +1,11 @@
+<div class="demo-panels">
+    <InheritedTodoPanel Title="Leaf A — todo" TodoId="1"/>
+    <InheritedUserPanel Title="Leaf B — user" UserId="2"/>
+</div>
+
+<p class="demo-note">
+    Neither leaf inherits <code>DejaComponentBase</code> directly — both inherit
+    <code>DemoPageBase</code>, which inherits it for them. The scan walks the whole hierarchy, so
+    the shared query on the middle base and each leaf's own query are all discovered and attached.
+    Each leaf still re-renders only for the state it owns.
+</p>

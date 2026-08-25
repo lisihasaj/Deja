@@ -330,17 +330,57 @@ public abstract class DejaComponentBase : ComponentBase, IAsyncDisposable
 
     // Skipping base.OnInitialized() compiles and renders once, then the component silently stops
     // reacting. Written to stderr, which the WebAssembly runtime surfaces as console.error.
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2072:Target parameter does not satisfy DynamicallyAccessedMembersAttribute",
+        Justification = "GetType() is annotated with All by the runtime for the instance's own type; " +
+                        "the base-type walk is covered by DeclaresOnInitialized's own annotation.")]
     private void ReportIfBaseOnInitializedSkipped()
     {
         if (_baseOnInitializedRan || _reportedBaseCallSkipped) return;
 
         _reportedBaseCallSkipped = true;
+
+        var componentType = GetType();
+
+        // Which override dropped the chain is not observable here — the stack is gone by now — so
+        // every override in the hierarchy is a candidate and all of them are named. With one level
+        // that is the single familiar type name; with a middle base it is the list to go audit,
+        // which beats naming the leaf when the break is one level up.
+        List<string> candidates = [];
+        for (var type = componentType; type is not null && type != typeof(DejaComponentBase); type = type.BaseType)
+        {
+            if (DeclaresOnInitialized(type))
+            {
+                candidates.Add(type.Name);
+            }
+        }
+
+        var where = candidates.Count switch
+        {
+            0 => componentType.Name,
+            1 => candidates[0],
+            _ => string.Join(" or ", candidates),
+        };
+
+        var subject = candidates.Count > 1 ? "override OnInitialized" : "overrides OnInitialized";
+
         Console.Error.WriteLine(
-            $"[Deja] {GetType().Name} overrides OnInitialized without calling base.OnInitialized(). " +
+            $"[Deja] {where} {subject} without calling base.OnInitialized(). " +
             "Declared Query/Mutation state was never attached, so this component will not re-render " +
-            "when that state changes. Call base.OnInitialized() first, or attach state explicitly " +
-            "with Observe().");
+            "when that state changes — including state declared on any other type in the hierarchy. " +
+            "Call base.OnInitialized() first, or attach state explicitly with Observe().");
     }
+
+    // Split out so the annotation applies to the walked type, including base types.
+    private static bool DeclaresOnInitialized(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicMethods)] Type type)
+        => type.GetMethod(
+            "OnInitialized",
+            BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.DeclaredOnly,
+            binder: null,
+            types: Type.EmptyTypes,
+            modifiers: null) is not null;
 
     /// <summary>
     /// Re-renders this component whenever <paramref name="state"/> changes, and detaches when the
