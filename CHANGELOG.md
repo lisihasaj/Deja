@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-25
+
+### Changed
+
+- The console error Deja reports when declared state is never attached — a component overriding
+  `OnInitialized` without calling `base.OnInitialized()` — now names every type in the hierarchy
+  that overrides `OnInitialized`, rather than only the concrete component. With a base class
+  between the component and `DejaComponentBase`, the break may be on any of them, and a leaf whose
+  own `base.OnInitialized()` call is already correct was previously the only type named. Which
+  override dropped the chain is not observable when the report runs, so all candidates are listed.
+  The message also now states that a break anywhere leaves the *whole* hierarchy unattached, not
+  just the type that broke it. Single-level components are unaffected: one override still yields
+  one name.
+
+### Added
+
+- Docs: "Inheriting through a middle base" in the Component base guide, covering the case where a
+  component inherits `DejaComponentBase` indirectly through an intermediate base class — state
+  discovery, the disposal guard and cleanup hooks all walk the type hierarchy, so a leaf behaves
+  exactly as if it had inherited `DejaComponentBase` directly. Includes a live demo and the
+  sealed-`OnInitialized` pattern, which makes the `base.OnInitialized()` chain unbreakable by
+  construction.
+
 ## [0.1.0] - 2026-08-16
 
 ### Added

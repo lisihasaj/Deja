@@ -1,0 +1,35 @@
+@inherits DemoPageBase
+
+<div class="demo-panel">
+    <h4>
+        @Title
+        <span class="render-counter">renders: @(++Renders)</span>
+    </h4>
+
+    <StateInspector Query="Shared" Label="Shared query (declared on the middle base)"/>
+    <StateInspector Query="_todo" Label="Own query (declared on this leaf)"/>
+
+    @if (_todo.Data is { } todo)
+    {
+        <p>#@todo.Id — @todo.Title</p>
+    }
+
+    <div class="demo-toolbar" style="margin-top:0.6rem">
+        <button class="demo-button" @onclick="() => _todo.Refetch()">Refetch own</button>
+        <button class="demo-button" @onclick="() => Shared.Refetch()">Refetch shared</button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Leaf";
+    [Parameter] public int TodoId { get; set; } = 1;
+
+    // Declared on the leaf. Discovered by the same scan that found the base's query.
+    private readonly Query<TodoDto> _todo = new();
+
+    // The base sealed OnInitialized, so this hook is where a leaf initialises — the
+    // base.OnInitialized() chain cannot be broken by forgetting to call through.
+    protected override void OnPageInitialized()
+        => _todo.Execute(DocsKeys.TodoDetail(TodoId), t => Client.GetTodoAsync(TodoId, t),
+            p => p.OnError = _ => { });
+}

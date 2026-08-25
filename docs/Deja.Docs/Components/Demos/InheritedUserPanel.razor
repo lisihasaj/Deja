@@ -1,0 +1,49 @@
+@inherits DemoPageBase
+
+<div class="demo-panel">
+    <h4>
+        @Title
+        <span class="render-counter">renders: @(++Renders)</span>
+    </h4>
+
+    <StateInspector Query="Shared" Label="Shared query (declared on the middle base)"/>
+    <StateInspector Query="_user" Label="Own query (declared on this leaf)"/>
+
+    @if (_user.Data is { } user)
+    {
+        <p>@user.Name (@user.Email)</p>
+    }
+
+    <div class="demo-toolbar" style="margin-top:0.6rem">
+        <button class="demo-button" @onclick="() => _user.Refetch()">Refetch own</button>
+        <button class="demo-button" @onclick="() => Shared.Refetch()">Refetch shared</button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Leaf";
+    [Parameter] public int UserId { get; set; } = 1;
+
+    private readonly Query<UserDto> _user = new();
+
+    protected override void OnPageInitialized()
+        => _user.Execute(DocsKeys.User(UserId), t => Client.GetUserAsync(UserId, t),
+            p => p.OnError = _ => { });
+
+    // Cleanup on an indirect descendant works exactly as it does one level down: override the
+    // hooks, chain to base — which runs the middle base's cleanup, then Deja's detaching.
+    protected override void Dispose()
+    {
+        _cleanup.Cancel();
+        _cleanup.Dispose();
+        base.Dispose();
+    }
+
+    protected override ValueTask DisposeAsync()
+    {
+        Console.WriteLine($"[demo] {Title} disposed (base cleanup ran: {BaseDisposeRan})");
+        return base.DisposeAsync();
+    }
+
+    private readonly CancellationTokenSource _cleanup = new();
+}

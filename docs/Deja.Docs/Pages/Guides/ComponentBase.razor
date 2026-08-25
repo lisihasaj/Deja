@@ -252,6 +252,40 @@
                 fix.</p>
         </Callout>
 
+        <h2 id="inheritance">Inheriting through a middle base</h2>
+        <p>
+            A component does not have to inherit <code>DejaComponentBase</code> directly. Put your own
+            base class in between — for a shared layout, a common query, an app-wide convention — and
+            every leaf that inherits it behaves exactly as if it had inherited Deja's base itself:
+        </p>
+        <CodeBlock Code="@ChainSample"/>
+        <p>
+            All three mechanisms walk the type hierarchy rather than looking only at the leaf, so depth
+            costs you nothing:
+        </p>
+        <ul>
+            <li><strong>Discovery</strong> scans every level, so state declared on the middle base and
+                state declared on the leaf are both attached — including <code>private</code> fields on
+                the base that the leaf cannot see.</li>
+            <li><strong>The disposal guard</strong> inspects the leaf first and then each base, so
+                <code>@("@implements IDisposable")</code> on a leaf still throws at construction, and the
+                message names the type that declared the offending method.</li>
+            <li><strong>Cleanup hooks</strong> chain: the leaf's <code>Dispose()</code> calls the middle
+                base's, which calls Deja's — then the base detaches state and disposes owned queries.</li>
+        </ul>
+
+        <Callout Type="Callout.CalloutType.Warning" Title="Every level must call base.OnInitialized()">
+            <p>The chain is what reaches Deja's scan. If any level overrides
+                <code>OnInitialized</code> without calling the base — the middle base included — nothing
+                is attached for <em>the whole chain</em>, not just that level. Deja reports it once as a
+                <code>console.error</code> naming every type in the hierarchy that overrides
+                <code>OnInitialized</code>, so the list is exactly the set of files to audit.</p>
+            <p>The reliable fix is to seal it. Have the middle base override
+                <code>OnInitialized</code> as <code>sealed</code> and expose its own virtual hook; leaves
+                then override the hook and <em>cannot</em> break the chain. That is the shape the demo
+                below uses.</p>
+        </Callout>
+
         <h2>Live demo</h2>
     </En>
     <De>
@@ -265,12 +299,54 @@
                 <code>InvalidOperationException</code>, die die Lösung benennt.</p>
         </Callout>
 
+        <h2 id="inheritance">Vererbung über eine Zwischen-Basisklasse</h2>
+        <p>
+            Eine Komponente muss <code>DejaComponentBase</code> nicht direkt erben. Setze deine eigene
+            Basisklasse dazwischen — für ein gemeinsames Layout, eine gemeinsame Query, eine appweite
+            Konvention — und jedes Blatt, das sie erbt, verhält sich genau so, als hätte es Dejas
+            Basisklasse selbst geerbt:
+        </p>
+        <CodeBlock Code="@ChainSample"/>
+        <p>
+            Alle drei Mechanismen laufen die Typhierarchie entlang und betrachten nicht nur das Blatt —
+            die Tiefe kostet dich also nichts:
+        </p>
+        <ul>
+            <li><strong>Die Entdeckung</strong> scannt jede Ebene: Zustand auf der Zwischen-Basisklasse
+                und Zustand auf dem Blatt werden beide angehängt — auch <code>private</code>-Felder der
+                Basisklasse, die das Blatt gar nicht sieht.</li>
+            <li><strong>Die Disposal-Leitplanke</strong> prüft zuerst das Blatt und dann jede
+                Basisklasse: <code>@("@implements IDisposable")</code> auf einem Blatt wirft weiterhin
+                im Konstruktor, und die Meldung benennt den Typ, der die Methode deklariert hat.</li>
+            <li><strong>Die Cleanup-Hooks</strong> verketten sich: Das <code>Dispose()</code> des
+                Blatts ruft das der Zwischen-Basisklasse auf, dieses ruft Dejas auf — danach löst die
+                Basisklasse den Zustand und disposed die eigenen Queries.</li>
+        </ul>
+
+        <Callout Type="Callout.CalloutType.Warning" Title="Jede Ebene muss base.OnInitialized() aufrufen">
+            <p>Die Aufrufkette ist das, was Dejas Scan erreicht. Wenn irgendeine Ebene
+                <code>OnInitialized</code> überschreibt, ohne die Basisklasse aufzurufen — auch die
+                Zwischen-Basisklasse — wird für <em>die gesamte Kette</em> nichts angehängt, nicht nur
+                für diese Ebene. Deja meldet das einmalig als <code>console.error</code> und benennt
+                dabei jeden Typ der Hierarchie, der <code>OnInitialized</code> überschreibt — die Liste
+                ist also genau die Menge der zu prüfenden Dateien.</p>
+            <p>Der verlässliche Fix ist, es zu versiegeln: Lass die Zwischen-Basisklasse
+                <code>OnInitialized</code> als <code>sealed</code> überschreiben und einen eigenen
+                virtuellen Hook anbieten; die Blätter überschreiben dann den Hook und können die Kette
+                <em>nicht</em> brechen. Genau diese Form nutzt die Demo unten.</p>
+        </Callout>
+
         <h2>Live-Demo</h2>
     </De>
 </Localized>
 
 <DemoCard Title='@T("Discovery, Observe() and render isolation", "Entdeckung, Observe() und Render-Isolation")' SourceFiles="@(new[] { "ComponentBaseDemo.razor" })">
     <ComponentBaseDemo/>
+</DemoCard>
+
+<DemoCard Title='@T("Inheriting through a middle base", "Vererbung über eine Zwischen-Basisklasse")'
+          SourceFiles="@(new[] { "DemoPageBase.razor", "InheritedTodoPanel.razor", "InheritedUserPanel.razor", "InheritedBaseDemo.razor" })">
+    <InheritedBaseDemo/>
 </DemoCard>
 
 @code {
@@ -291,6 +367,40 @@ private Task ShowDetail(int id)
 {
     _detail = Observe(new Query<Detail>());
     return _detail.Execute(QueryKey.Of("detail", id), t => Api.GetDetailAsync(id, t));
+}
+""";
+
+    private const string ChainSample = """
+// The middle base — inherits Deja's base once, on behalf of every page.
+public abstract class DemoPageBase : DejaComponentBase
+{
+    // Declared here, discovered for every leaf that inherits this base.
+    protected readonly Query<TodoDto> Shared = new();
+
+    // Sealed: a leaf cannot break the base.OnInitialized() chain by forgetting to call through.
+    protected sealed override void OnInitialized()
+    {
+        base.OnInitialized();
+        OnPageInitialized();
+    }
+
+    protected virtual void OnPageInitialized() { }
+}
+
+// The leaf — inherits DejaComponentBase indirectly, and behaves identically.
+@inherits DemoPageBase
+
+@code {
+    private readonly Query<UserDto> _user = new();   // discovered too
+
+    protected override void OnPageInitialized()
+        => _user.Execute(DocsKeys.User(UserId), t => Api.GetUserAsync(UserId, t));
+
+    protected override void Dispose()
+    {
+        _cleanup.Dispose();
+        base.Dispose();   // runs DemoPageBase's cleanup, then Deja's
+    }
 }
 """;
 
