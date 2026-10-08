@@ -10,8 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="10.0.1" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+    <PackageReference Include="coverlet.collector" Version="10.1.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" PrivateAssets="all" />
   </ItemGroup>
@@ -20,7 +20,7 @@
        compile on the net10.0 leg alone. The net8.0 leg still covers Query, Mutation and
        DejaObservable, which are pure BCL. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <PackageReference Include="bunit" Version="2.9.0" />
+    <PackageReference Include="bunit" Version="2.11.3" />
   </ItemGroup>
 
   <ItemGroup>
